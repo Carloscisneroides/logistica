@@ -5,6 +5,8 @@ import {
   ecommerceCustomers, products, ecommerceOrders, orderItems, marketplaceIntegrations,
   marketplaceCategories, marketplaceListings, marketplaceVisibility, marketplaceOrders, 
   marketplaceOrderItems, marketplaceReviews,
+  fidelitySettings, fidelityCards, fidelityWallets, fidelityWalletTransactions, fidelityOffers,
+  fidelityRedemptions, sponsors, promoterProfiles, promoterKpis, fidelityAiProfiles, fidelityAiLogs,
   type User, type InsertUser, type Client, type InsertClient, type Tenant, type InsertTenant,
   type CourierModule, type InsertCourierModule, type Shipment, type InsertShipment,
   type Invoice, type InsertInvoice, type Correction, type InsertCorrection,
@@ -19,10 +21,16 @@ import {
   type OrderItem, type InsertOrderItem, type MarketplaceIntegration, type InsertMarketplaceIntegration,
   type MarketplaceCategory, type InsertMarketplaceCategory, type MarketplaceListing, type InsertMarketplaceListing,
   type MarketplaceVisibility, type InsertMarketplaceVisibility, type MarketplaceOrder, type InsertMarketplaceOrder,
-  type MarketplaceOrderItem, type InsertMarketplaceOrderItem, type MarketplaceReview, type InsertMarketplaceReview
+  type MarketplaceOrderItem, type InsertMarketplaceOrderItem, type MarketplaceReview, type InsertMarketplaceReview,
+  type FidelitySettings, type InsertFidelitySettings, type FidelityCard, type InsertFidelityCard,
+  type FidelityWallet, type InsertFidelityWallet, type FidelityWalletTransaction, type InsertFidelityWalletTransaction,
+  type FidelityOffer, type InsertFidelityOffer, type FidelityRedemption, type InsertFidelityRedemption,
+  type Sponsor, type InsertSponsor, type PromoterProfile, type InsertPromoterProfile,
+  type PromoterKpi, type InsertPromoterKpi, type FidelityAiProfile, type InsertFidelityAiProfile,
+  type FidelityAiLog, type InsertFidelityAiLog
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, or, desc, sql, isNull } from "drizzle-orm";
+import { eq, and, or, not, desc, sql, isNull } from "drizzle-orm";
 import session, { SessionOptions } from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -215,6 +223,97 @@ export interface IStorage {
     totalCustomers: number;
     monthlyRevenue: number;
     topProducts: Array<{id: string; name: string; sales: number}>;
+  }>;
+
+  // ======== FIDELITY CARD MODULE METHODS ========
+
+  // Fidelity Settings
+  getFidelitySettings(tenantId: string): Promise<FidelitySettings | undefined>;
+  createFidelitySettings(settings: InsertFidelitySettings): Promise<FidelitySettings>;
+  updateFidelitySettings(tenantId: string, updates: Partial<FidelitySettings>): Promise<FidelitySettings>;
+
+  // Fidelity Cards
+  getFidelityCard(id: string): Promise<FidelityCard | undefined>;
+  getFidelityCardByCode(code: string, tenantId: string): Promise<FidelityCard | undefined>;
+  getFidelityCardByCustomer(customerId: string, tenantId: string): Promise<FidelityCard | undefined>;
+  getFidelityCardsByTenant(tenantId: string): Promise<FidelityCard[]>;
+  createFidelityCard(card: InsertFidelityCard): Promise<FidelityCard>;
+  updateFidelityCard(id: string, updates: Partial<FidelityCard>): Promise<FidelityCard>;
+
+  // Fidelity Wallets
+  getFidelityWallet(id: string): Promise<FidelityWallet | undefined>;
+  getFidelityWalletByCard(cardId: string): Promise<FidelityWallet | undefined>;
+  createFidelityWallet(wallet: InsertFidelityWallet): Promise<FidelityWallet>;
+  updateFidelityWallet(id: string, updates: Partial<FidelityWallet>): Promise<FidelityWallet>;
+
+  // Fidelity Wallet Transactions
+  getFidelityWalletTransaction(id: string): Promise<FidelityWalletTransaction | undefined>;
+  getFidelityWalletTransactionsByCard(cardId: string): Promise<FidelityWalletTransaction[]>;
+  getFidelityWalletTransactionsByWallet(walletId: string): Promise<FidelityWalletTransaction[]>;
+  createFidelityWalletTransaction(transaction: InsertFidelityWalletTransaction): Promise<FidelityWalletTransaction>;
+
+  // Fidelity Offers
+  getFidelityOffer(id: string): Promise<FidelityOffer | undefined>;
+  getFidelityOffersByTenant(tenantId: string): Promise<FidelityOffer[]>;
+  getFidelityOffersByMerchant(merchantId: string, tenantId: string): Promise<FidelityOffer[]>;
+  getFidelityActiveOffers(tenantId: string, geofence?: any): Promise<FidelityOffer[]>;
+  createFidelityOffer(offer: InsertFidelityOffer): Promise<FidelityOffer>;
+  updateFidelityOffer(id: string, updates: Partial<FidelityOffer>): Promise<FidelityOffer>;
+
+  // Fidelity Redemptions
+  getFidelityRedemption(id: string): Promise<FidelityRedemption | undefined>;
+  getFidelityRedemptionsByCard(cardId: string): Promise<FidelityRedemption[]>;
+  getFidelityRedemptionsByTenant(tenantId: string): Promise<FidelityRedemption[]>;
+  getFidelityRedemptionsByMerchant(merchantId: string, tenantId: string): Promise<FidelityRedemption[]>;
+  createFidelityRedemption(redemption: InsertFidelityRedemption): Promise<FidelityRedemption>;
+  updateFidelityRedemption(id: string, updates: Partial<FidelityRedemption>): Promise<FidelityRedemption>;
+
+  // Sponsors
+  getSponsor(id: string): Promise<Sponsor | undefined>;
+  getSponsorsByTenant(tenantId: string): Promise<Sponsor[]>;
+  getActiveSponsor(tenantId?: string): Promise<Sponsor | undefined>;
+  createSponsor(sponsor: InsertSponsor): Promise<Sponsor>;
+  updateSponsor(id: string, updates: Partial<Sponsor>): Promise<Sponsor>;
+
+  // Promoter Profiles
+  getPromoterProfile(id: string): Promise<PromoterProfile | undefined>;
+  getPromoterProfileByUser(userId: string, tenantId: string): Promise<PromoterProfile | undefined>;
+  getPromoterProfilesByTenant(tenantId: string): Promise<PromoterProfile[]>;
+  getPromoterProfilesByArea(area: any, tenantId: string): Promise<PromoterProfile[]>;
+  createPromoterProfile(profile: InsertPromoterProfile): Promise<PromoterProfile>;
+  updatePromoterProfile(id: string, updates: Partial<PromoterProfile>): Promise<PromoterProfile>;
+
+  // Promoter KPIs
+  getPromoterKpi(id: string): Promise<PromoterKpi | undefined>;
+  getPromoterKpisByPromoter(promoterId: string): Promise<PromoterKpi[]>;
+  getPromoterKpisByPeriod(promoterId: string, period: string): Promise<PromoterKpi | undefined>;
+  createPromoterKpi(kpi: InsertPromoterKpi): Promise<PromoterKpi>;
+  updatePromoterKpi(id: string, updates: Partial<PromoterKpi>): Promise<PromoterKpi>;
+
+  // Fidelity AI Profiles
+  getFidelityAiProfile(id: string): Promise<FidelityAiProfile | undefined>;
+  getFidelityAiProfileByCard(cardId: string): Promise<FidelityAiProfile | undefined>;
+  createFidelityAiProfile(profile: InsertFidelityAiProfile): Promise<FidelityAiProfile>;
+  updateFidelityAiProfile(id: string, updates: Partial<FidelityAiProfile>): Promise<FidelityAiProfile>;
+
+  // Fidelity AI Logs
+  getFidelityAiLog(id: string): Promise<FidelityAiLog | undefined>;
+  getFidelityAiLogsByTenant(tenantId: string): Promise<FidelityAiLog[]>;
+  getFidelityAiLogsByEntity(entityId: string, entityType: string): Promise<FidelityAiLog[]>;
+  createFidelityAiLog(log: InsertFidelityAiLog): Promise<FidelityAiLog>;
+
+  // Fidelity Dashboard Stats
+  getFidelityDashboardStats(tenantId: string): Promise<{
+    totalCards: number;
+    activeCards: number;
+    totalOffers: number;
+    activeOffers: number;
+    totalRedemptions: number;
+    monthlyRedemptions: number;
+    totalCashback: number;
+    activeSponsors: number;
+    topMerchants: Array<{id: string; name: string; redemptions: number}>;
+    promoterStats: Array<{id: string; name: string; cardsDistributed: number; conversions: number}>;
   }>;
   
   sessionStore: session.Store;
@@ -1222,17 +1321,27 @@ export class DatabaseStorage implements IStorage {
 
   async getMarketplaceOrder(id: string, tenantId: string, userId?: string): Promise<MarketplaceOrder | undefined> {
     const [order] = await db.select().from(marketplaceOrders)
-      .where(and(
-        eq(marketplaceOrders.id, id),
-        or(
-          eq(marketplaceOrders.buyerTenantId, tenantId),
-          eq(marketplaceOrders.sellerTenantId, tenantId)
-        ),
-        userId ? or(
-          eq(marketplaceOrders.buyerId, userId),
-          eq(marketplaceOrders.sellerId, userId)
-        ) : undefined
-      ));
+      .where(
+        userId
+          ? and(
+              eq(marketplaceOrders.id, id),
+              or(
+                eq(marketplaceOrders.buyerTenantId, tenantId),
+                eq(marketplaceOrders.sellerTenantId, tenantId)
+              ),
+              or(
+                eq(marketplaceOrders.buyerId, userId),
+                eq(marketplaceOrders.sellerId, userId)
+              )
+            )
+          : and(
+              eq(marketplaceOrders.id, id),
+              or(
+                eq(marketplaceOrders.buyerTenantId, tenantId),
+                eq(marketplaceOrders.sellerTenantId, tenantId)
+              )
+            )
+      );
     return order || undefined;
   }
 
@@ -1309,8 +1418,8 @@ export class DatabaseStorage implements IStorage {
     if (result) {
       await db.update(marketplaceListings)
         .set({
-          rating: result.avgRating ? parseFloat(result.avgRating.toFixed(2)) : null,
-          reviewCount: result.reviewCount
+          rating: result.avgRating ? Number(result.avgRating.toFixed(2)) : null,
+          reviewCount: Number(result.reviewCount)
         })
         .where(eq(marketplaceListings.id, listingId));
     }
@@ -1393,6 +1502,460 @@ export class DatabaseStorage implements IStorage {
         id: c.id,
         name: c.name,
         listingCount: parseInt(String(c.listingCount))
+      }))
+    };
+  }
+
+  // ======== FIDELITY CARD MODULE IMPLEMENTATION ========
+
+  // Fidelity Settings
+  async getFidelitySettings(tenantId: string): Promise<FidelitySettings | undefined> {
+    const [settings] = await db.select().from(fidelitySettings).where(eq(fidelitySettings.tenantId, tenantId));
+    return settings || undefined;
+  }
+
+  async createFidelitySettings(settings: InsertFidelitySettings): Promise<FidelitySettings> {
+    const [created] = await db.insert(fidelitySettings).values(settings).returning();
+    return created;
+  }
+
+  async updateFidelitySettings(tenantId: string, updates: Partial<FidelitySettings>): Promise<FidelitySettings> {
+    const [updated] = await db.update(fidelitySettings).set(updates).where(eq(fidelitySettings.tenantId, tenantId)).returning();
+    return updated;
+  }
+
+  // Fidelity Cards
+  async getFidelityCard(id: string): Promise<FidelityCard | undefined> {
+    const [card] = await db.select().from(fidelityCards).where(eq(fidelityCards.id, id));
+    return card || undefined;
+  }
+
+  async getFidelityCardByCode(code: string, tenantId: string): Promise<FidelityCard | undefined> {
+    const [card] = await db.select().from(fidelityCards)
+      .where(and(eq(fidelityCards.code, code), eq(fidelityCards.tenantId, tenantId)));
+    return card || undefined;
+  }
+
+  async getFidelityCardByCustomer(customerId: string, tenantId: string): Promise<FidelityCard | undefined> {
+    const [card] = await db.select().from(fidelityCards)
+      .where(and(eq(fidelityCards.customerId, customerId), eq(fidelityCards.tenantId, tenantId)));
+    return card || undefined;
+  }
+
+  async getFidelityCardsByTenant(tenantId: string): Promise<FidelityCard[]> {
+    return db.select().from(fidelityCards).where(eq(fidelityCards.tenantId, tenantId));
+  }
+
+  async createFidelityCard(card: InsertFidelityCard): Promise<FidelityCard> {
+    const [created] = await db.insert(fidelityCards).values(card).returning();
+    return created;
+  }
+
+  async updateFidelityCard(id: string, updates: Partial<FidelityCard>): Promise<FidelityCard> {
+    const [updated] = await db.update(fidelityCards).set(updates).where(eq(fidelityCards.id, id)).returning();
+    return updated;
+  }
+
+  // Fidelity Wallets
+  async getFidelityWallet(id: string): Promise<FidelityWallet | undefined> {
+    const [wallet] = await db.select().from(fidelityWallets).where(eq(fidelityWallets.id, id));
+    return wallet || undefined;
+  }
+
+  async getFidelityWalletByCard(cardId: string): Promise<FidelityWallet | undefined> {
+    const [wallet] = await db.select().from(fidelityWallets).where(eq(fidelityWallets.cardId, cardId));
+    return wallet || undefined;
+  }
+
+  async createFidelityWallet(wallet: InsertFidelityWallet): Promise<FidelityWallet> {
+    const [created] = await db.insert(fidelityWallets).values(wallet).returning();
+    return created;
+  }
+
+  async updateFidelityWallet(id: string, updates: Partial<FidelityWallet>): Promise<FidelityWallet> {
+    const [updated] = await db.update(fidelityWallets).set(updates).where(eq(fidelityWallets.id, id)).returning();
+    return updated;
+  }
+
+  // Fidelity Wallet Transactions
+  async getFidelityWalletTransaction(id: string): Promise<FidelityWalletTransaction | undefined> {
+    const [transaction] = await db.select().from(fidelityWalletTransactions).where(eq(fidelityWalletTransactions.id, id));
+    return transaction || undefined;
+  }
+
+  async getFidelityWalletTransactionsByCard(cardId: string): Promise<FidelityWalletTransaction[]> {
+    return db.select().from(fidelityWalletTransactions)
+      .where(eq(fidelityWalletTransactions.cardId, cardId))
+      .orderBy(desc(fidelityWalletTransactions.createdAt));
+  }
+
+  async getFidelityWalletTransactionsByWallet(walletId: string): Promise<FidelityWalletTransaction[]> {
+    return db.select().from(fidelityWalletTransactions)
+      .where(eq(fidelityWalletTransactions.walletId, walletId))
+      .orderBy(desc(fidelityWalletTransactions.createdAt));
+  }
+
+  async createFidelityWalletTransaction(transaction: InsertFidelityWalletTransaction): Promise<FidelityWalletTransaction> {
+    const [created] = await db.insert(fidelityWalletTransactions).values(transaction).returning();
+    return created;
+  }
+
+  // Fidelity Offers
+  async getFidelityOffer(id: string): Promise<FidelityOffer | undefined> {
+    const [offer] = await db.select().from(fidelityOffers).where(eq(fidelityOffers.id, id));
+    return offer || undefined;
+  }
+
+  async getFidelityOffersByTenant(tenantId: string): Promise<FidelityOffer[]> {
+    return db.select().from(fidelityOffers)
+      .where(eq(fidelityOffers.tenantId, tenantId))
+      .orderBy(desc(fidelityOffers.createdAt));
+  }
+
+  async getFidelityOffersByMerchant(merchantId: string, tenantId: string): Promise<FidelityOffer[]> {
+    return db.select().from(fidelityOffers)
+      .where(and(eq(fidelityOffers.merchantId, merchantId), eq(fidelityOffers.tenantId, tenantId)))
+      .orderBy(desc(fidelityOffers.createdAt));
+  }
+
+  async getFidelityActiveOffers(tenantId: string, geofence?: any): Promise<FidelityOffer[]> {
+    const conditions = [
+      eq(fidelityOffers.tenantId, tenantId),
+      eq(fidelityOffers.status, "active"),
+      sql`${fidelityOffers.startAt} <= NOW()`,
+      or(isNull(fidelityOffers.endAt), sql`${fidelityOffers.endAt} > NOW()`)
+    ];
+    
+    return db.select().from(fidelityOffers)
+      .where(and(...conditions))
+      .orderBy(desc(fidelityOffers.createdAt));
+  }
+
+  async createFidelityOffer(offer: InsertFidelityOffer): Promise<FidelityOffer> {
+    const [created] = await db.insert(fidelityOffers).values(offer).returning();
+    return created;
+  }
+
+  async updateFidelityOffer(id: string, updates: Partial<FidelityOffer>): Promise<FidelityOffer> {
+    const [updated] = await db.update(fidelityOffers).set(updates).where(eq(fidelityOffers.id, id)).returning();
+    return updated;
+  }
+
+  // Fidelity Redemptions
+  async getFidelityRedemption(id: string): Promise<FidelityRedemption | undefined> {
+    const [redemption] = await db.select().from(fidelityRedemptions).where(eq(fidelityRedemptions.id, id));
+    return redemption || undefined;
+  }
+
+  async getFidelityRedemptionsByCard(cardId: string): Promise<FidelityRedemption[]> {
+    return db.select().from(fidelityRedemptions)
+      .where(eq(fidelityRedemptions.cardId, cardId))
+      .orderBy(desc(fidelityRedemptions.redeemedAt));
+  }
+
+  async getFidelityRedemptionsByTenant(tenantId: string): Promise<FidelityRedemption[]> {
+    return db.select().from(fidelityRedemptions)
+      .where(eq(fidelityRedemptions.tenantId, tenantId))
+      .orderBy(desc(fidelityRedemptions.redeemedAt));
+  }
+
+  async getFidelityRedemptionsByMerchant(merchantId: string, tenantId: string): Promise<FidelityRedemption[]> {
+    return db.select().from(fidelityRedemptions)
+      .where(and(eq(fidelityRedemptions.merchantClientId, merchantId), eq(fidelityRedemptions.tenantId, tenantId)))
+      .orderBy(desc(fidelityRedemptions.redeemedAt));
+  }
+
+  async createFidelityRedemption(redemption: InsertFidelityRedemption): Promise<FidelityRedemption> {
+    const [created] = await db.insert(fidelityRedemptions).values(redemption).returning();
+    return created;
+  }
+
+  async updateFidelityRedemption(id: string, updates: Partial<FidelityRedemption>): Promise<FidelityRedemption> {
+    const [updated] = await db.update(fidelityRedemptions).set(updates).where(eq(fidelityRedemptions.id, id)).returning();
+    return updated;
+  }
+
+  // Sponsors
+  async getSponsor(id: string): Promise<Sponsor | undefined> {
+    const [sponsor] = await db.select().from(sponsors).where(eq(sponsors.id, id));
+    return sponsor || undefined;
+  }
+
+  async getSponsorsByTenant(tenantId: string): Promise<Sponsor[]> {
+    return db.select().from(sponsors)
+      .where(eq(sponsors.tenantId, tenantId))
+      .orderBy(desc(sponsors.createdAt));
+  }
+
+  async getActiveSponsor(tenantId?: string): Promise<Sponsor | undefined> {
+    const conditions = [
+      eq(sponsors.isActive, true),
+      sql`${sponsors.validFrom} <= NOW()`,
+      or(isNull(sponsors.validTo), sql`${sponsors.validTo} > NOW()`)
+    ];
+
+    if (tenantId) {
+      conditions.push(eq(sponsors.tenantId, tenantId));
+    }
+
+    const [sponsor] = await db.select().from(sponsors)
+      .where(and(...conditions))
+      .orderBy(desc(sponsors.createdAt));
+    return sponsor || undefined;
+  }
+
+  async createSponsor(sponsor: InsertSponsor): Promise<Sponsor> {
+    const [created] = await db.insert(sponsors).values(sponsor).returning();
+    return created;
+  }
+
+  async updateSponsor(id: string, updates: Partial<Sponsor>): Promise<Sponsor> {
+    const [updated] = await db.update(sponsors).set(updates).where(eq(sponsors.id, id)).returning();
+    return updated;
+  }
+
+  // Promoter Profiles
+  async getPromoterProfile(id: string): Promise<PromoterProfile | undefined> {
+    const [profile] = await db.select().from(promoterProfiles).where(eq(promoterProfiles.id, id));
+    return profile || undefined;
+  }
+
+  async getPromoterProfileByUser(userId: string, tenantId: string): Promise<PromoterProfile | undefined> {
+    const [profile] = await db.select().from(promoterProfiles)
+      .where(and(eq(promoterProfiles.userId, userId), eq(promoterProfiles.tenantId, tenantId)));
+    return profile || undefined;
+  }
+
+  async getPromoterProfilesByTenant(tenantId: string): Promise<PromoterProfile[]> {
+    return db.select().from(promoterProfiles)
+      .where(eq(promoterProfiles.tenantId, tenantId))
+      .orderBy(desc(promoterProfiles.createdAt));
+  }
+
+  async getPromoterProfilesByArea(area: any, tenantId: string): Promise<PromoterProfile[]> {
+    return db.select().from(promoterProfiles)
+      .where(and(eq(promoterProfiles.tenantId, tenantId), eq(promoterProfiles.isActive, true)))
+      .orderBy(desc(promoterProfiles.createdAt));
+  }
+
+  async createPromoterProfile(profile: InsertPromoterProfile): Promise<PromoterProfile> {
+    const [created] = await db.insert(promoterProfiles).values(profile).returning();
+    return created;
+  }
+
+  async updatePromoterProfile(id: string, updates: Partial<PromoterProfile>): Promise<PromoterProfile> {
+    const [updated] = await db.update(promoterProfiles).set(updates).where(eq(promoterProfiles.id, id)).returning();
+    return updated;
+  }
+
+  // Promoter KPIs
+  async getPromoterKpi(id: string): Promise<PromoterKpi | undefined> {
+    const [kpi] = await db.select().from(promoterKpis).where(eq(promoterKpis.id, id));
+    return kpi || undefined;
+  }
+
+  async getPromoterKpisByPromoter(promoterId: string): Promise<PromoterKpi[]> {
+    return db.select().from(promoterKpis)
+      .where(eq(promoterKpis.promoterId, promoterId))
+      .orderBy(desc(promoterKpis.period));
+  }
+
+  async getPromoterKpisByPeriod(promoterId: string, period: string): Promise<PromoterKpi | undefined> {
+    const [kpi] = await db.select().from(promoterKpis)
+      .where(and(eq(promoterKpis.promoterId, promoterId), eq(promoterKpis.period, period)));
+    return kpi || undefined;
+  }
+
+  async createPromoterKpi(kpi: InsertPromoterKpi): Promise<PromoterKpi> {
+    const [created] = await db.insert(promoterKpis).values(kpi).returning();
+    return created;
+  }
+
+  async updatePromoterKpi(id: string, updates: Partial<PromoterKpi>): Promise<PromoterKpi> {
+    const [updated] = await db.update(promoterKpis).set(updates).where(eq(promoterKpis.id, id)).returning();
+    return updated;
+  }
+
+  // Fidelity AI Profiles
+  async getFidelityAiProfile(id: string): Promise<FidelityAiProfile | undefined> {
+    const [profile] = await db.select().from(fidelityAiProfiles).where(eq(fidelityAiProfiles.id, id));
+    return profile || undefined;
+  }
+
+  async getFidelityAiProfileByCard(cardId: string): Promise<FidelityAiProfile | undefined> {
+    const [profile] = await db.select().from(fidelityAiProfiles)
+      .where(eq(fidelityAiProfiles.cardId, cardId));
+    return profile || undefined;
+  }
+
+  async createFidelityAiProfile(profile: InsertFidelityAiProfile): Promise<FidelityAiProfile> {
+    const [created] = await db.insert(fidelityAiProfiles).values(profile).returning();
+    return created;
+  }
+
+  async updateFidelityAiProfile(id: string, updates: Partial<FidelityAiProfile>): Promise<FidelityAiProfile> {
+    const [updated] = await db.update(fidelityAiProfiles).set(updates).where(eq(fidelityAiProfiles.id, id)).returning();
+    return updated;
+  }
+
+  // Fidelity AI Logs
+  async getFidelityAiLog(id: string): Promise<FidelityAiLog | undefined> {
+    const [log] = await db.select().from(fidelityAiLogs).where(eq(fidelityAiLogs.id, id));
+    return log || undefined;
+  }
+
+  async getFidelityAiLogsByTenant(tenantId: string): Promise<FidelityAiLog[]> {
+    return db.select().from(fidelityAiLogs)
+      .where(eq(fidelityAiLogs.tenantId, tenantId))
+      .orderBy(desc(fidelityAiLogs.createdAt));
+  }
+
+  async getFidelityAiLogsByEntity(entityId: string, entityType: string): Promise<FidelityAiLog[]> {
+    return db.select().from(fidelityAiLogs)
+      .where(and(eq(fidelityAiLogs.entityId, entityId), eq(fidelityAiLogs.entityType, entityType)))
+      .orderBy(desc(fidelityAiLogs.createdAt));
+  }
+
+  async createFidelityAiLog(log: InsertFidelityAiLog): Promise<FidelityAiLog> {
+    const [created] = await db.insert(fidelityAiLogs).values(log).returning();
+    return created;
+  }
+
+  // Fidelity Dashboard Stats
+  async getFidelityDashboardStats(tenantId: string): Promise<{
+    totalCards: number;
+    activeCards: number;
+    totalOffers: number;
+    activeOffers: number;
+    totalRedemptions: number;
+    monthlyRedemptions: number;
+    totalCashback: number;
+    activeSponsors: number;
+    topMerchants: Array<{id: string; name: string; redemptions: number}>;
+    promoterStats: Array<{id: string; name: string; cardsDistributed: number; conversions: number}>;
+  }> {
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    // Total cards
+    const [totalCardsResult] = await db.select({
+      count: sql`count(*)`
+    }).from(fidelityCards).where(eq(fidelityCards.tenantId, tenantId));
+
+    // Active cards (with activity in last 30 days)
+    const [activeCardsResult] = await db.select({
+      count: sql`count(distinct ${fidelityCards.id})`
+    })
+    .from(fidelityCards)
+    .leftJoin(fidelityWalletTransactions, eq(fidelityCards.id, fidelityWalletTransactions.cardId))
+    .where(and(
+      eq(fidelityCards.tenantId, tenantId),
+      sql`${fidelityWalletTransactions.createdAt} >= ${startOfMonth}`
+    ));
+
+    // Total offers
+    const [totalOffersResult] = await db.select({
+      count: sql`count(*)`
+    }).from(fidelityOffers).where(eq(fidelityOffers.tenantId, tenantId));
+
+    // Active offers
+    const [activeOffersResult] = await db.select({
+      count: sql`count(*)`
+    })
+    .from(fidelityOffers)
+    .where(and(
+      eq(fidelityOffers.tenantId, tenantId),
+      eq(fidelityOffers.status, "active"),
+      sql`${fidelityOffers.startAt} <= NOW()`,
+      or(isNull(fidelityOffers.endAt), sql`${fidelityOffers.endAt} > NOW()`)
+    ));
+
+    // Total redemptions
+    const [totalRedemptionsResult] = await db.select({
+      count: sql`count(*)`
+    }).from(fidelityRedemptions).where(eq(fidelityRedemptions.tenantId, tenantId));
+
+    // Monthly redemptions
+    const [monthlyRedemptionsResult] = await db.select({
+      count: sql`count(*)`
+    })
+    .from(fidelityRedemptions)
+    .where(and(
+      eq(fidelityRedemptions.tenantId, tenantId),
+      sql`${fidelityRedemptions.redeemedAt} >= ${startOfMonth}`
+    ));
+
+    // Total cashback
+    const [totalCashbackResult] = await db.select({
+      sum: sql<number>`COALESCE(SUM(${fidelityWalletTransactions.points}), 0)`
+    })
+    .from(fidelityWalletTransactions)
+    .leftJoin(fidelityCards, eq(fidelityWalletTransactions.cardId, fidelityCards.id))
+    .where(and(
+      eq(fidelityCards.tenantId, tenantId),
+      eq(fidelityWalletTransactions.type, "earned")
+    ));
+
+    // Active sponsors
+    const [activeSponsorsResult] = await db.select({
+      count: sql`count(*)`
+    })
+    .from(sponsors)
+    .where(and(
+      or(isNull(sponsors.tenantId), eq(sponsors.tenantId, tenantId)),
+      eq(sponsors.isActive, true),
+      sql`${sponsors.validFrom} <= NOW()`,
+      or(isNull(sponsors.validTo), sql`${sponsors.validTo} > NOW()`)
+    ));
+
+    // Top merchants by redemptions
+    const topMerchantsResults = await db.select({
+      id: fidelityRedemptions.merchantClientId,
+      name: sql<string>`COALESCE(clients.name, 'Unknown Merchant')`,
+      redemptions: sql`count(*)`
+    })
+    .from(fidelityRedemptions)
+    .leftJoin(clients, eq(fidelityRedemptions.merchantClientId, clients.id))
+    .where(eq(fidelityRedemptions.tenantId, tenantId))
+    .groupBy(fidelityRedemptions.merchantClientId, sql`clients.name`)
+    .orderBy(desc(sql`count(*)`))
+    .limit(5);
+
+    // Promoter stats
+    const promoterStatsResults = await db.select({
+      id: promoterProfiles.id,
+      name: promoterProfiles.name,
+      cardsDistributed: promoterProfiles.cardsDistributed,
+      conversions: promoterProfiles.conversions
+    })
+    .from(promoterProfiles)
+    .where(and(
+      eq(promoterProfiles.tenantId, tenantId),
+      eq(promoterProfiles.isActive, true)
+    ))
+    .orderBy(desc(promoterProfiles.cardsDistributed))
+    .limit(5);
+
+    return {
+      totalCards: parseInt(String(totalCardsResult?.count || 0)),
+      activeCards: parseInt(String(activeCardsResult?.count || 0)),
+      totalOffers: parseInt(String(totalOffersResult?.count || 0)),
+      activeOffers: parseInt(String(activeOffersResult?.count || 0)),
+      totalRedemptions: parseInt(String(totalRedemptionsResult?.count || 0)),
+      monthlyRedemptions: parseInt(String(monthlyRedemptionsResult?.count || 0)),
+      totalCashback: parseFloat(String(totalCashbackResult?.sum || 0)),
+      activeSponsors: parseInt(String(activeSponsorsResult?.count || 0)),
+      topMerchants: topMerchantsResults.map(m => ({
+        id: m.id || 'unknown',
+        name: m.name || 'Unknown Merchant',
+        redemptions: parseInt(String(m.redemptions))
+      })),
+      promoterStats: promoterStatsResults.map(p => ({
+        id: p.id,
+        name: p.name,
+        cardsDistributed: p.cardsDistributed,
+        conversions: p.conversions
       }))
     };
   }
