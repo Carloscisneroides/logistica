@@ -36,6 +36,76 @@ const validateCodiceFiscale = (cf: string) => {
   return /^[A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z]$/.test(cf.toUpperCase());
 };
 
+// CINA - USCI (Unified Social Credit Identifier) per partner Temu/Shein/Alibaba
+const validateUSCI = (usci: string) => {
+  return /^[0-9A-Z]{18}$/.test(usci.toUpperCase());
+};
+
+// REGNO UNITO - VAT Number (9 cifre + 2 di controllo opzionali)
+const validateUKVAT = (vat: string) => {
+  return /^(GB)?[0-9]{9}([0-9]{3})?$/.test(vat.replace(/\s/g, ''));
+};
+
+// GERMANIA - USt-IdNr (VAT tedesco)
+const validateGermanVAT = (vat: string) => {
+  return /^(DE)?[0-9]{9}$/.test(vat.replace(/\s/g, ''));
+};
+
+// FRANCIA - Numéro de TVA
+const validateFrenchVAT = (vat: string) => {
+  return /^(FR)?[0-9A-Z]{2}[0-9]{9}$/.test(vat.replace(/\s/g, ''));
+};
+
+// USA - EIN (Employer Identification Number)
+const validateEIN = (ein: string) => {
+  return /^[0-9]{2}-[0-9]{7}$/.test(ein);
+};
+
+// DANIMARCA - CVR (per Maersk e logistics danesi)
+const validateCVR = (cvr: string) => {
+  return /^[0-9]{8}$/.test(cvr);
+};
+
+// SINGAPORE - UEN (Unique Entity Number) per hub logistico
+const validateUEN = (uen: string) => {
+  return /^[0-9]{8}[A-Z]$|^[0-9]{9}[A-Z]$|^T[0-9]{8}[A-Z]$|^S[0-9]{8}[A-Z]$/.test(uen.toUpperCase());
+};
+
+// SPAGNA - CIF/NIF (Código/Número de Identificación Fiscal)
+const validateSpanishFiscal = (fiscal: string) => {
+  // NIF: 12345678A (8 cifre + 1 lettera)
+  // CIF: A12345674 (1 lettera + 7 cifre + 1 carattere controllo)
+  const nif = /^[0-9]{8}[A-Z]$/.test(fiscal.toUpperCase());
+  const cif = /^[A-Z][0-9]{7}[0-9A-Z]$/.test(fiscal.toUpperCase());
+  return nif || cif;
+};
+
+// Funzione di validazione dinamica per paese
+const validateFiscalId = (fiscalId: string, country: string, type: string) => {
+  switch (country) {
+    case 'IT':
+      return type === 'codice_fiscale' ? validateCodiceFiscale(fiscalId) : validatePartitaIVA(fiscalId);
+    case 'CN':
+      return validateUSCI(fiscalId);
+    case 'GB':
+      return validateUKVAT(fiscalId);
+    case 'DE':
+      return validateGermanVAT(fiscalId);
+    case 'FR':
+      return validateFrenchVAT(fiscalId);
+    case 'US':
+      return validateEIN(fiscalId);
+    case 'DK':
+      return validateCVR(fiscalId);
+    case 'SG':
+      return validateUEN(fiscalId);
+    case 'ES':
+      return validateSpanishFiscal(fiscalId);
+    default:
+      return fiscalId.length >= 5; // Validazione base per altri paesi
+  }
+};
+
 const registerSchema = z.object({
   username: z.string().min(3, "Username deve avere almeno 3 caratteri"),
   email: z.string().email("Email non valida"),
@@ -59,8 +129,8 @@ const registerSchema = z.object({
     "professionisti"
   ], { errorMap: () => ({ message: "Seleziona una categoria cliente" }) }),
   
-  // Validazione fiscale internazionale
-  country: z.enum(["IT", "CN", "GB", "DE", "FR", "US", "DK", "SG"], {
+  // Validazione fiscale internazionale (9 paesi strategici)
+  country: z.enum(["IT", "CN", "GB", "DE", "FR", "US", "DK", "SG", "ES"], {
     errorMap: () => ({ message: "Seleziona il paese" })
   }),
   fiscalType: z.string().optional(),
@@ -78,6 +148,38 @@ const registerSchema = z.object({
   message: "Identificativo fiscale non valido per il paese selezionato",
   path: ["fiscalId"],
 });
+
+// Helper functions per UI dinamica fiscale internazionale
+const renderFiscalIdLabel = (country: string, fiscalType?: string) => {
+  const labels = {
+    IT: fiscalType === "codice_fiscale" ? "(Codice Fiscale)" : "(Partita IVA)",
+    CN: "(USCI - Unified Social Credit)",
+    GB: "(UK VAT Number)", 
+    DE: "(German USt-IdNr)",
+    FR: "(French VAT Number)",
+    US: "(EIN - Employer ID)",
+    DK: "(CVR Number)",
+    SG: "(UEN Singapore)",
+    ES: "(CIF/NIF español)"
+  };
+  return labels[country as keyof typeof labels] || "";
+};
+
+const getFiscalIdPlaceholder = (country: string, fiscalType?: string) => {
+  switch (country) {
+    case "IT":
+      return fiscalType === "codice_fiscale" ? "RSSMRA85M01H501Z" : "12345678901";
+    case "CN": return "91110000000000000A";
+    case "GB": return "GB123456789";
+    case "DE": return "DE123456789";
+    case "FR": return "FR12345678901";
+    case "US": return "12-3456789";
+    case "DK": return "12345678";
+    case "SG": return "201234567A";
+    case "ES": return "A12345674 o 12345678A";
+    default: return "Inserisci ID fiscale";
+  }
+};
 
 type LoginData = z.infer<typeof loginSchema>;
 type RegisterData = z.infer<typeof registerSchema>;

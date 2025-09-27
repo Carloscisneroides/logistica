@@ -475,10 +475,10 @@ export function MarketplacePage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {stats.topCategories[0]?.name || "N/A"}
+                {stats?.topCategories?.[0]?.name || "N/A"}
               </div>
               <p className="text-xs text-muted-foreground">
-                {stats.topCategories[0]?.listingCount || 0} annunci
+                {stats?.topCategories?.[0]?.listingCount || 0} annunci
               </p>
             </CardContent>
           </Card>

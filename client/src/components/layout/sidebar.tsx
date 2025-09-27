@@ -35,9 +35,14 @@ const menuItems = [
     icon: LayoutDashboard,
   },
   {
+    title: "Spedizioni",
+    href: "/shipments", 
+    icon: Truck,
+  },
+  {
     title: "Moduli Corrieri",
     href: "/courier-modules",
-    icon: Truck,
+    icon: Bus,
   },
   {
     title: "AI Routing",
