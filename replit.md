@@ -1,235 +1,56 @@
-# 📋 YCORE - ECOSISTEMA SAAS MODULARE
+# YCORE - MODULAR SAAS ECOSYSTEM
 
-**Mittente**: Ylenia Sacco – Strategic Lead YS Logistics  
-**Destinatario**: Team Reply / AI interlocutore tecnico  
-**Aggiornato**: 27 Settembre 2025
+**Sender**: Ylenia Sacco – Strategic Lead YS Logistics
+**Recipient**: Reply Team / Technical AI Interlocutor
 
-## 🎯 OBIETTIVO GENERALE
+## Overview
 
-Realizzare un ecosistema SaaS modulare e scalabile per la gestione logistica, commerciale e operativa, con AI contestuale, segmentazione multi-tenant, protezione concorrenza e monetizzazione integrata. Ogni modulo deve essere difendibile, configurabile per ruolo e compatibile con ambienti separati.
+YCORE is a modular and scalable SaaS ecosystem designed for comprehensive logistics, commercial, and operational management. Its core purpose is to provide a robust platform with contextual AI, multi-tenant segmentation, competitive protection, and integrated monetization. The project is strategically expanding to integrate with international partners such as Temu, Shein, Alibaba, and global logistics providers like Maersk, DHL, and Cainiao. Key capabilities include multi-language support (10 languages), role-specific environments, and specialized modules for maritime/air fleets, container management, customs documentation, and intercontinental tracking. The vision is to establish YCORE as a leading global logistics and e-commerce platform.
 
----
+## User Preferences
 
-## ✅ MODULI COMPLETATI E FUNZIONANTI
+- I prefer simple language and clear explanations.
+- I like an iterative development approach.
+- Please ask for my approval before implementing major architectural changes.
+- I prefer detailed explanations for complex technical decisions.
+- Do not make changes to the `Y` directory.
+- Do not modify files in the `Z` folder.
 
-### 1. **AI Assistant Globale**
-- **Implementazione**: Accessibile da header su tutte le pagine
-- **Contesto dinamico**: Per ogni modulo (dashboard, clienti, spedizioni, eCommerce, marketplace)
-- **Backend**: Endpoint `/api/ai/support-assistant` con OpenAI integration
-- **Ruolo**: Suggerimenti smart, ottimizzazione flussi, assistenza contestuale
-- **Status**: ✅ **COMPLETATO E TESTATO**
+## System Architecture
 
-### 2. **Modulo eCommerce Completo**
-- **Database**: 5 tabelle (products, ecommerceCustomers, ecommerceOrders, orderItems, marketplaceIntegrations)
-- **Backend**: 27 metodi storage + 8 API endpoints completamente funzionanti
-- **Frontend**: Pagina React completa con 4 sezioni (Panoramica, Prodotti, Ordini, Clienti)
-- **Features**: Catalogo prodotti, tracking ordini, statistiche vendite, integrazioni marketplace
-- **Status**: ✅ **COMPLETATO E TESTATO**
+### UI/UX Decisions
+The frontend utilizes React 18 with Vite and TypeScript, styled with shadcn/ui and Tailwind CSS for a modern, responsive interface. Wouter handles client-side routing, and Lucide Icons provide visual elements.
 
----
+### Technical Implementations
+- **Frontend**: React 18, Vite, TypeScript, shadcn/ui, Tailwind CSS, Wouter, TanStack Query for state management, React Hook Form with Zod for forms, Playwright for E2E testing, and 10-language internationalization.
+- **Backend**: Node.js, Express, TypeScript, PostgreSQL with Drizzle ORM for type-safe database interactions.
+- **Authentication**: Session-based with multi-tenant isolation, role-based access control, and OWASP compliant security.
+- **AI Integration**: OpenAI API is used for contextual AI assistance, intelligent routing, and pattern detection within the anti-fraud system.
+- **Database**: PostgreSQL with a multi-tenant optimized schema, over 45 tables across core modules, Drizzle ORM for type safety and auto-migrations, comprehensive audit logging, and automated backups. A dedicated anti-fraud database is implemented for pattern detection and risk scoring.
 
-## 🔄 MODULI IN CORSO
+### Feature Specifications
+- **AI Assistant**: Global access from the header, dynamic context for all modules (dashboard, clients, shipments, eCommerce, marketplace).
+- **eCommerce Module**: Manages products, orders, customers, and integrates with marketplaces.
+- **Logistics/Shipment Module**: Comprehensive shipment management including QR/tracking labels, private courier GPS tracking, and dedicated interfaces for Merchant, Client, Courier, and Admin roles. Features advanced anti-fraud integration, mobile courier interface, undelivered shipment management, and reverse logistics.
+- **AI Anti-fraud**: AI-powered pattern detection (velocity, cross-module, temporal analysis), dynamic risk clustering, automated response mechanisms (warnings, enhanced monitoring, account suspension), OpenAI integration for risk adjustment, and robust evidence collection.
+- **Digital Professional Marketplace**: (90% complete) Features a bidding system, portfolio management, anti-disintermediation protection, modular commissions, AI-driven client-professional matching, and Stripe Connect for milestone payments.
+- **Planned International Expansion Modules**: Maritime/Air Fleet Management (IMO, AIS, IATA integration), Container Management (ISO 6346, RFID/IoT, cold chain monitoring), AI-powered Customs Documentation (OCR, HS code prediction, compliance checks), and Intercontinental Tracking (global route dashboards, AI-powered ETA, anomaly detection).
 
-### 3. **Modulo Marketplace Professionisti Digitali** (⚠️ **90% completato**)
-- **Database**: 10 tabelle core + 9 enums (Professional profiles, projects, bidding system, contracts, milestones, chat, disputes, ratings, commissions, anti-disintermediazione)
-- **Backend**: 70+ metodi storage con AI matching algorithms, tenant scoping rigoroso, dashboard analytics SQL
-- **Frontend**: Sistema completo bidding + portfolio management (in sviluppo)
-- **Features speciali**:
-  - **Protezione anti-disintermediazione**: AI nativa per rilevamento bypass tentativi
-  - **Commissioni modulari**: 30% sviluppatori, 15-20% social media, 10-15% progetti ricorrenti
-  - **Matching AI**: Algoritmi intelligenti cliente-professionista per skill/rating/budget
-  - **Stripe Connect**: Ready per pagamenti milestone automatici
-- **Rimane**: API routes implementation, frontend completion
+### System Design Choices
+- **Modularity**: Core design principle allowing independent development and deployment of features.
+- **Scalability**: Optimized for thousands of concurrent tenants with rate limiting, caching, code splitting, lazy loading, and auto-scaling infrastructure.
+- **Security**: Strict tenant isolation, role-based access control, secure session management, API security (validation, sanitization), audit logging, data encryption, and an enterprise-grade AI anti-fraud system.
+- **Compliance**: GDPR ready, OWASP best practices, PCI DSS (via Stripe), and prepared for international customs compliance.
 
-### 4. **Modulo AI Antifrode** (✅ **Milestone 1 Completata**)
-- **Database**: Foundation implementata con `anti_disintermediation_logs`, `audit_logs`, user suspension
-- **AI Scoring**: Algoritmo OpenAI per user risk classification (0-100 score) con behavioral analysis
-- **Automated Response**: Warning → Enhanced monitoring → Account suspension workflow completo
-- **API Endpoints**: Risk assessment, automated response, dashboard stats (admin-only)
-- **Features Enterprise**:
-  - **OpenAI Integration**: AI-powered risk adjustment con bounded scoring (-10/+10)
-  - **Evidence collection**: IP, UserAgent, behavioral patterns, velocity analysis
-  - **Compliance GDPR**: Audit trail completo + anti-disintermediation logs
-  - **Tenant isolation**: Defense-in-depth security con UUID validation
-  - **Production Ready**: Idempotency, comprehensive logging, fallback heuristics
-- **Status**: Milestone 1 production-ready, integration cross-module attiva
+## External Dependencies
 
-### 5. **Modulo Spedizioni - Logistica** (🔄 **In Implementazione**)
-- **Database**: Tabelle dedicate (shipments, shipment_logs, delivery_status, fraud_flags, courier_assignments)
-- **Core Features**: Gestione spedizioni complete, etichette QR/tracking, corrieri privati GPS
-- **Ambienti Separati**: Merchant, Cliente, Corriere, Admin con interfacce dedicate
-- **API REST**: Create, track, assign courier, flag anomaly con tenant isolation
-- **Integrazione Antifrode**:
-  - **Logging automatico**: Eventi critici collegati al sistema AI antifrode esistente
-  - **Escalation automatica**: Anomalie logistiche → risk scoring → automated response
-  - **Cross-module analysis**: Behavioral patterns tra spedizioni e altri moduli YCore
-  - **Evidence collection**: GPS tracking, delivery anomalies, courier behavior
-- **Features Avanzate**:
-  - **Palmare Mobile**: Interfaccia corriere con scanner e GPS tracking
-  - **Giacenze Management**: Spedizioni non consegnate con alert intelligenti  
-  - **Resi & Rettifiche**: Reverse logistics con regole antifrode integrate
-  - **External Integration**: Operatori logistici territoriali, GPS systems, AWS compatibility
-- **Timeline**: Fase 1 (Database+API), Fase 2 (Frontend), Fase 3 (Antifrode), Fase 4 (Testing)
-
----
-
-## 📋 ROADMAP PROSSIMI MODULI
-
-### 4. **Integrazione YSpedizioni** (Pianificato)
-- Account gemello con listino corrieri completo
-- API per acquisto spedizioni da merchant senza contratto
-- Monetizzazione automatica via Stripe Connect
-- Dashboard dedicated per gestione ordini spedizioni
-
-### 5. **Modulo Warehouse/Inventario** (Pianificato)
-- Gestione magazzino, stoccaggio, tracking scorte
-- Integrazione con prodotti eCommerce
-- Dashboard inventory con alerts automatici
-- Movimentazioni e audit completo
-
-### 6. **Modulo Fornitori** (Pianificato)
-- Anagrafica fornitori, ordini approvvigionamento
-- Gestione documentale, contratti
-- Workflow approval e pagamenti
-- Integrazione con warehouse per rifornimenti
-
----
-
-## 🧱 ARCHITETTURA TECNICA
-
-### **Frontend Stack**
-- **Framework**: React 18, Vite, TypeScript
-- **UI**: shadcn/ui, Tailwind CSS, Lucide Icons
-- **Routing**: Wouter per client-side navigation
-- **State**: TanStack Query per server state management
-- **Forms**: React Hook Form + Zod validation
-- **Testing**: Playwright end-to-end
-
-### **Backend Stack**
-- **Runtime**: Node.js, Express, TypeScript
-- **Database**: PostgreSQL + Drizzle ORM (type-safe)
-- **Auth**: Session-based con isolamento multi-tenant
-- **Security**: Tenant scoping, role-based access control, OWASP compliant
-- **AI**: OpenAI API integration per routing intelligente
-
-### **Database Architecture**
-- **PostgreSQL** con schema multi-tenant ottimizzato
-- **37+ tabelle** implementate (core + eCommerce + marketplace)
-- **Drizzle ORM** per type safety e auto-migrations
-- **Audit logging** completo per compliance
-- **Backup automatici** e disaster recovery
-
----
-
-## 🔌 INTEGRAZIONI REPLIT
-
-### **Già Configurate e Funzionanti**
-✅ **Stripe + Stripe Connect** - Pagamenti e marketplace payouts  
-✅ **OpenAI API** - AI Assistant e routing intelligente  
-✅ **PostgreSQL** - Database principale managed  
-✅ **Object Storage** - Per file, media e assets  
-✅ **Replit Auth** - Sistema autenticazione unificato  
-
-### **Variabili Ambiente**
-```bash
-DATABASE_URL=***
-OPENAI_API_KEY=***
-SESSION_SECRET=***
-TESTING_STRIPE_SECRET_KEY=***
-TESTING_VITE_STRIPE_PUBLIC_KEY=***
-PUBLIC_OBJECT_SEARCH_PATHS=***
-PRIVATE_OBJECT_DIR=***
-```
-
----
-
-## 💰 COSTI PRODUZIONE STIMATI
-
-### **Servizi Critici**
-1. **Stripe**: Commissioni standard su transazioni (2.9% + €0.25)
-2. **OpenAI API**: ~€30-60/mese per uso normale business
-3. **PostgreSQL**: Neon managed ~€15-35/mese per produzione
-4. **Object Storage**: ~€5-15/mese per media/assets
-5. **Replit Hosting**: Incluso nel piano corrente
-
-### **Servizi Opzionali**
-- **SendGrid**: Email notifications (~€15/mese)
-- **Custom Domain**: ~€15/anno
-- **Monitoring**: Sentry gratuito fino a 5K errors/mese
-
-**💡 Total Cost: €65-140/mese per produzione scale-up**
-
----
-
-## 🚀 DEPLOYMENT READY
-
-### **Moduli Production-Ready**
-- ✅ **Core Platform**: Dashboard, gestione clienti, spedizioni, fatturazione
-- ✅ **AI Assistant**: Routing intelligente e supporto contestuale  
-- ✅ **eCommerce Module**: Catalogo, ordini, clienti, statistiche
-- ⚠️ **Marketplace** (90%): Manca solo testing finale
-
-### **Capacità Operative Attuali**
-- ✅ Gestione spedizioni multi-corriere con AI routing
-- ✅ CRM clienti completo con segmentazione  
-- ✅ eCommerce con catalogo e gestione ordini
-- ✅ AI Assistant contestuale per tutti i moduli
-- ✅ Fatturazione automatica e tracking commissioni
-- ✅ Multi-tenant con branding personalizzato
-- ✅ Sistema di supporto clienti integrato
-
-### **Scalabilità**
-- **Database**: Ottimizzato per migliaia di tenant concurrent
-- **API**: Rate limiting e caching intelligente implementati
-- **Frontend**: Code splitting e lazy loading
-- **Infrastructure**: Auto-scaling su Replit cloud
-
----
-
-## 🔒 SICUREZZA E COMPLIANCE
-
-### **Protezioni Implementate**
-- ✅ **Tenant Isolation**: Strict data separation per security
-- ✅ **Role-Based Access**: Admin, Merchant, Commercial, User
-- ✅ **Session Management**: Secure cookie-based authentication
-- ✅ **API Security**: Request validation, sanitization, rate limiting
-- ✅ **Audit Logging**: Tracking completo per compliance
-- ✅ **Data Encryption**: At rest e in transit
-
-### **Compliance Standards**
-- 🔐 **GDPR Ready**: Data privacy e right to erasure
-- 🔐 **OWASP**: Security best practices implementate
-- 🔐 **PCI DSS**: Payment card industry standards (via Stripe)
-
----
-
-## 📊 METRICHE DI SUCCESSO
-
-### **KPI Tecnici**
-- **Uptime**: Target 99.5% (monitorato)
-- **Response Time**: <200ms per API calls
-- **Database Performance**: <50ms query time average
-- **Security**: Zero data breaches
-
-### **KPI Business**
-- **User Adoption**: Tracking attivazione moduli per tenant
-- **Revenue**: Commissioni marketplace + subscription fees
-- **Support**: Riduzione ticket via AI Assistant
-- **Satisfaction**: NPS score per tenant experience
-
----
-
-## 🎯 PROSSIME MILESTONE
-
-1. **Completamento Marketplace** (1-2 giorni)
-2. **Integrazione YSpedizioni** (2-3 giorni)
-3. **Modulo Warehouse** (3-4 giorni)  
-4. **Modulo Fornitori** (3-4 giorni)
-5. **Testing Completo** (1 giorno)
-6. **Go Live Produzione** 
-
-**🏁 Timeline totale: 2 settimane per ecosistema completo**
-
----
-
-*Documento tecnico aggiornato automaticamente il 27/09/2025*
+- **Stripe & Stripe Connect**: For payment processing, marketplace payouts, and automatic monetization.
+- **OpenAI API**: Integrated for AI Assistant functionalities, intelligent routing, and advanced pattern detection in the anti-fraud system.
+- **PostgreSQL**: The primary managed database for all application data.
+- **Object Storage**: Utilized for storing files, media, and other digital assets.
+- **Replit Auth**: The unified authentication system for user management.
+- **Neon (for PostgreSQL)**: Managed PostgreSQL service.
+- **Translation APIs**: For multi-language support.
+- **Customs APIs**: For HS code prediction and tariff data in customs documentation.
+- **Vessel/Flight Tracking APIs**: For real-time tracking in maritime and air fleet modules.
+- **SendGrid**: For email notifications.
