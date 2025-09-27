@@ -79,6 +79,20 @@ export default function AuthPage() {
                   : "Crea un nuovo account per iniziare"
                 }
               </CardDescription>
+              
+              {/* Disclaimer legale per demo riservata */}
+              <div className="mt-4 p-3 bg-muted/30 rounded-lg border-l-4 border-amber-500">
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <div className="font-semibold text-amber-600">⚠️ DEMO RISERVATA</div>
+                  <div>Questa è una demo tecnica riservata per partner autorizzati.</div>
+                  <div><strong>NON AUTORIZZATA</strong> alla riproduzione, copia o distribuzione.</div>
+                  <div>Accesso limitato a Reply, AWS e partner tecnici fidati.</div>
+                  <div className="text-[10px] mt-2 border-t border-muted pt-2">
+                    Sistema protetto da logging antifrode e tracciamento accessi.
+                    <br />Tutti gli accessi sono registrati e monitorati.
+                  </div>
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {isLogin ? (
