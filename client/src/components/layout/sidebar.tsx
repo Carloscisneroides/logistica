@@ -26,6 +26,11 @@ import {
   ShoppingCart,
   Store,
   CreditCard,
+  Ship,
+  Plane,
+  Package,
+  Globe,
+  FileCheck,
 } from "lucide-react";
 
 const menuItems = [
@@ -38,6 +43,30 @@ const menuItems = [
     title: "Spedizioni",
     href: "/shipments", 
     icon: Truck,
+  },
+  {
+    title: "Flotte Marittime/Aeree", 
+    href: "/maritime-air-fleet",
+    icon: Ship,
+    roles: ["admin", "merchant"],
+  },
+  {
+    title: "Gestione Container",
+    href: "/container-management", 
+    icon: Package,
+    roles: ["admin", "merchant"],
+  },
+  {
+    title: "Documentazione Doganale AI",
+    href: "/customs-documentation",
+    icon: FileCheck,
+    roles: ["admin", "merchant"],
+  },
+  {
+    title: "Tracking Intercontinentale",
+    href: "/intercontinental-tracking",
+    icon: Globe, 
+    roles: ["admin", "merchant"],
   },
   {
     title: "Moduli Corrieri",
