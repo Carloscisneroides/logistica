@@ -24,7 +24,11 @@ import {
   insertPromoterProfileSchema,
   insertPromoterKpiSchema,
   insertFidelityAiLogSchema,
-  insertAntiDisintermediationLogSchema, insertRiskClusterSchema, insertPatternFlagSchema
+  insertAntiDisintermediationLogSchema, insertRiskClusterSchema, insertPatternFlagSchema,
+  // Global Logistics imports
+  insertAssetSchema, insertContainerSchema, insertContainerSensorReadingSchema, 
+  insertCustomsDocumentSchema, insertShipmentLegSchema, insertGlobalTrackingEventSchema,
+  insertLogisticsPartnerSchema
 } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
@@ -3990,6 +3994,475 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
       } else {
         res.status(500).json({ error: "Failed to create promoter profile" });
       }
+    }
+  });
+
+  // ======== GLOBAL LOGISTICS & INTERCONTINENTAL SHIPPING ROUTES ========
+
+  // Assets - Flotte Marittime/Aeree (IMO, AIS, IATA)
+  app.get("/api/global-logistics/assets", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const assets = await storage.getAssetsByTenant(user.tenantId);
+      res.json(assets);
+    } catch (error) {
+      console.error("Error fetching assets:", error);
+      res.status(500).json({ error: "Failed to fetch assets" });
+    }
+  });
+
+  app.get("/api/global-logistics/assets/active", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const assets = await storage.getActiveAssets(user.tenantId);
+      res.json(assets);
+    } catch (error) {
+      console.error("Error fetching active assets:", error);
+      res.status(500).json({ error: "Failed to fetch active assets" });
+    }
+  });
+
+  app.post("/api/global-logistics/assets", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const validatedData = insertAssetSchema.parse({
+        ...req.body,
+        tenantId: user.tenantId
+      });
+
+      const asset = await storage.createAsset(validatedData);
+      res.status(201).json(asset);
+    } catch (error) {
+      console.error("Error creating asset:", error);
+      if (error.name === 'ZodError') {
+        res.status(400).json({ error: "Validation failed", details: error.issues });
+      } else {
+        res.status(500).json({ error: "Failed to create asset" });
+      }
+    }
+  });
+
+  // Containers - Gestione Container (ISO 6346, RFID/IoT, cold chain)
+  app.get("/api/global-logistics/containers", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const containers = await storage.getContainersByTenant(user.tenantId);
+      res.json(containers);
+    } catch (error) {
+      console.error("Error fetching containers:", error);
+      res.status(500).json({ error: "Failed to fetch containers" });
+    }
+  });
+
+  app.get("/api/global-logistics/containers/temperature-controlled", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const containers = await storage.getTemperatureControlledContainers(user.tenantId);
+      res.json(containers);
+    } catch (error) {
+      console.error("Error fetching temperature controlled containers:", error);
+      res.status(500).json({ error: "Failed to fetch temperature controlled containers" });
+    }
+  });
+
+  app.post("/api/global-logistics/containers", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const validatedData = insertContainerSchema.parse({
+        ...req.body,
+        tenantId: user.tenantId
+      });
+
+      const container = await storage.createContainer(validatedData);
+      res.status(201).json(container);
+    } catch (error) {
+      console.error("Error creating container:", error);
+      if (error.name === 'ZodError') {
+        res.status(400).json({ error: "Validation failed", details: error.issues });
+      } else {
+        res.status(500).json({ error: "Failed to create container" });
+      }
+    }
+  });
+
+  // Container Sensor Readings - Real-time IoT data
+  app.get("/api/global-logistics/containers/:containerId/sensors", isAuthenticated, async (req, res) => {
+    try {
+      const { containerId } = req.params;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+
+      const readings = await storage.getLatestSensorReadings(containerId, limit);
+      res.json(readings);
+    } catch (error) {
+      console.error("Error fetching sensor readings:", error);
+      res.status(500).json({ error: "Failed to fetch sensor readings" });
+    }
+  });
+
+  app.post("/api/global-logistics/containers/sensors", isAuthenticated, async (req, res) => {
+    try {
+      const validatedData = insertContainerSensorReadingSchema.parse(req.body);
+      const reading = await storage.createContainerSensorReading(validatedData);
+      res.status(201).json(reading);
+    } catch (error) {
+      console.error("Error creating sensor reading:", error);
+      if (error.name === 'ZodError') {
+        res.status(400).json({ error: "Validation failed", details: error.issues });
+      } else {
+        res.status(500).json({ error: "Failed to create sensor reading" });
+      }
+    }
+  });
+
+  // Bulk sensor readings for IoT devices
+  app.post("/api/global-logistics/containers/sensors/bulk", isAuthenticated, async (req, res) => {
+    try {
+      const { readings } = req.body;
+      if (!Array.isArray(readings)) {
+        return res.status(400).json({ error: "Readings must be an array" });
+      }
+
+      const validatedReadings = readings.map(reading => 
+        insertContainerSensorReadingSchema.parse(reading)
+      );
+
+      const created = await storage.bulkCreateSensorReadings(validatedReadings);
+      res.status(201).json(created);
+    } catch (error) {
+      console.error("Error creating bulk sensor readings:", error);
+      if (error.name === 'ZodError') {
+        res.status(400).json({ error: "Validation failed", details: error.issues });
+      } else {
+        res.status(500).json({ error: "Failed to create bulk sensor readings" });
+      }
+    }
+  });
+
+  // Customs Documents - Documentazione Doganale AI (OCR, HS code prediction)
+  app.get("/api/global-logistics/customs-documents", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const documents = await storage.getCustomsDocumentsByTenant(user.tenantId);
+      res.json(documents);
+    } catch (error) {
+      console.error("Error fetching customs documents:", error);
+      res.status(500).json({ error: "Failed to fetch customs documents" });
+    }
+  });
+
+  app.get("/api/global-logistics/customs-documents/pending-review", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const documents = await storage.getPendingReviewDocuments(user.tenantId);
+      res.json(documents);
+    } catch (error) {
+      console.error("Error fetching pending review documents:", error);
+      res.status(500).json({ error: "Failed to fetch pending review documents" });
+    }
+  });
+
+  app.post("/api/global-logistics/customs-documents", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const validatedData = insertCustomsDocumentSchema.parse({
+        ...req.body,
+        tenantId: user.tenantId
+      });
+
+      const document = await storage.createCustomsDocument(validatedData);
+      res.status(201).json(document);
+    } catch (error) {
+      console.error("Error creating customs document:", error);
+      if (error.name === 'ZodError') {
+        res.status(400).json({ error: "Validation failed", details: error.issues });
+      } else {
+        res.status(500).json({ error: "Failed to create customs document" });
+      }
+    }
+  });
+
+  // Shipment Legs - Tracking Intercontinentale
+  app.get("/api/global-logistics/shipment-legs", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const legs = await storage.getShipmentLegsByTenant(user.tenantId);
+      res.json(legs);
+    } catch (error) {
+      console.error("Error fetching shipment legs:", error);
+      res.status(500).json({ error: "Failed to fetch shipment legs" });
+    }
+  });
+
+  app.get("/api/global-logistics/shipments/:shipmentId/legs", isAuthenticated, async (req, res) => {
+    try {
+      const { shipmentId } = req.params;
+      const legs = await storage.getShipmentLegsByShipment(shipmentId);
+      res.json(legs);
+    } catch (error) {
+      console.error("Error fetching shipment legs:", error);
+      res.status(500).json({ error: "Failed to fetch shipment legs" });
+    }
+  });
+
+  app.post("/api/global-logistics/shipment-legs", isAuthenticated, async (req, res) => {
+    try {
+      const validatedData = insertShipmentLegSchema.parse(req.body);
+      const leg = await storage.createShipmentLeg(validatedData);
+      res.status(201).json(leg);
+    } catch (error) {
+      console.error("Error creating shipment leg:", error);
+      if (error.name === 'ZodError') {
+        res.status(400).json({ error: "Validation failed", details: error.issues });
+      } else {
+        res.status(500).json({ error: "Failed to create shipment leg" });
+      }
+    }
+  });
+
+  // Global Tracking Events - Eventi di tracking dettagliati
+  app.get("/api/global-logistics/tracking/:shipmentId", isAuthenticated, async (req, res) => {
+    try {
+      const { shipmentId } = req.params;
+      const events = await storage.getGlobalTrackingEventsByShipment(shipmentId);
+      res.json(events);
+    } catch (error) {
+      console.error("Error fetching tracking events:", error);
+      res.status(500).json({ error: "Failed to fetch tracking events" });
+    }
+  });
+
+  app.post("/api/global-logistics/tracking", isAuthenticated, async (req, res) => {
+    try {
+      const validatedData = insertGlobalTrackingEventSchema.parse(req.body);
+      const event = await storage.createGlobalTrackingEvent(validatedData);
+      res.status(201).json(event);
+    } catch (error) {
+      console.error("Error creating tracking event:", error);
+      if (error.name === 'ZodError') {
+        res.status(400).json({ error: "Validation failed", details: error.issues });
+      } else {
+        res.status(500).json({ error: "Failed to create tracking event" });
+      }
+    }
+  });
+
+  // Logistics Partners - Partner strategici (Maersk, DHL, Cainiao, UPS, FedEx)
+  app.get("/api/global-logistics/partners", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const partners = await storage.getLogisticsPartnersByTenant(user.tenantId);
+      res.json(partners);
+    } catch (error) {
+      console.error("Error fetching logistics partners:", error);
+      res.status(500).json({ error: "Failed to fetch logistics partners" });
+    }
+  });
+
+  app.get("/api/global-logistics/partners/active", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const partners = await storage.getActiveLogisticsPartners(user.tenantId);
+      res.json(partners);
+    } catch (error) {
+      console.error("Error fetching active logistics partners:", error);
+      res.status(500).json({ error: "Failed to fetch active logistics partners" });
+    }
+  });
+
+  app.post("/api/global-logistics/partners", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const validatedData = insertLogisticsPartnerSchema.parse({
+        ...req.body,
+        tenantId: user.tenantId
+      });
+
+      const partner = await storage.createLogisticsPartner(validatedData);
+      res.status(201).json(partner);
+    } catch (error) {
+      console.error("Error creating logistics partner:", error);
+      if (error.name === 'ZodError') {
+        res.status(400).json({ error: "Validation failed", details: error.issues });
+      } else {
+        res.status(500).json({ error: "Failed to create logistics partner" });
+      }
+    }
+  });
+
+  // Global Logistics Dashboard Stats
+  app.get("/api/global-logistics/dashboard/stats", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const stats = await storage.getGlobalLogisticsDashboardStats(user.tenantId);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching global logistics dashboard stats:", error);
+      res.status(500).json({ error: "Failed to fetch dashboard stats" });
+    }
+  });
+
+  // AI-powered ETA Calculation
+  app.post("/api/global-logistics/calculate-eta", isAuthenticated, async (req, res) => {
+    try {
+      const { legId } = req.body;
+      if (!legId) {
+        return res.status(400).json({ error: "Leg ID is required" });
+      }
+
+      const eta = await storage.calculateETA(legId);
+      res.json(eta);
+    } catch (error) {
+      console.error("Error calculating ETA:", error);
+      res.status(500).json({ error: "Failed to calculate ETA" });
+    }
+  });
+
+  // AI-powered Anomaly Detection
+  app.post("/api/global-logistics/detect-anomalies", isAuthenticated, async (req, res) => {
+    try {
+      const { shipmentId } = req.body;
+      if (!shipmentId) {
+        return res.status(400).json({ error: "Shipment ID is required" });
+      }
+
+      const anomalies = await storage.detectAnomalies(shipmentId);
+      res.json(anomalies);
+    } catch (error) {
+      console.error("Error detecting anomalies:", error);
+      res.status(500).json({ error: "Failed to detect anomalies" });
+    }
+  });
+
+  // Webhook endpoints for partner integrations (Maersk, DHL, Cainiao, etc.)
+  app.post("/api/global-logistics/webhooks/maersk", async (req, res) => {
+    try {
+      console.log("Maersk webhook received:", req.body);
+      // Process Maersk tracking updates, vessel positions, ETA changes
+      
+      // Create tracking event from webhook data
+      if (req.body.event && req.body.shipmentId) {
+        const trackingEvent = await storage.createGlobalTrackingEvent({
+          shipmentId: req.body.shipmentId,
+          legId: req.body.legId,
+          eventType: 'webhook_update',
+          eventCode: req.body.event.code || 'MAERSK_UPDATE',
+          eventDescription: req.body.event.description || 'Maersk tracking update',
+          location: req.body.event.location,
+          coordinates: req.body.event.coordinates,
+          partnerData: req.body
+        });
+      }
+
+      res.status(200).json({ received: true });
+    } catch (error) {
+      console.error("Error processing Maersk webhook:", error);
+      res.status(500).json({ error: "Failed to process webhook" });
+    }
+  });
+
+  app.post("/api/global-logistics/webhooks/dhl", async (req, res) => {
+    try {
+      console.log("DHL webhook received:", req.body);
+      // Process DHL express tracking updates, pickup/delivery confirmations
+      
+      if (req.body.event && req.body.shipmentId) {
+        const trackingEvent = await storage.createGlobalTrackingEvent({
+          shipmentId: req.body.shipmentId,
+          legId: req.body.legId,
+          eventType: 'webhook_update',
+          eventCode: req.body.event.code || 'DHL_UPDATE',
+          eventDescription: req.body.event.description || 'DHL tracking update',
+          location: req.body.event.location,
+          coordinates: req.body.event.coordinates,
+          partnerData: req.body
+        });
+      }
+
+      res.status(200).json({ received: true });
+    } catch (error) {
+      console.error("Error processing DHL webhook:", error);
+      res.status(500).json({ error: "Failed to process webhook" });
+    }
+  });
+
+  app.post("/api/global-logistics/webhooks/cainiao", async (req, res) => {
+    try {
+      console.log("Cainiao webhook received:", req.body);
+      // Process Cainiao cross-border tracking, customs clearance updates
+      
+      if (req.body.event && req.body.shipmentId) {
+        const trackingEvent = await storage.createGlobalTrackingEvent({
+          shipmentId: req.body.shipmentId,
+          legId: req.body.legId,
+          eventType: 'webhook_update',
+          eventCode: req.body.event.code || 'CAINIAO_UPDATE',
+          eventDescription: req.body.event.description || 'Cainiao tracking update',
+          location: req.body.event.location,
+          coordinates: req.body.event.coordinates,
+          partnerData: req.body
+        });
+      }
+
+      res.status(200).json({ received: true });
+    } catch (error) {
+      console.error("Error processing Cainiao webhook:", error);
+      res.status(500).json({ error: "Failed to process webhook" });
     }
   });
 
