@@ -65,6 +65,10 @@ export function CourierModuleCard({ module, onActivate, onConfigure }: CourierMo
       fedex: "bg-purple-600",
       tnt: "bg-orange-600",
       sda: "bg-red-500",
+      poste: "bg-blue-600",
+      puntoposte: "bg-blue-500",
+      ufficio: "bg-blue-700",
+      inpost: "bg-green-600",
     };
 
     const courierType = module.name.toLowerCase().split(" ")[0];

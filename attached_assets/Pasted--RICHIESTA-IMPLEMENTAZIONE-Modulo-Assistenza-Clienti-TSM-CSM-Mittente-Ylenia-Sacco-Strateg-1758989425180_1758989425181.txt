@@ -1,0 +1,79 @@
+📋 RICHIESTA IMPLEMENTAZIONE – Modulo Assistenza Clienti + TSM/CSM
+
+Mittente: Ylenia Sacco – Strategic Lead YS Logistics Destinatario: Team Reply / AI interlocutore tecnico
+
+🎯 Obiettivo Integrare in YCore un modulo completo di Assistenza Clienti, accessibile dal menu principale, con apertura ticket automatica/manuale e gestione intelligente tramite AI. Il modulo dovrà essere collegato ai ruoli e flussi TSM (Technical Support Management) e CSM (Customer Success Management).
+
+Funzionalità richieste
+
+Voce di menu dedicata
+
+“Assistenza Clienti” visibile nella sidebar
+
+Accesso per merchant, subclienti e commerciali (ruoli granulari)
+
+Apertura ticket
+
+Modalità AI assistita: suggerimenti automatici, routing intelligente
+
+Modalità manuale: compilazione guidata per casi complessi
+
+Collegamento diretto con assistenza corrieri e piattaforme clienti
+
+Invio richieste via API, email o webhook
+
+Tipologie ticket predefinite
+
+Pacco in ritardo
+
+Pacco smarrito
+
+Pacco danneggiato
+
+Pacco consegnato ma non ricevuto
+
+Fatturazione
+
+Funzionalità piattaforma
+
+Altre domande
+
+Dashboard ticket
+
+Stato ticket, assegnazione, SLA, escalation
+
+Logging eventi e risposte
+
+Statistiche e performance
+
+AI Assistant Iconico (“AI”)
+
+Icona visibile nella dashboard
+
+Risponde alle richieste dei clienti in base alla categoria/ruolo
+
+Istruito direttamente da Ylenia
+
+Suggerisce azioni, link, moduli, flussi
+
+Supporta merchant, subclienti e commerciali
+
+Espandibile per onboarding, training, FAQ dinamiche
+
+Collegamento ai moduli TSM / CSM
+
+Ruoli granulari: assegnazione ticket a CSM/TSM
+
+Escalation automatica in base a criticità e tempo risposta
+
+Logging interventi e performance
+
+Compatibilità multi-tenant
+
+UI dedicata per gestione ticket e flussi operativi
+
+📌 Note strategiche Questo modulo rafforza la qualità del servizio, riduce i tempi di intervento e crea un asset AI difendibile. È anche il primo passo verso un AI operativo per merchant e commerciali, che potremo strutturare in fase successiva.
+
+Fatemi sapere appena il task è preso in carico o se serve documentazione aggiuntiva.
+
+Grazie,

@@ -75,7 +75,7 @@ export const clients = pgTable("clients", {
   email: text("email").notNull(),
   type: text("type").notNull(), // merchant, platform, sub_client
   tenantId: uuid("tenant_id").references(() => tenants.id),
-  parentClientId: uuid("parent_client_id").references(() => clients.id),
+  parentClientId: uuid("parent_client_id"),
   commercialId: uuid("commercial_id").references(() => users.id),
   billingMode: billingModeEnum("billing_mode").notNull().default("postpaid"),
   billingFrequency: billingFrequencyEnum("billing_frequency").notNull().default("monthly"),
