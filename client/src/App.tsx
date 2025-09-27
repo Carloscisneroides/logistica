@@ -19,6 +19,7 @@ import Corrections from "@/pages/corrections";
 import Commercial from "@/pages/commercial";
 import SupportPage from "@/pages/support-page";
 import { EcommercePage } from "@/pages/ecommerce-page";
+import { MarketplacePage } from "@/pages/marketplace-page";
 import NotFound from "@/pages/not-found";
 
 function MainLayout({ children }: { children: React.ReactNode }) {
@@ -82,6 +83,11 @@ function Router() {
       <ProtectedRoute path="/ecommerce" component={() => (
         <MainLayout>
           <EcommercePage />
+        </MainLayout>
+      )} />
+      <ProtectedRoute path="/marketplace" component={() => (
+        <MainLayout>
+          <MarketplacePage />
         </MainLayout>
       )} />
       <Route component={NotFound} />

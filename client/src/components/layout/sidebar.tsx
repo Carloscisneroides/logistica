@@ -14,6 +14,7 @@ import {
   Bot,
   Headphones,
   ShoppingCart,
+  Store,
 } from "lucide-react";
 
 const menuItems = [
@@ -63,6 +64,12 @@ const menuItems = [
     title: "eCommerce",
     href: "/ecommerce",
     icon: ShoppingCart,
+    roles: ["admin", "merchant"],
+  },
+  {
+    title: "Marketplace B2B",
+    href: "/marketplace",
+    icon: Store,
     roles: ["admin", "merchant"],
   },
   {

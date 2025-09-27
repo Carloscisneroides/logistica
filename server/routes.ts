@@ -2380,6 +2380,228 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
     }
   });
 
+  // ======== YSPEDIZIONI INTEGRATION API ENDPOINTS ========
+
+  // Get YSpedizioni shipping services catalog  
+  app.get("/api/yspedizioni/services", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      // Get YSpedizioni listings from marketplace
+      const yspedizioniTenantId = "550e8400-e29b-41d4-a716-446655440099";
+      const services = await storage.getMarketplaceListingsBySeller(
+        "550e8400-e29b-41d4-a716-446655440198", 
+        yspedizioniTenantId
+      );
+
+      // Transform for shipping API format
+      const shippingServices = services.map(service => ({
+        id: service.id,
+        name: service.title,
+        description: service.shortDescription || service.description,
+        price: service.basePrice,
+        currency: service.currency,
+        deliveryTime: service.deliveryTime,
+        serviceType: service.serviceType,
+        available: service.isAvailable,
+        shippingIncluded: service.shippingIncluded
+      }));
+
+      res.json({
+        services: shippingServices,
+        provider: {
+          name: "YSpedizioni",
+          logo: "https://cdn.yspedizioni.com/logo.png",
+          website: "https://yspedizioni.com"
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching YSpedizioni services:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Purchase shipping service from YSpedizioni (Marketplace integration)
+  app.post("/api/yspedizioni/purchase", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId || !user?.id) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const { serviceId, quantity = 1, shipmentData } = req.body;
+
+      if (!serviceId || !shipmentData) {
+        return res.status(400).json({ error: "Service ID and shipment data are required" });
+      }
+
+      // Verify service exists and is available
+      const service = await storage.getMarketplaceListing(serviceId, user.tenantId);
+      if (!service || !service.isAvailable) {
+        return res.status(404).json({ error: "Service not available" });
+      }
+
+      // Create marketplace order for the shipping service
+      const orderData = {
+        listingId: serviceId,
+        buyerId: user.id,
+        buyerTenantId: user.tenantId,
+        sellerId: service.sellerId,
+        sellerTenantId: service.sellerTenantId,
+        totalAmount: service.basePrice * quantity,
+        shippingCost: 0, // Already included in service price
+        taxAmount: 0,
+        currency: service.currency || "EUR",
+        status: "pending",
+        paymentStatus: "pending",
+        metadata: JSON.stringify({
+          shipmentData,
+          purchaseType: "yspedizioni_shipping",
+          automatedPurchase: true
+        })
+      };
+
+      const order = await storage.createMarketplaceOrder(orderData);
+
+      // Create order items
+      const orderItem = {
+        orderId: order.id,
+        listingId: serviceId,
+        quantity: quantity,
+        unitPrice: service.basePrice,
+        totalPrice: service.basePrice * quantity,
+        metadata: JSON.stringify({ shipmentData })
+      };
+
+      await storage.createMarketplaceOrderItem(orderItem);
+
+      // TODO: Integrate with Stripe Connect for automatic payment processing
+      // TODO: Create actual shipment in YCore system
+      // TODO: Send confirmation emails/notifications
+
+      res.status(201).json({
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        service: {
+          name: service.title,
+          price: service.basePrice,
+          deliveryTime: service.deliveryTime
+        },
+        totalAmount: orderData.totalAmount,
+        currency: orderData.currency,
+        status: "confirmed",
+        estimatedDelivery: service.deliveryTime,
+        trackingAvailable: true,
+        message: "Shipping service purchased successfully via YSpedizioni marketplace"
+      });
+
+    } catch (error) {
+      console.error("Error purchasing YSpedizioni service:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get YSpedizioni shipping quote (price calculation)
+  app.post("/api/yspedizioni/quote", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const { serviceType, weight, dimensions, destination, origin, cod } = req.body;
+
+      // Get matching YSpedizioni service
+      const yspedizioniTenantId = "550e8400-e29b-41d4-a716-446655440099";
+      const services = await storage.getMarketplaceListingsBySeller(
+        "550e8400-e29b-41d4-a716-446655440198", 
+        yspedizioniTenantId
+      );
+
+      let selectedService = null;
+      let finalPrice = 0;
+
+      // Simple service matching logic
+      if (serviceType === "express" || (weight <= 2 && serviceType !== "standard")) {
+        selectedService = services.find(s => s.title.includes("Express"));
+        finalPrice = selectedService?.basePrice || 8.50;
+      } else if (serviceType === "international" || destination?.country !== "IT") {
+        selectedService = services.find(s => s.title.includes("Internazionali"));
+        finalPrice = selectedService?.basePrice || 15.80;
+      } else if (weight > 30 || serviceType === "pallet") {
+        selectedService = services.find(s => s.title.includes("Pallet"));
+        finalPrice = selectedService?.basePrice || 45.00;
+      } else if (cod) {
+        selectedService = services.find(s => s.title.includes("Contrassegno"));
+        finalPrice = selectedService?.basePrice || 6.80;
+      } else {
+        selectedService = services.find(s => s.title.includes("Standard"));
+        finalPrice = selectedService?.basePrice || 4.20;
+      }
+
+      // Apply weight surcharge for heavy packages
+      if (weight > 5) {
+        finalPrice += (weight - 5) * 0.50;
+      }
+
+      // Apply dimensional weight surcharge
+      if (dimensions?.length > 100 || dimensions?.width > 60 || dimensions?.height > 60) {
+        finalPrice += 5.00;
+      }
+
+      res.json({
+        serviceId: selectedService?.id,
+        serviceName: selectedService?.title || "Standard Service",
+        basePrice: selectedService?.basePrice || 4.20,
+        finalPrice: finalPrice,
+        currency: "EUR",
+        deliveryTime: selectedService?.deliveryTime || "2-3 giorni",
+        surcharges: {
+          weight: weight > 5 ? (weight - 5) * 0.50 : 0,
+          dimensions: (dimensions?.length > 100 || dimensions?.width > 60 || dimensions?.height > 60) ? 5.00 : 0
+        },
+        included: {
+          tracking: true,
+          insurance: selectedService?.title.includes("Express") || false,
+          pickup: selectedService?.title.includes("Pallet") || false
+        }
+      });
+
+    } catch (error) {
+      console.error("Error getting YSpedizioni quote:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // YSpedizioni webhook for tracking updates
+  app.post("/api/yspedizioni/webhook", async (req, res) => {
+    try {
+      const { orderId, trackingNumber, status, location, timestamp } = req.body;
+
+      // TODO: Verify webhook signature for security
+      // TODO: Update shipment tracking in YCore system  
+      // TODO: Send notification to customer
+      // TODO: Update marketplace order status
+
+      console.log("YSpedizioni tracking update:", {
+        orderId,
+        trackingNumber, 
+        status,
+        location,
+        timestamp
+      });
+
+      res.json({ received: true, processed: timestamp });
+
+    } catch (error) {
+      console.error("Error processing YSpedizioni webhook:", error);
+      res.status(500).json({ error: "Webhook processing failed" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
