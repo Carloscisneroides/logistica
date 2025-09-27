@@ -45,27 +45,9 @@ const menuItems = [
     icon: Truck,
   },
   {
-    title: "Flotte Marittime/Aeree", 
-    href: "/maritime-air-fleet",
-    icon: Ship,
-    roles: ["admin", "merchant"],
-  },
-  {
-    title: "Gestione Container",
-    href: "/container-management", 
-    icon: Package,
-    roles: ["admin", "merchant"],
-  },
-  {
-    title: "Documentazione Doganale AI",
-    href: "/customs-documentation",
-    icon: FileCheck,
-    roles: ["admin", "merchant"],
-  },
-  {
-    title: "Tracking Intercontinentale",
-    href: "/intercontinental-tracking",
-    icon: Globe, 
+    title: "Logistica Globale",
+    href: "/global-logistics",
+    icon: Globe,
     roles: ["admin", "merchant"],
   },
   {

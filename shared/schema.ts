@@ -82,6 +82,16 @@ export const subscriptionFeatureEnum = pgEnum("subscription_feature", [
 ]);
 export const orderTypeEnum = pgEnum("order_type", ["physical_product", "digital_service", "subscription_renewal"]);
 
+// Global Logistics Enums  
+export const assetTypeEnum = pgEnum("asset_type", ["vessel", "aircraft"]);
+export const assetStatusEnum = pgEnum("asset_status", ["active", "maintenance", "retired", "available"]);
+export const containerTypeEnum = pgEnum("container_type", ["dry", "reefer", "tank", "flat_rack", "open_top"]);
+export const containerStatusEnum = pgEnum("container_status", ["available", "in_transit", "loading", "unloading", "maintenance"]);
+export const customsStatusEnum = pgEnum("customs_status", ["pending", "processing", "approved", "rejected", "requires_review"]);
+export const transportModeEnum = pgEnum("transport_mode", ["air", "sea", "rail", "road", "multimodal"]);
+export const legStatusEnum = pgEnum("leg_status", ["planned", "in_progress", "completed", "delayed", "cancelled"]);
+export const partnerTypeEnum = pgEnum("partner_type", ["carrier", "forwarder", "customs_broker", "warehouse", "technology"]);
+
 // Registration requests - Sistema approvazione manuale
 export const registrationRequests = pgTable("registration_requests", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -1924,6 +1934,349 @@ export const deliveryStatus = pgTable("delivery_status", {
   attemptedAtIdx: index("delivery_status_attempted_at_idx").on(table.attemptedAt),
 }));
 
+// ======== GLOBAL LOGISTICS MODULE TABLES ========
+
+// Assets - Flotte Marittime/Aeree (IMO, AIS, IATA integration)
+export const assets = pgTable("assets", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  name: text("name").notNull(),
+  type: assetTypeEnum("type").notNull(),
+  status: assetStatusEnum("status").notNull().default("available"),
+  
+  // Maritime identifiers (IMO, MMSI)
+  imoNumber: text("imo_number"), // International Maritime Organization number
+  mmsiNumber: text("mmsi_number"), // Maritime Mobile Service Identity
+  
+  // Aviation identifiers (ICAO, IATA)
+  icaoCode: text("icao_code"), // International Civil Aviation Organization
+  iataCode: text("iata_code"), // International Air Transport Association
+  tailNumber: text("tail_number"), // Aircraft registration
+  
+  // Capacity and specifications
+  maxCapacity: decimal("max_capacity", { precision: 10, scale: 2 }), // TEU for vessels, kg for aircraft
+  currentLocation: text("current_location"),
+  homePort: text("home_port"), // Port or airport of registry
+  
+  // Technical details
+  yearBuilt: integer("year_built"),
+  manufacturer: text("manufacturer"),
+  model: text("model"),
+  flagState: text("flag_state"), // Country of registration
+  
+  // Operating details
+  operatorName: text("operator_name"),
+  charterStatus: text("charter_status"), // owned, chartered, leased
+  
+  // AI and tracking integration
+  aisEnabled: boolean("ais_enabled").default(false), // Automatic Identification System
+  gpsTracking: boolean("gps_tracking").default(true),
+  lastPosition: json("last_position"), // Latest GPS coordinates and timestamp
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, table => ({
+  tenantIdIdx: index("assets_tenant_id_idx").on(table.tenantId),
+  typeIdx: index("assets_type_idx").on(table.type),
+  statusIdx: index("assets_status_idx").on(table.status),
+  imoIdx: index("assets_imo_idx").on(table.imoNumber),
+  icaoIdx: index("assets_icao_idx").on(table.icaoCode),
+}));
+
+// Containers - Gestione Container (ISO 6346, RFID/IoT, cold chain monitoring)
+export const containers = pgTable("containers", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  containerNumber: text("container_number").notNull().unique(), // ISO 6346 format
+  type: containerTypeEnum("type").notNull(),
+  status: containerStatusEnum("status").notNull().default("available"),
+  
+  // ISO 6346 standard fields
+  ownerCode: text("owner_code").notNull(), // 3-letter owner code
+  sizeType: text("size_type").notNull(), // e.g., "20GP", "40HC"
+  checkDigit: text("check_digit").notNull(), // ISO 6346 check digit
+  
+  // Physical specifications
+  lengthFeet: integer("length_feet"), // 20, 40, 45, 53
+  widthFeet: integer("width_feet"), // Standard 8
+  heightFeet: integer("height_feet"), // 8.5, 9.5
+  maxGrossWeight: decimal("max_gross_weight", { precision: 10, scale: 2 }), // kg
+  tareWeight: decimal("tare_weight", { precision: 10, scale: 2 }), // kg
+  
+  // Current status and location
+  currentLocation: text("current_location"),
+  lastMovement: timestamp("last_movement"),
+  
+  // RFID/IoT integration
+  rfidTag: text("rfid_tag"), // RFID tag identifier
+  iotDeviceId: text("iot_device_id"), // IoT sensor device ID
+  
+  // Cold chain monitoring (for reefer containers)
+  temperatureControlled: boolean("temperature_controlled").default(false),
+  targetTemperature: decimal("target_temperature", { precision: 5, scale: 2 }), // Celsius
+  humidityControlled: boolean("humidity_controlled").default(false),
+  targetHumidity: decimal("target_humidity", { precision: 5, scale: 2 }), // Percentage
+  
+  // Maintenance and certification
+  lastInspection: timestamp("last_inspection"),
+  nextInspection: timestamp("next_inspection"),
+  cscPlate: text("csc_plate"), // Container Safety Convention plate number
+  cscExpiry: timestamp("csc_expiry"),
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, table => ({
+  tenantIdIdx: index("containers_tenant_id_idx").on(table.tenantId),
+  containerNumberIdx: index("containers_number_idx").on(table.containerNumber),
+  statusIdx: index("containers_status_idx").on(table.status),
+  typeIdx: index("containers_type_idx").on(table.type),
+  locationIdx: index("containers_location_idx").on(table.currentLocation),
+}));
+
+// Container Sensor Readings - Real-time IoT data
+export const containerSensorReadings = pgTable("container_sensor_readings", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  containerId: uuid("container_id").references(() => containers.id).notNull(),
+  
+  // Sensor data
+  temperature: decimal("temperature", { precision: 5, scale: 2 }), // Celsius
+  humidity: decimal("humidity", { precision: 5, scale: 2 }), // Percentage
+  pressure: decimal("pressure", { precision: 8, scale: 2 }), // Pascal
+  
+  // Location data
+  latitude: decimal("latitude", { precision: 10, scale: 6 }),
+  longitude: decimal("longitude", { precision: 10, scale: 6 }),
+  altitude: decimal("altitude", { precision: 8, scale: 2 }), // meters
+  
+  // Device and quality metrics
+  deviceId: text("device_id").notNull(),
+  batteryLevel: decimal("battery_level", { precision: 5, scale: 2 }), // Percentage
+  signalStrength: integer("signal_strength"), // dBm
+  
+  // Timestamp
+  recordedAt: timestamp("recorded_at").notNull(),
+  receivedAt: timestamp("received_at").notNull().defaultNow(),
+}, table => ({
+  containerIdIdx: index("sensor_readings_container_id_idx").on(table.containerId),
+  recordedAtIdx: index("sensor_readings_recorded_at_idx").on(table.recordedAt),
+  deviceIdIdx: index("sensor_readings_device_id_idx").on(table.deviceId),
+}));
+
+// Customs Documents - Documentazione Doganale AI (OCR, HS code prediction, compliance)
+export const customsDocuments = pgTable("customs_documents", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  shipmentId: uuid("shipment_id").references(() => shipments.id),
+  
+  // Document identification
+  documentNumber: text("document_number").notNull(),
+  documentType: text("document_type").notNull(), // invoice, packing_list, certificate, bill_of_lading
+  
+  // File storage
+  originalFileName: text("original_file_name").notNull(),
+  filePath: text("file_path").notNull(), // Object storage path
+  fileSize: integer("file_size"), // bytes
+  mimeType: text("mime_type"),
+  
+  // OCR processing results
+  ocrText: text("ocr_text"), // Full text extracted by AI/OCR
+  ocrConfidence: decimal("ocr_confidence", { precision: 5, scale: 2 }), // 0-100 confidence score
+  
+  // AI-powered HS code prediction
+  predictedHsCode: text("predicted_hs_code"), // Harmonized System code
+  hsCodeConfidence: decimal("hs_code_confidence", { precision: 5, scale: 2 }), // 0-100 AI confidence
+  confirmedHsCode: text("confirmed_hs_code"), // Human-confirmed HS code
+  
+  // Extracted data (AI-powered)
+  extractedData: json("extracted_data"), // Structured data extracted from document
+  
+  // Compliance checking
+  status: customsStatusEnum("status").notNull().default("pending"),
+  complianceFlags: text("compliance_flags").array().default([]), // Array of compliance issues
+  reviewRequired: boolean("review_required").default(false),
+  
+  // Processing workflow
+  processedAt: timestamp("processed_at"),
+  reviewedAt: timestamp("reviewed_at"),
+  reviewedBy: uuid("reviewed_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  
+  // Origin and destination
+  originCountry: text("origin_country"),
+  destinationCountry: text("destination_country"),
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, table => ({
+  tenantIdIdx: index("customs_docs_tenant_id_idx").on(table.tenantId),
+  shipmentIdIdx: index("customs_docs_shipment_id_idx").on(table.shipmentId),
+  statusIdx: index("customs_docs_status_idx").on(table.status),
+  documentTypeIdx: index("customs_docs_type_idx").on(table.documentType),
+  hsCodeIdx: index("customs_docs_hs_code_idx").on(table.predictedHsCode),
+}));
+
+// Shipment Legs - Tracking Intercontinentale (tratte multiple per spedizioni globali)
+export const shipmentLegs = pgTable("shipment_legs", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  shipmentId: uuid("shipment_id").references(() => shipments.id).notNull(),
+  legNumber: integer("leg_number").notNull(), // Sequential leg number (1, 2, 3...)
+  
+  // Transport mode and details
+  mode: transportModeEnum("mode").notNull(),
+  partnerId: uuid("partner_id").references(() => logisticsPartners.id),
+  assetId: uuid("asset_id").references(() => assets.id), // Vessel or aircraft used
+  
+  // Origin and destination
+  originPort: text("origin_port").notNull(), // Port/Airport code
+  destinationPort: text("destination_port").notNull(),
+  originTerminal: text("origin_terminal"),
+  destinationTerminal: text("destination_terminal"),
+  
+  // Timing
+  plannedDeparture: timestamp("planned_departure").notNull(),
+  actualDeparture: timestamp("actual_departure"),
+  plannedArrival: timestamp("planned_arrival").notNull(),
+  actualArrival: timestamp("actual_arrival"),
+  estimatedArrival: timestamp("estimated_arrival"), // AI-powered ETA
+  
+  // Status and tracking
+  status: legStatusEnum("status").notNull().default("planned"),
+  distance: decimal("distance", { precision: 10, scale: 2 }), // km
+  
+  // Container/cargo details for this leg
+  containerIds: text("container_ids").array().default([]), // Array of container IDs
+  weight: decimal("weight", { precision: 10, scale: 2 }), // kg
+  volume: decimal("volume", { precision: 10, scale: 2 }), // m3
+  
+  // Cost tracking
+  cost: decimal("cost", { precision: 10, scale: 2 }),
+  currency: text("currency").default("EUR"),
+  
+  // Delays and exceptions
+  delayReason: text("delay_reason"),
+  delayMinutes: integer("delay_minutes").default(0),
+  
+  // AI-powered analytics
+  weatherImpact: json("weather_impact"), // Weather conditions affecting this leg
+  trafficConditions: json("traffic_conditions"), // Traffic/congestion data
+  riskFactors: text("risk_factors").array().default([]), // Array of identified risks
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, table => ({
+  tenantIdIdx: index("shipment_legs_tenant_id_idx").on(table.tenantId),
+  shipmentIdIdx: index("shipment_legs_shipment_id_idx").on(table.shipmentId),
+  statusIdx: index("shipment_legs_status_idx").on(table.status),
+  modeIdx: index("shipment_legs_mode_idx").on(table.mode),
+  partnerIdIdx: index("shipment_legs_partner_id_idx").on(table.partnerId),
+  plannedDepartureIdx: index("shipment_legs_planned_departure_idx").on(table.plannedDeparture),
+}));
+
+// Global Tracking Events - Eventi di tracking dettagliati per shipment intercontinentali
+export const globalTrackingEvents = pgTable("global_tracking_events", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  shipmentId: uuid("shipment_id").references(() => shipments.id).notNull(),
+  legId: uuid("leg_id").references(() => shipmentLegs.id),
+  
+  // Event details
+  eventType: text("event_type").notNull(), // departure, arrival, customs, delay, exception
+  eventCode: text("event_code"), // Standard tracking codes (UN/LOCODE, etc.)
+  description: text("description").notNull(),
+  
+  // Location data
+  location: text("location").notNull(),
+  locationCode: text("location_code"), // UN/LOCODE, IATA, etc.
+  latitude: decimal("latitude", { precision: 10, scale: 6 }),
+  longitude: decimal("longitude", { precision: 10, scale: 6 }),
+  
+  // Timing
+  eventTime: timestamp("event_time").notNull(),
+  receivedTime: timestamp("received_time").notNull().defaultNow(),
+  
+  // Source and integration
+  source: text("source").notNull(), // partner_api, ais, manual, ai_prediction
+  partnerId: uuid("partner_id").references(() => logisticsPartners.id),
+  externalEventId: text("external_event_id"), // Partner's event ID
+  
+  // Additional data
+  eventData: json("event_data"), // Flexible data structure for partner-specific info
+  
+  // AI enhancements
+  aiGenerated: boolean("ai_generated").default(false), // Event generated by AI prediction
+  confidence: decimal("confidence", { precision: 5, scale: 2 }), // AI confidence score
+  
+  // Anomaly detection
+  anomalyFlags: text("anomaly_flags").array().default([]), // Array of detected anomalies
+  riskScore: decimal("risk_score", { precision: 5, scale: 2 }), // 0-100 risk assessment
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, table => ({
+  tenantIdIdx: index("tracking_events_tenant_id_idx").on(table.tenantId),
+  shipmentIdIdx: index("tracking_events_shipment_id_idx").on(table.shipmentId),
+  legIdIdx: index("tracking_events_leg_id_idx").on(table.legId),
+  eventTypeIdx: index("tracking_events_type_idx").on(table.eventType),
+  eventTimeIdx: index("tracking_events_time_idx").on(table.eventTime),
+  sourceIdx: index("tracking_events_source_idx").on(table.source),
+}));
+
+// Logistics Partners - Partner strategici (Maersk, DHL, Cainiao, ecc.)
+export const logisticsPartners = pgTable("logistics_partners", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  
+  // Partner identification
+  name: text("name").notNull(),
+  code: text("code").notNull(), // Standard partner code (SCAC, IATA, etc.)
+  type: partnerTypeEnum("type").notNull(),
+  
+  // Contact information
+  contactEmail: text("contact_email"),
+  contactPhone: text("contact_phone"),
+  website: text("website"),
+  
+  // Geographic coverage
+  regions: text("regions").array().default([]), // Geographic regions covered
+  countries: text("countries").array().default([]), // ISO country codes
+  
+  // Service capabilities
+  services: text("services").array().default([]), // Services offered
+  transportModes: text("transport_modes").array().default([]), // air, sea, rail, road
+  
+  // Integration details
+  apiEndpoint: text("api_endpoint"),
+  apiVersion: text("api_version"),
+  webhookUrl: text("webhook_url"),
+  webhookSecret: text("webhook_secret"), // For HMAC verification
+  
+  // Authentication
+  apiKey: text("api_key"), // TODO: Encrypt this field
+  clientId: text("client_id"),
+  clientSecret: text("client_secret"), // TODO: Encrypt this field
+  
+  // Configuration
+  settings: json("settings"), // Partner-specific configuration
+  rateLimits: json("rate_limits"), // API rate limiting info
+  
+  // Status and monitoring
+  isActive: boolean("is_active").default(true),
+  lastHealthCheck: timestamp("last_health_check"),
+  healthStatus: text("health_status").default("unknown"), // healthy, degraded, down, unknown
+  
+  // Performance metrics
+  averageResponseTime: integer("average_response_time"), // milliseconds
+  successRate: decimal("success_rate", { precision: 5, scale: 2 }), // percentage
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, table => ({
+  tenantIdIdx: index("partners_tenant_id_idx").on(table.tenantId),
+  codeIdx: index("partners_code_idx").on(table.code),
+  typeIdx: index("partners_type_idx").on(table.type),
+  isActiveIdx: index("partners_active_idx").on(table.isActive),
+}));
+
 // Relations for new Shipments module tables
 export const fraudFlagsRelations = relations(fraudFlags, ({ one }) => ({
   tenant: one(tenants, {
@@ -2311,6 +2664,47 @@ export const insertDeliveryStatusSchema = createInsertSchema(deliveryStatus).omi
   updatedAt: true,
 });
 
+// Global Logistics Insert Schemas
+export const insertAssetSchema = createInsertSchema(assets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertContainerSchema = createInsertSchema(containers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertContainerSensorReadingSchema = createInsertSchema(containerSensorReadings).omit({
+  id: true,
+  receivedAt: true,
+});
+
+export const insertCustomsDocumentSchema = createInsertSchema(customsDocuments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertShipmentLegSchema = createInsertSchema(shipmentLegs).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertGlobalTrackingEventSchema = createInsertSchema(globalTrackingEvents).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertLogisticsPartnerSchema = createInsertSchema(logisticsPartners).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -2434,3 +2828,19 @@ export type CourierAssignment = typeof courierAssignments.$inferSelect;
 export type InsertCourierAssignment = z.infer<typeof insertCourierAssignmentSchema>;
 export type DeliveryStatus = typeof deliveryStatus.$inferSelect;
 export type InsertDeliveryStatus = z.infer<typeof insertDeliveryStatusSchema>;
+
+// Global Logistics Types
+export type Asset = typeof assets.$inferSelect;
+export type InsertAsset = z.infer<typeof insertAssetSchema>;
+export type Container = typeof containers.$inferSelect;
+export type InsertContainer = z.infer<typeof insertContainerSchema>;
+export type ContainerSensorReading = typeof containerSensorReadings.$inferSelect;
+export type InsertContainerSensorReading = z.infer<typeof insertContainerSensorReadingSchema>;
+export type CustomsDocument = typeof customsDocuments.$inferSelect;
+export type InsertCustomsDocument = z.infer<typeof insertCustomsDocumentSchema>;
+export type ShipmentLeg = typeof shipmentLegs.$inferSelect;
+export type InsertShipmentLeg = z.infer<typeof insertShipmentLegSchema>;
+export type GlobalTrackingEvent = typeof globalTrackingEvents.$inferSelect;
+export type InsertGlobalTrackingEvent = z.infer<typeof insertGlobalTrackingEventSchema>;
+export type LogisticsPartner = typeof logisticsPartners.$inferSelect;
+export type InsertLogisticsPartner = z.infer<typeof insertLogisticsPartnerSchema>;
