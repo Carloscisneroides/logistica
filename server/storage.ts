@@ -51,7 +51,12 @@ import {
   type ContainerSensorReading, type InsertContainerSensorReading,
   type CustomsDocument, type InsertCustomsDocument, type ShipmentLeg, type InsertShipmentLeg,
   type GlobalTrackingEvent, type InsertGlobalTrackingEvent,
-  type LogisticsPartner, type InsertLogisticsPartner
+  type LogisticsPartner, type InsertLogisticsPartner,
+  // Listini & Corrieri types
+  type Carrier, type InsertCarrier, type Zone, type InsertZone,
+  type ZoneOverlay, type InsertZoneOverlay, type WeightBracket, type InsertWeightBracket,
+  type TonneBracket, type InsertTonneBracket, type CarrierRateCard, type InsertCarrierRateCard,
+  type ClientRateCard, type InsertClientRateCard, type ShippingQuote, type InsertShippingQuote
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, not, desc, sql, isNull } from "drizzle-orm";
@@ -615,6 +620,148 @@ export interface IStorage {
     }>;
     riskScore: number; // 0-100
     recommendations: string[];
+  }>;
+
+  // ======== LISTINI & CORRIERI MODULE METHODS ========
+
+  // Carriers - Corrieri strategici (DHL, UPS, FedEx, Cainiao, Maersk)
+  getCarrier(id: string): Promise<Carrier | undefined>;
+  getCarriersByTenant(tenantId: string): Promise<Carrier[]>;
+  getCarrierByCode(code: string): Promise<Carrier | undefined>;
+  getActiveCarriers(tenantId: string): Promise<Carrier[]>;
+  getCarriersByType(type: string, tenantId: string): Promise<Carrier[]>;
+  createCarrier(carrier: InsertCarrier): Promise<Carrier>;
+  updateCarrier(id: string, updates: Partial<Carrier>): Promise<Carrier>;
+
+  // Zones - Zone geografiche per calcolo tariffe
+  getZone(id: string): Promise<Zone | undefined>;
+  getZonesByTenant(tenantId: string): Promise<Zone[]>;
+  getZoneByCode(code: string): Promise<Zone | undefined>;
+  getActiveZones(tenantId: string): Promise<Zone[]>;
+  getZonesByType(type: string, tenantId: string): Promise<Zone[]>;
+  findZoneByPostalCode(postalCode: string, tenantId: string): Promise<Zone[]>;
+  findZoneByCoordinates(lat: number, lng: number, tenantId: string): Promise<Zone[]>;
+  createZone(zone: InsertZone): Promise<Zone>;
+  updateZone(id: string, updates: Partial<Zone>): Promise<Zone>;
+
+  // Zone Overlays - Sistema "One" per zone speciali (ZTL, isole, Livigno)
+  getZoneOverlay(id: string): Promise<ZoneOverlay | undefined>;
+  getZoneOverlaysByTenant(tenantId: string): Promise<ZoneOverlay[]>;
+  getZoneOverlaysByZone(zoneId: string): Promise<ZoneOverlay[]>;
+  getZoneOverlaysBySpecialType(type: string, tenantId: string): Promise<ZoneOverlay[]>;
+  getActiveZoneOverlays(tenantId: string): Promise<ZoneOverlay[]>;
+  findSpecialZoneOverlays(postalCode: string, tenantId: string): Promise<ZoneOverlay[]>;
+  createZoneOverlay(overlay: InsertZoneOverlay): Promise<ZoneOverlay>;
+  updateZoneOverlay(id: string, updates: Partial<ZoneOverlay>): Promise<ZoneOverlay>;
+
+  // Weight Brackets - Fasce peso 1-1000 KG
+  getWeightBracket(id: string): Promise<WeightBracket | undefined>;
+  getWeightBracketsByTenant(tenantId: string): Promise<WeightBracket[]>;
+  getActiveWeightBrackets(tenantId: string): Promise<WeightBracket[]>;
+  findWeightBracketForWeight(weight: number, tenantId: string): Promise<WeightBracket | undefined>;
+  createWeightBracket(bracket: InsertWeightBracket): Promise<WeightBracket>;
+  updateWeightBracket(id: string, updates: Partial<WeightBracket>): Promise<WeightBracket>;
+
+  // Tonne Brackets - Fasce tonnellate per carichi industriali
+  getTonneBracket(id: string): Promise<TonneBracket | undefined>;
+  getTonneBracketsByTenant(tenantId: string): Promise<TonneBracket[]>;
+  getActiveTonneBrackets(tenantId: string): Promise<TonneBracket[]>;
+  findTonneBracketForWeight(weight: number, tenantId: string): Promise<TonneBracket | undefined>;
+  createTonneBracket(bracket: InsertTonneBracket): Promise<TonneBracket>;
+  updateTonneBracket(id: string, updates: Partial<TonneBracket>): Promise<TonneBracket>;
+
+  // Carrier Rate Cards - Listini corrieri con fasce peso
+  getCarrierRateCard(id: string): Promise<CarrierRateCard | undefined>;
+  getCarrierRateCardsByTenant(tenantId: string): Promise<CarrierRateCard[]>;
+  getCarrierRateCardsByCarrier(carrierId: string): Promise<CarrierRateCard[]>;
+  getCarrierRateCardsByZone(zoneId: string): Promise<CarrierRateCard[]>;
+  getActiveCarrierRateCards(tenantId: string): Promise<CarrierRateCard[]>;
+  findBestCarrierRates(carrierId: string, zoneId: string, weight: number): Promise<CarrierRateCard[]>;
+  createCarrierRateCard(rateCard: InsertCarrierRateCard): Promise<CarrierRateCard>;
+  updateCarrierRateCard(id: string, updates: Partial<CarrierRateCard>): Promise<CarrierRateCard>;
+
+  // Client Rate Cards - Listini personalizzati per merchant e sottoclienti
+  getClientRateCard(id: string): Promise<ClientRateCard | undefined>;
+  getClientRateCardsByTenant(tenantId: string): Promise<ClientRateCard[]>;
+  getClientRateCardsByClient(clientId: string): Promise<ClientRateCard[]>;
+  getActiveClientRateCards(clientId: string): Promise<ClientRateCard[]>;
+  getClientRateCardsByCarrierRate(carrierRateCardId: string): Promise<ClientRateCard[]>;
+  findBestClientRates(clientId: string, carrierId: string, zoneId: string): Promise<ClientRateCard[]>;
+  createClientRateCard(rateCard: InsertClientRateCard): Promise<ClientRateCard>;
+  updateClientRateCard(id: string, updates: Partial<ClientRateCard>): Promise<ClientRateCard>;
+
+  // Shipping Quotes - Quotazioni generate dal sistema AI
+  getShippingQuote(id: string): Promise<ShippingQuote | undefined>;
+  getShippingQuotesByTenant(tenantId: string): Promise<ShippingQuote[]>;
+  getShippingQuotesByClient(clientId: string): Promise<ShippingQuote[]>;
+  getShippingQuoteByNumber(quoteNumber: string): Promise<ShippingQuote | undefined>;
+  getPendingShippingQuotes(tenantId: string): Promise<ShippingQuote[]>;
+  createShippingQuote(quote: InsertShippingQuote): Promise<ShippingQuote>;
+  updateShippingQuote(id: string, updates: Partial<ShippingQuote>): Promise<ShippingQuote>;
+  acceptShippingQuote(id: string): Promise<ShippingQuote>;
+
+  // AI-powered Rate Calculation & Carrier Selection Engine
+  calculateOptimalRates(request: {
+    tenantId: string;
+    clientId?: string;
+    weight: number;
+    volume?: number;
+    dimensions?: { length: number; width: number; height: number };
+    originZone: string;
+    destinationZone: string;
+    specialRequirements?: string[];
+    urgency?: 'standard' | 'express' | 'urgent';
+  }): Promise<{
+    recommendedCarrier: string;
+    quotedRates: Array<{
+      carrierId: string;
+      carrierName: string;
+      totalPrice: number;
+      basePrice: number;
+      surcharges: number;
+      transitTime: number;
+      confidence: number;
+      reasons: string[];
+      specialZones: string[];
+    }>;
+    aiRecommendations: {
+      optimal: string;
+      fastest: string;
+      cheapest: string;
+      mostReliable: string;
+      reasoning: string[];
+    };
+  }>;
+
+  // Zone Detection & Special Zone Analysis
+  detectSpecialZones(postalCode: string, coordinates?: { lat: number; lng: number }, tenantId?: string): Promise<{
+    zones: Zone[];
+    specialZones: ZoneOverlay[];
+    surcharges: Array<{
+      type: string;
+      amount: number;
+      percentage?: number;
+      description: string;
+    }>;
+    totalSurcharge: number;
+  }>;
+
+  // Listini & Corrieri Dashboard Stats
+  getRatesCarriersDashboardStats(tenantId: string): Promise<{
+    totalCarriers: number;
+    activeCarriers: number;
+    totalZones: number;
+    specialZones: number;
+    totalWeightBrackets: number;
+    tonneBrackets: number;
+    carrierRateCards: number;
+    clientRateCards: number;
+    pendingQuotes: number;
+    acceptedQuotes: number;
+    avgQuoteValue: number;
+    topCarriers: Array<{id: string; name: string; quotes: number; avgPrice: number; reliability: number}>;
+    zoneDistribution: Array<{zone: string; quotes: number; avgPrice: number}>;
+    weightDistribution: Array<{bracket: string; quotes: number; percentage: number}>;
   }>;
   
   sessionStore: session.Store;

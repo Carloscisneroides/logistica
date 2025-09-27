@@ -28,7 +28,11 @@ import {
   // Global Logistics imports
   insertAssetSchema, insertContainerSchema, insertContainerSensorReadingSchema, 
   insertCustomsDocumentSchema, insertShipmentLegSchema, insertGlobalTrackingEventSchema,
-  insertLogisticsPartnerSchema
+  insertLogisticsPartnerSchema,
+  // Listini & Corrieri imports
+  insertCarrierSchema, insertZoneSchema, insertZoneOverlaySchema,
+  insertWeightBracketSchema, insertTonneBracketSchema, insertCarrierRateCardSchema,
+  insertClientRateCardSchema, insertShippingQuoteSchema
 } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
@@ -4463,6 +4467,411 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
     } catch (error) {
       console.error("Error processing Cainiao webhook:", error);
       res.status(500).json({ error: "Failed to process webhook" });
+    }
+  });
+
+  // ======== LISTINI & CORRIERI ROUTES ========
+  // Sistema integrato fasce peso 1-1000 KG + tonnellate, zone speciali, quotazioni AI
+
+  // Carriers - Corrieri strategici (DHL, UPS, FedEx, Cainiao, Maersk)
+  app.get("/api/rates/carriers", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const carriers = await storage.getCarriersByTenant(user.tenantId);
+      res.json(carriers);
+    } catch (error) {
+      console.error("Error fetching carriers:", error);
+      res.status(500).json({ error: "Failed to fetch carriers" });
+    }
+  });
+
+  app.get("/api/rates/carriers/active", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const carriers = await storage.getActiveCarriers(user.tenantId);
+      res.json(carriers);
+    } catch (error) {
+      console.error("Error fetching active carriers:", error);
+      res.status(500).json({ error: "Failed to fetch active carriers" });
+    }
+  });
+
+  app.post("/api/rates/carriers", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const validatedData = insertCarrierSchema.parse({
+        ...req.body,
+        tenantId: user.tenantId
+      });
+
+      const carrier = await storage.createCarrier(validatedData);
+      res.status(201).json(carrier);
+    } catch (error) {
+      console.error("Error creating carrier:", error);
+      if (error.name === 'ZodError') {
+        res.status(400).json({ error: "Validation failed", details: error.issues });
+      } else {
+        res.status(500).json({ error: "Failed to create carrier" });
+      }
+    }
+  });
+
+  // Zones - Zone geografiche per calcolo tariffe
+  app.get("/api/rates/zones", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const zones = await storage.getZonesByTenant(user.tenantId);
+      res.json(zones);
+    } catch (error) {
+      console.error("Error fetching zones:", error);
+      res.status(500).json({ error: "Failed to fetch zones" });
+    }
+  });
+
+  app.post("/api/rates/zones", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const validatedData = insertZoneSchema.parse({
+        ...req.body,
+        tenantId: user.tenantId
+      });
+
+      const zone = await storage.createZone(validatedData);
+      res.status(201).json(zone);
+    } catch (error) {
+      console.error("Error creating zone:", error);
+      if (error.name === 'ZodError') {
+        res.status(400).json({ error: "Validation failed", details: error.issues });
+      } else {
+        res.status(500).json({ error: "Failed to create zone" });
+      }
+    }
+  });
+
+  // Zone Overlays - Sistema "One" per zone speciali (ZTL, isole, Livigno)
+  app.get("/api/rates/zone-overlays", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const overlays = await storage.getZoneOverlaysByTenant(user.tenantId);
+      res.json(overlays);
+    } catch (error) {
+      console.error("Error fetching zone overlays:", error);
+      res.status(500).json({ error: "Failed to fetch zone overlays" });
+    }
+  });
+
+  app.post("/api/rates/zone-overlays", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const validatedData = insertZoneOverlaySchema.parse({
+        ...req.body,
+        tenantId: user.tenantId
+      });
+
+      const overlay = await storage.createZoneOverlay(validatedData);
+      res.status(201).json(overlay);
+    } catch (error) {
+      console.error("Error creating zone overlay:", error);
+      if (error.name === 'ZodError') {
+        res.status(400).json({ error: "Validation failed", details: error.issues });
+      } else {
+        res.status(500).json({ error: "Failed to create zone overlay" });
+      }
+    }
+  });
+
+  // Weight Brackets - Fasce peso 1-1000 KG
+  app.get("/api/rates/weight-brackets", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const brackets = await storage.getWeightBracketsByTenant(user.tenantId);
+      res.json(brackets);
+    } catch (error) {
+      console.error("Error fetching weight brackets:", error);
+      res.status(500).json({ error: "Failed to fetch weight brackets" });
+    }
+  });
+
+  app.post("/api/rates/weight-brackets", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const validatedData = insertWeightBracketSchema.parse({
+        ...req.body,
+        tenantId: user.tenantId
+      });
+
+      const bracket = await storage.createWeightBracket(validatedData);
+      res.status(201).json(bracket);
+    } catch (error) {
+      console.error("Error creating weight bracket:", error);
+      if (error.name === 'ZodError') {
+        res.status(400).json({ error: "Validation failed", details: error.issues });
+      } else {
+        res.status(500).json({ error: "Failed to create weight bracket" });
+      }
+    }
+  });
+
+  // Tonne Brackets - Fasce tonnellate per carichi industriali
+  app.get("/api/rates/tonne-brackets", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const brackets = await storage.getTonneBracketsByTenant(user.tenantId);
+      res.json(brackets);
+    } catch (error) {
+      console.error("Error fetching tonne brackets:", error);
+      res.status(500).json({ error: "Failed to fetch tonne brackets" });
+    }
+  });
+
+  app.post("/api/rates/tonne-brackets", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const validatedData = insertTonneBracketSchema.parse({
+        ...req.body,
+        tenantId: user.tenantId
+      });
+
+      const bracket = await storage.createTonneBracket(validatedData);
+      res.status(201).json(bracket);
+    } catch (error) {
+      console.error("Error creating tonne bracket:", error);
+      if (error.name === 'ZodError') {
+        res.status(400).json({ error: "Validation failed", details: error.issues });
+      } else {
+        res.status(500).json({ error: "Failed to create tonne bracket" });
+      }
+    }
+  });
+
+  // Carrier Rate Cards - Listini corrieri con fasce peso
+  app.get("/api/rates/carrier-rates", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const rateCards = await storage.getCarrierRateCardsByTenant(user.tenantId);
+      res.json(rateCards);
+    } catch (error) {
+      console.error("Error fetching carrier rate cards:", error);
+      res.status(500).json({ error: "Failed to fetch carrier rate cards" });
+    }
+  });
+
+  app.post("/api/rates/carrier-rates", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const validatedData = insertCarrierRateCardSchema.parse({
+        ...req.body,
+        tenantId: user.tenantId
+      });
+
+      const rateCard = await storage.createCarrierRateCard(validatedData);
+      res.status(201).json(rateCard);
+    } catch (error) {
+      console.error("Error creating carrier rate card:", error);
+      if (error.name === 'ZodError') {
+        res.status(400).json({ error: "Validation failed", details: error.issues });
+      } else {
+        res.status(500).json({ error: "Failed to create carrier rate card" });
+      }
+    }
+  });
+
+  // Client Rate Cards - Listini personalizzati per merchant e sottoclienti
+  app.get("/api/rates/client-rates", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const rateCards = await storage.getClientRateCardsByTenant(user.tenantId);
+      res.json(rateCards);
+    } catch (error) {
+      console.error("Error fetching client rate cards:", error);
+      res.status(500).json({ error: "Failed to fetch client rate cards" });
+    }
+  });
+
+  app.post("/api/rates/client-rates", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const validatedData = insertClientRateCardSchema.parse({
+        ...req.body,
+        tenantId: user.tenantId
+      });
+
+      const rateCard = await storage.createClientRateCard(validatedData);
+      res.status(201).json(rateCard);
+    } catch (error) {
+      console.error("Error creating client rate card:", error);
+      if (error.name === 'ZodError') {
+        res.status(400).json({ error: "Validation failed", details: error.issues });
+      } else {
+        res.status(500).json({ error: "Failed to create client rate card" });
+      }
+    }
+  });
+
+  // Shipping Quotes - Quotazioni generate dal sistema AI
+  app.get("/api/rates/quotes", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const quotes = await storage.getShippingQuotesByTenant(user.tenantId);
+      res.json(quotes);
+    } catch (error) {
+      console.error("Error fetching shipping quotes:", error);
+      res.status(500).json({ error: "Failed to fetch shipping quotes" });
+    }
+  });
+
+  app.post("/api/rates/quotes", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const validatedData = insertShippingQuoteSchema.parse({
+        ...req.body,
+        tenantId: user.tenantId
+      });
+
+      const quote = await storage.createShippingQuote(validatedData);
+      res.status(201).json(quote);
+    } catch (error) {
+      console.error("Error creating shipping quote:", error);
+      if (error.name === 'ZodError') {
+        res.status(400).json({ error: "Validation failed", details: error.issues });
+      } else {
+        res.status(500).json({ error: "Failed to create shipping quote" });
+      }
+    }
+  });
+
+  // AI-powered Rate Calculation & Carrier Selection Engine
+  app.post("/api/rates/calculate", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const { weight, volume, dimensions, originZone, destinationZone, specialRequirements, urgency, clientId } = req.body;
+
+      if (!weight || !originZone || !destinationZone) {
+        return res.status(400).json({ error: "Weight, origin zone, and destination zone are required" });
+      }
+
+      const rates = await storage.calculateOptimalRates({
+        tenantId: user.tenantId,
+        clientId,
+        weight,
+        volume,
+        dimensions,
+        originZone,
+        destinationZone,
+        specialRequirements,
+        urgency
+      });
+
+      res.json(rates);
+    } catch (error) {
+      console.error("Error calculating optimal rates:", error);
+      res.status(500).json({ error: "Failed to calculate optimal rates" });
+    }
+  });
+
+  // Zone Detection & Special Zone Analysis
+  app.post("/api/rates/detect-zones", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      const { postalCode, coordinates } = req.body;
+
+      if (!postalCode) {
+        return res.status(400).json({ error: "Postal code is required" });
+      }
+
+      const zoneData = await storage.detectSpecialZones(postalCode, coordinates, user?.tenantId);
+      res.json(zoneData);
+    } catch (error) {
+      console.error("Error detecting special zones:", error);
+      res.status(500).json({ error: "Failed to detect special zones" });
+    }
+  });
+
+  // Listini & Corrieri Dashboard Stats
+  app.get("/api/rates/dashboard/stats", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const stats = await storage.getRatesCarriersDashboardStats(user.tenantId);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching rates & carriers dashboard stats:", error);
+      res.status(500).json({ error: "Failed to fetch dashboard stats" });
     }
   });
 

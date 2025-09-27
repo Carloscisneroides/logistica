@@ -2844,3 +2844,289 @@ export type GlobalTrackingEvent = typeof globalTrackingEvents.$inferSelect;
 export type InsertGlobalTrackingEvent = z.infer<typeof insertGlobalTrackingEventSchema>;
 export type LogisticsPartner = typeof logisticsPartners.$inferSelect;
 export type InsertLogisticsPartner = z.infer<typeof insertLogisticsPartnerSchema>;
+
+// ======== MODULO LISTINI & CORRIERI ========
+// Sistema integrato per tariffe fasce peso 1-1000 KG + tonnellate
+// Zone speciali (ZTL, isole, Livigno), corrieri strategici, quotazioni AI
+
+// Enums per Listini & Corrieri
+export const carrierTypeEnum = pgEnum("carrier_type", [
+  "express", "standard", "economy", "maritime", "air_cargo", "rail", "road_freight"
+]);
+
+export const zoneTypeEnum = pgEnum("zone_type", [
+  "national", "international", "urban", "suburban", "rural", "island", "special"
+]);
+
+export const specialZoneTypeEnum = pgEnum("special_zone_type", [
+  "ztl", "island", "livigno", "campione", "remote", "mountain", "restricted", "customs_free"
+]);
+
+export const weightUnitEnum = pgEnum("weight_unit", ["kg", "tonne"]);
+
+export const rateTypeEnum = pgEnum("rate_type", [
+  "per_kg", "per_package", "flat_rate", "volumetric", "express_surcharge", "zone_surcharge"
+]);
+
+// Carriers - Corrieri strategici (DHL, UPS, FedEx, Cainiao, Maersk, etc.)
+export const carriers = pgTable("carriers", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  code: text("code").notNull(), // DHL, UPS, FEDEX, CAINIAO, MAERSK, etc.
+  name: text("name").notNull(),
+  type: carrierTypeEnum("type").notNull(),
+  apiEndpoint: text("api_endpoint"),
+  apiKey: text("api_key"), // Encrypted
+  isActive: boolean("is_active").default(true),
+  supportsTracking: boolean("supports_tracking").default(true),
+  supportsAPI: boolean("supports_api").default(false),
+  maxWeight: decimal("max_weight", { precision: 10, scale: 2 }), // KG
+  maxDimensions: json("max_dimensions").$type<{
+    length: number; width: number; height: number; unit: string;
+  }>(),
+  coverage: json("coverage").$type<string[]>().default([]), // Countries/regions
+  services: json("services").$type<string[]>().default([]), // express, standard, etc.
+  reliability: decimal("reliability", { precision: 3, scale: 2 }).default("95.00"), // %
+  averageDeliveryTime: integer("average_delivery_time"), // hours
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  tenantIdx: index("carriers_tenant_idx").on(table.tenantId),
+  codeIdx: index("carriers_code_idx").on(table.code),
+  activeIdx: index("carriers_active_idx").on(table.isActive),
+  typeIdx: index("carriers_type_idx").on(table.type),
+}));
+
+// Zones - Zone geografiche per calcolo tariffe
+export const zones = pgTable("zones", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  name: text("name").notNull(),
+  code: text("code").notNull(), // IT1, EU1, WORLD1, etc.
+  type: zoneTypeEnum("type").notNull(),
+  countries: json("countries").$type<string[]>().default([]),
+  regions: json("regions").$type<string[]>().default([]),
+  postalCodes: json("postal_codes").$type<string[]>().default([]),
+  coordinates: json("coordinates").$type<{
+    lat: number; lng: number; radius?: number;
+  }[]>(),
+  isActive: boolean("is_active").default(true),
+  priority: integer("priority").default(1), // Per overlap resolution
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  tenantIdx: index("zones_tenant_idx").on(table.tenantId),
+  codeIdx: index("zones_code_idx").on(table.code),
+  typeIdx: index("zones_type_idx").on(table.type),
+  activeIdx: index("zones_active_idx").on(table.isActive),
+}));
+
+// Zone Overlays - Sistema "One" per zone speciali (ZTL, isole, Livigno)
+export const zoneOverlays = pgTable("zone_overlays", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  zoneId: uuid("zone_id").references(() => zones.id).notNull(),
+  name: text("name").notNull(),
+  specialType: specialZoneTypeEnum("special_type").notNull(),
+  description: text("description"),
+  identificationMethod: text("identification_method").notNull(), // postal_code, coordinates, api_lookup
+  identificationData: json("identification_data").$type<{
+    postalCodes?: string[];
+    coordinates?: { lat: number; lng: number; radius: number }[];
+    apiEndpoint?: string;
+    keywords?: string[];
+  }>(),
+  surchargeType: rateTypeEnum("surcharge_type").default("flat_rate"),
+  surchargeAmount: decimal("surcharge_amount", { precision: 10, scale: 2 }).notNull(),
+  surchargePercentage: decimal("surcharge_percentage", { precision: 5, scale: 2 }),
+  minSurcharge: decimal("min_surcharge", { precision: 10, scale: 2 }),
+  maxSurcharge: decimal("max_surcharge", { precision: 10, scale: 2 }),
+  isActive: boolean("is_active").default(true),
+  priority: integer("priority").default(1),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  tenantZoneIdx: index("zone_overlays_tenant_zone_idx").on(table.tenantId, table.zoneId),
+  specialTypeIdx: index("zone_overlays_special_type_idx").on(table.specialType),
+  activeIdx: index("zone_overlays_active_idx").on(table.isActive),
+}));
+
+// Weight Brackets - Fasce peso 1-1000 KG
+export const weightBrackets = pgTable("weight_brackets", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  name: text("name").notNull(),
+  minWeight: decimal("min_weight", { precision: 10, scale: 3 }).notNull(), // 1.000 KG
+  maxWeight: decimal("max_weight", { precision: 10, scale: 3 }).notNull(), // 1000.000 KG
+  unit: weightUnitEnum("unit").default("kg"),
+  step: decimal("step", { precision: 10, scale: 3 }).default("1.000"), // Incremento kg
+  isActive: boolean("is_active").default(true),
+  priority: integer("priority").default(1),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  tenantIdx: index("weight_brackets_tenant_idx").on(table.tenantId),
+  weightRangeIdx: index("weight_brackets_range_idx").on(table.minWeight, table.maxWeight),
+  activeIdx: index("weight_brackets_active_idx").on(table.isActive),
+}));
+
+// Tonne Brackets - Fasce tonnellate per carichi industriali >= 1000 KG
+export const tonneBrackets = pgTable("tonne_brackets", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  name: text("name").notNull(),
+  minWeight: decimal("min_weight", { precision: 10, scale: 3 }).notNull(), // 1.000 tonne
+  maxWeight: decimal("max_weight", { precision: 10, scale: 3 }), // null = unlimited
+  unit: weightUnitEnum("unit").default("tonne"),
+  step: decimal("step", { precision: 10, scale: 3 }).default("0.500"), // Incremento tonnellate
+  bulkDiscount: decimal("bulk_discount", { precision: 5, scale: 2 }).default("0.00"), // % sconto
+  isActive: boolean("is_active").default(true),
+  priority: integer("priority").default(1),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  tenantIdx: index("tonne_brackets_tenant_idx").on(table.tenantId),
+  weightRangeIdx: index("tonne_brackets_range_idx").on(table.minWeight, table.maxWeight),
+  activeIdx: index("tonne_brackets_active_idx").on(table.isActive),
+}));
+
+// Carrier Rate Cards - Listini corrieri con fasce peso
+export const carrierRateCards = pgTable("carrier_rate_cards", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  carrierId: uuid("carrier_id").references(() => carriers.id).notNull(),
+  zoneId: uuid("zone_id").references(() => zones.id).notNull(),
+  weightBracketId: uuid("weight_bracket_id").references(() => weightBrackets.id),
+  tonneBracketId: uuid("tonne_bracket_id").references(() => tonneBrackets.id),
+  name: text("name").notNull(),
+  rateType: rateTypeEnum("rate_type").notNull(),
+  basePrice: decimal("base_price", { precision: 10, scale: 2 }).notNull(),
+  pricePerKg: decimal("price_per_kg", { precision: 10, scale: 4 }),
+  pricePerTonne: decimal("price_per_tonne", { precision: 10, scale: 2 }),
+  volumetricFactor: decimal("volumetric_factor", { precision: 10, scale: 2 }).default("200.00"), // kg/m³
+  fuelSurcharge: decimal("fuel_surcharge", { precision: 5, scale: 2 }).default("0.00"), // %
+  securitySurcharge: decimal("security_surcharge", { precision: 5, scale: 2 }).default("0.00"), // %
+  insuranceCoverage: decimal("insurance_coverage", { precision: 5, scale: 2 }).default("0.00"), // %
+  transitTime: integer("transit_time"), // hours
+  currency: text("currency").default("EUR"),
+  validFrom: timestamp("valid_from").notNull(),
+  validTo: timestamp("valid_to"),
+  isActive: boolean("is_active").default(true),
+  priority: integer("priority").default(1),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  tenantCarrierZoneIdx: index("carrier_rates_tenant_carrier_zone_idx").on(table.tenantId, table.carrierId, table.zoneId),
+  weightBracketIdx: index("carrier_rates_weight_bracket_idx").on(table.weightBracketId),
+  tonneBracketIdx: index("carrier_rates_tonne_bracket_idx").on(table.tonneBracketId),
+  validityIdx: index("carrier_rates_validity_idx").on(table.validFrom, table.validTo),
+  activeIdx: index("carrier_rates_active_idx").on(table.isActive),
+}));
+
+// Client Rate Cards - Listini personalizzati per merchant e sottoclienti
+export const clientRateCards = pgTable("client_rate_cards", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  clientId: uuid("client_id").references(() => clients.id).notNull(),
+  carrierRateCardId: uuid("carrier_rate_card_id").references(() => carrierRateCards.id).notNull(),
+  name: text("name").notNull(),
+  discountType: text("discount_type").default("percentage"), // percentage, flat_amount, custom_price
+  discountValue: decimal("discount_value", { precision: 10, scale: 4 }).default("0.00"),
+  minimumCharge: decimal("minimum_charge", { precision: 10, scale: 2 }),
+  maximumCharge: decimal("maximum_charge", { precision: 10, scale: 2 }),
+  freeThreshold: decimal("free_threshold", { precision: 10, scale: 2 }), // Spedizione gratuita sopra €X
+  priorityLevel: integer("priority_level").default(1), // 1=highest for rate selection
+  customTerms: text("custom_terms"),
+  billingMode: text("billing_mode").default("postpaid"), // prepaid, postpaid
+  paymentTerms: integer("payment_terms").default(30), // giorni
+  validFrom: timestamp("valid_from").notNull(),
+  validTo: timestamp("valid_to"),
+  isActive: boolean("is_active").default(true),
+  autoApply: boolean("auto_apply").default(true), // Applicazione automatica in fase di ordine
+  requiresApproval: boolean("requires_approval").default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  tenantClientIdx: index("client_rates_tenant_client_idx").on(table.tenantId, table.clientId),
+  carrierRateIdx: index("client_rates_carrier_rate_idx").on(table.carrierRateCardId),
+  validityIdx: index("client_rates_validity_idx").on(table.validFrom, table.validTo),
+  activeIdx: index("client_rates_active_idx").on(table.isActive),
+  priorityIdx: index("client_rates_priority_idx").on(table.priorityLevel),
+}));
+
+// Shipping Quotes - Quotazioni generate dal sistema AI
+export const shippingQuotes = pgTable("shipping_quotes", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  clientId: uuid("client_id").references(() => clients.id),
+  quoteNumber: text("quote_number").notNull(),
+  weight: decimal("weight", { precision: 10, scale: 3 }).notNull(),
+  volume: decimal("volume", { precision: 10, scale: 6 }), // m³
+  dimensions: json("dimensions").$type<{
+    length: number; width: number; height: number; unit: string;
+  }>(),
+  originZone: uuid("origin_zone").references(() => zones.id).notNull(),
+  destinationZone: uuid("destination_zone").references(() => zones.id).notNull(),
+  specialZones: json("special_zones").$type<string[]>().default([]), // Zone overlays applicabili
+  recommendedCarrier: uuid("recommended_carrier").references(() => carriers.id),
+  quotedRates: json("quoted_rates").$type<Array<{
+    carrierId: string;
+    carrierName: string;
+    totalPrice: number;
+    basePrice: number;
+    surcharges: number;
+    transitTime: number;
+    confidence: number; // 0-100
+    reasons: string[];
+  }>>().default([]),
+  selectedRate: json("selected_rate").$type<{
+    carrierId: string;
+    totalPrice: number;
+    transitTime: number;
+  }>(),
+  aiRecommendations: json("ai_recommendations").$type<{
+    optimal: string; // carrierId
+    fastest: string; // carrierId
+    cheapest: string; // carrierId
+    mostReliable: string; // carrierId
+    reasoning: string[];
+  }>(),
+  expiresAt: timestamp("expires_at").notNull(),
+  isAccepted: boolean("is_accepted").default(false),
+  acceptedAt: timestamp("accepted_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  tenantIdx: index("shipping_quotes_tenant_idx").on(table.tenantId),
+  clientIdx: index("shipping_quotes_client_idx").on(table.clientId),
+  quoteNumberIdx: index("shipping_quotes_number_idx").on(table.quoteNumber),
+  expiryIdx: index("shipping_quotes_expiry_idx").on(table.expiresAt),
+  acceptedIdx: index("shipping_quotes_accepted_idx").on(table.isAccepted),
+}));
+
+// Insert Schemas per Listini & Corrieri
+export const insertCarrierSchema = createInsertSchema(carriers);
+export const insertZoneSchema = createInsertSchema(zones);
+export const insertZoneOverlaySchema = createInsertSchema(zoneOverlays);
+export const insertWeightBracketSchema = createInsertSchema(weightBrackets);
+export const insertTonneBracketSchema = createInsertSchema(tonneBrackets);
+export const insertCarrierRateCardSchema = createInsertSchema(carrierRateCards);
+export const insertClientRateCardSchema = createInsertSchema(clientRateCards);
+export const insertShippingQuoteSchema = createInsertSchema(shippingQuotes);
+
+// Types per Listini & Corrieri
+export type Carrier = typeof carriers.$inferSelect;
+export type InsertCarrier = z.infer<typeof insertCarrierSchema>;
+export type Zone = typeof zones.$inferSelect;
+export type InsertZone = z.infer<typeof insertZoneSchema>;
+export type ZoneOverlay = typeof zoneOverlays.$inferSelect;
+export type InsertZoneOverlay = z.infer<typeof insertZoneOverlaySchema>;
+export type WeightBracket = typeof weightBrackets.$inferSelect;
+export type InsertWeightBracket = z.infer<typeof insertWeightBracketSchema>;
+export type TonneBracket = typeof tonneBrackets.$inferSelect;
+export type InsertTonneBracket = z.infer<typeof insertTonneBracketSchema>;
+export type CarrierRateCard = typeof carrierRateCards.$inferSelect;
+export type InsertCarrierRateCard = z.infer<typeof insertCarrierRateCardSchema>;
+export type ClientRateCard = typeof clientRateCards.$inferSelect;
+export type InsertClientRateCard = z.infer<typeof insertClientRateCardSchema>;
+export type ShippingQuote = typeof shippingQuotes.$inferSelect;
+export type InsertShippingQuote = z.infer<typeof insertShippingQuoteSchema>;
