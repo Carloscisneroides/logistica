@@ -14,7 +14,16 @@ import {
   insertReturnSchema,
   insertNotificationSchema,
   insertCsmTicketSchema,
-  insertTsmTicketSchema
+  insertTsmTicketSchema,
+  insertFidelitySettingsSchema,
+  insertFidelityCardSchema,
+  insertFidelityWalletTransactionSchema,
+  insertFidelityOfferSchema,
+  insertFidelityRedemptionSchema,
+  insertSponsorSchema,
+  insertPromoterProfileSchema,
+  insertPromoterKpiSchema,
+  insertFidelityAiLogSchema
 } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
@@ -2904,6 +2913,394 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
     } catch (error) {
       console.error("Error processing Stripe webhook:", error);
       res.status(500).json({ error: "Webhook processing failed" });
+    }
+  });
+
+  // ======== FIDELITY CARD API ========
+
+  // Fidelity Settings API
+  app.get("/api/fidelity/settings", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const settings = await storage.getFidelitySettings(user.tenantId);
+      if (!settings) {
+        return res.status(404).json({ error: "Fidelity settings not found" });
+      }
+
+      res.json(settings);
+    } catch (error) {
+      console.error("Error fetching fidelity settings:", error);
+      res.status(500).json({ error: "Failed to fetch fidelity settings" });
+    }
+  });
+
+  app.post("/api/fidelity/settings", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const validatedData = insertFidelitySettingsSchema.parse({
+        ...req.body,
+        tenantId: user.tenantId
+      });
+
+      const settings = await storage.createFidelitySettings(validatedData);
+      res.status(201).json(settings);
+    } catch (error) {
+      console.error("Error creating fidelity settings:", error);
+      if (error.name === 'ZodError') {
+        res.status(400).json({ error: "Validation failed", details: error.issues });
+      } else {
+        res.status(500).json({ error: "Failed to create fidelity settings" });
+      }
+    }
+  });
+
+  app.put("/api/fidelity/settings", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      // Validate request body with Zod (partial schema for updates)
+      const validatedData = insertFidelitySettingsSchema.partial().parse(req.body);
+
+      const settings = await storage.updateFidelitySettings(user.tenantId, validatedData);
+      res.json(settings);
+    } catch (error) {
+      console.error("Error updating fidelity settings:", error);
+      if (error.name === 'ZodError') {
+        res.status(400).json({ error: "Validation failed", details: error.issues });
+      } else {
+        res.status(500).json({ error: "Failed to update fidelity settings" });
+      }
+    }
+  });
+
+  // Fidelity Cards API
+  app.get("/api/fidelity/cards", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const cards = await storage.getFidelityCardsByTenant(user.tenantId);
+      res.json(cards);
+    } catch (error) {
+      console.error("Error fetching fidelity cards:", error);
+      res.status(500).json({ error: "Failed to fetch fidelity cards" });
+    }
+  });
+
+  app.get("/api/fidelity/cards/:code", isAuthenticated, async (req, res) => {
+    try {
+      const { code } = req.params;
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const card = await storage.getFidelityCardByCode(code, user.tenantId);
+      if (!card) {
+        return res.status(404).json({ error: "Fidelity card not found" });
+      }
+
+      res.json(card);
+    } catch (error) {
+      console.error("Error fetching fidelity card:", error);
+      res.status(500).json({ error: "Failed to fetch fidelity card" });
+    }
+  });
+
+  app.post("/api/fidelity/cards", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const validatedData = insertFidelityCardSchema.parse({
+        ...req.body,
+        tenantId: user.tenantId
+      });
+
+      const card = await storage.createFidelityCard(validatedData);
+      
+      // Auto-create wallet for the card
+      const wallet = await storage.createFidelityWallet({
+        cardId: card.id,
+        balance: 0,
+        cashbackBalance: 0
+      });
+
+      res.status(201).json({ card, wallet });
+    } catch (error) {
+      console.error("Error creating fidelity card:", error);
+      if (error.name === 'ZodError') {
+        res.status(400).json({ error: "Validation failed", details: error.issues });
+      } else {
+        res.status(500).json({ error: "Failed to create fidelity card" });
+      }
+    }
+  });
+
+  // Fidelity Wallet Transactions API
+  app.get("/api/fidelity/cards/:cardId/transactions", isAuthenticated, async (req, res) => {
+    try {
+      const { cardId } = req.params;
+      const user = req.user;
+
+      // Verify card belongs to tenant
+      const card = await storage.getFidelityCard(cardId);
+      if (!card || card.tenantId !== user?.tenantId) {
+        return res.status(404).json({ error: "Fidelity card not found" });
+      }
+
+      const transactions = await storage.getFidelityWalletTransactionsByCard(cardId);
+      res.json(transactions);
+    } catch (error) {
+      console.error("Error fetching fidelity wallet transactions:", error);
+      res.status(500).json({ error: "Failed to fetch wallet transactions" });
+    }
+  });
+
+  app.post("/api/fidelity/cards/:cardId/transactions", isAuthenticated, async (req, res) => {
+    try {
+      const { cardId } = req.params;
+      const user = req.user;
+
+      // Verify card belongs to tenant
+      const card = await storage.getFidelityCard(cardId);
+      if (!card || card.tenantId !== user?.tenantId) {
+        return res.status(404).json({ error: "Fidelity card not found" });
+      }
+
+      // Add idempotency key requirement for transaction safety
+      const { idempotencyKey, ...transactionData } = req.body;
+      if (!idempotencyKey) {
+        return res.status(400).json({ error: "Idempotency key required for transaction safety" });
+      }
+
+      const validatedData = insertFidelityWalletTransactionSchema.parse({
+        ...transactionData,
+        cardId: cardId,
+        idempotencyKey: idempotencyKey
+      });
+
+      // TODO: Implement transactional wrapper with balance checks in storage layer
+      const transaction = await storage.createFidelityWalletTransaction(validatedData);
+      res.status(201).json(transaction);
+    } catch (error) {
+      console.error("Error creating fidelity wallet transaction:", error);
+      if (error.name === 'ZodError') {
+        res.status(400).json({ error: "Validation failed", details: error.issues });
+      } else if (error.message?.includes('duplicate key')) {
+        res.status(409).json({ error: "Transaction already processed (idempotency conflict)" });
+      } else {
+        res.status(500).json({ error: "Failed to create wallet transaction" });
+      }
+    }
+  });
+
+  // Fidelity Offers API
+  app.get("/api/fidelity/offers", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const { active } = req.query;
+      let offers;
+      
+      if (active === 'true') {
+        offers = await storage.getFidelityActiveOffers(user.tenantId);
+      } else {
+        offers = await storage.getFidelityOffersByTenant(user.tenantId);
+      }
+
+      res.json(offers);
+    } catch (error) {
+      console.error("Error fetching fidelity offers:", error);
+      res.status(500).json({ error: "Failed to fetch fidelity offers" });
+    }
+  });
+
+  app.post("/api/fidelity/offers", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const validatedData = insertFidelityOfferSchema.parse({
+        ...req.body,
+        tenantId: user.tenantId
+      });
+
+      const offer = await storage.createFidelityOffer(validatedData);
+      res.status(201).json(offer);
+    } catch (error) {
+      console.error("Error creating fidelity offer:", error);
+      if (error.name === 'ZodError') {
+        res.status(400).json({ error: "Validation failed", details: error.issues });
+      } else {
+        res.status(500).json({ error: "Failed to create fidelity offer" });
+      }
+    }
+  });
+
+  // Fidelity Redemptions API
+  app.get("/api/fidelity/redemptions", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const { cardId, merchantId } = req.query;
+      let redemptions;
+
+      if (cardId) {
+        redemptions = await storage.getFidelityRedemptionsByCard(cardId as string);
+      } else if (merchantId) {
+        redemptions = await storage.getFidelityRedemptionsByMerchant(merchantId as string, user.tenantId);
+      } else {
+        redemptions = await storage.getFidelityRedemptionsByTenant(user.tenantId);
+      }
+
+      res.json(redemptions);
+    } catch (error) {
+      console.error("Error fetching fidelity redemptions:", error);
+      res.status(500).json({ error: "Failed to fetch fidelity redemptions" });
+    }
+  });
+
+  app.post("/api/fidelity/redemptions", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const validatedData = insertFidelityRedemptionSchema.parse({
+        ...req.body,
+        tenantId: user.tenantId
+      });
+
+      const redemption = await storage.createFidelityRedemption(validatedData);
+      res.status(201).json(redemption);
+    } catch (error) {
+      console.error("Error creating fidelity redemption:", error);
+      if (error.name === 'ZodError') {
+        res.status(400).json({ error: "Validation failed", details: error.issues });
+      } else {
+        res.status(500).json({ error: "Failed to create fidelity redemption" });
+      }
+    }
+  });
+
+  // Fidelity Dashboard Stats API
+  app.get("/api/fidelity/dashboard/stats", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const stats = await storage.getFidelityDashboardStats(user.tenantId);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching fidelity dashboard stats:", error);
+      res.status(500).json({ error: "Failed to fetch fidelity dashboard stats" });
+    }
+  });
+
+  // Sponsor Management API
+  app.get("/api/fidelity/sponsors", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const sponsors = await storage.getSponsorsByTenant(user.tenantId);
+      res.json(sponsors);
+    } catch (error) {
+      console.error("Error fetching sponsors:", error);
+      res.status(500).json({ error: "Failed to fetch sponsors" });
+    }
+  });
+
+  app.post("/api/fidelity/sponsors", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const validatedData = insertSponsorSchema.parse({
+        ...req.body,
+        tenantId: user.tenantId
+      });
+
+      const sponsor = await storage.createSponsor(validatedData);
+      res.status(201).json(sponsor);
+    } catch (error) {
+      console.error("Error creating sponsor:", error);
+      if (error.name === 'ZodError') {
+        res.status(400).json({ error: "Validation failed", details: error.issues });
+      } else {
+        res.status(500).json({ error: "Failed to create sponsor" });
+      }
+    }
+  });
+
+  // Promoter Profiles API
+  app.get("/api/fidelity/promoters", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const promoters = await storage.getPromoterProfilesByTenant(user.tenantId);
+      res.json(promoters);
+    } catch (error) {
+      console.error("Error fetching promoter profiles:", error);
+      res.status(500).json({ error: "Failed to fetch promoter profiles" });
+    }
+  });
+
+  app.post("/api/fidelity/promoters", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const validatedData = insertPromoterProfileSchema.parse({
+        ...req.body,
+        tenantId: user.tenantId
+      });
+
+      const promoter = await storage.createPromoterProfile(validatedData);
+      res.status(201).json(promoter);
+    } catch (error) {
+      console.error("Error creating promoter profile:", error);
+      if (error.name === 'ZodError') {
+        res.status(400).json({ error: "Validation failed", details: error.issues });
+      } else {
+        res.status(500).json({ error: "Failed to create promoter profile" });
+      }
     }
   });
 
