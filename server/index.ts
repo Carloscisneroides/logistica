@@ -18,10 +18,25 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// **IP PROTECTION & DEMO SECURITY LOGGING** - YCore SRL Innovativa
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
+
+  // **SECURITY LOGGING**: Track all access attempts for IP protection
+  const clientIP = req.ip || req.socket.remoteAddress || 'unknown';
+  const userAgent = req.headers['user-agent'] || 'unknown';
+  const isDemo = process.env.NODE_ENV === 'development';
+  
+  // Log access attempts with IP tracking for security monitoring
+  const securityLog = `[IP_TRACKING] ${clientIP} | ${req.method} ${path} | ${userAgent}`;
+  console.log(securityLog);
+  
+  // **DEMO PROTECTION**: Enhanced logging for demo sessions
+  if (isDemo && (path.startsWith('/api/auth') || path.includes('login'))) {
+    console.log(`[DEMO_ACCESS] AUTHENTICATION ATTEMPT | IP: ${clientIP} | Path: ${path} | Time: ${new Date().toISOString()}`);
+  }
 
   const originalResJson = res.json;
   res.json = function (bodyJson, ...args) {
@@ -31,6 +46,12 @@ app.use((req, res, next) => {
 
   res.on("finish", () => {
     const duration = Date.now() - start;
+    
+    // **UNAUTHORIZED ACCESS LOGGING**: Track failed authentication attempts
+    if (res.statusCode === 401 || res.statusCode === 403) {
+      console.log(`[SECURITY_ALERT] UNAUTHORIZED ACCESS | IP: ${clientIP} | Path: ${path} | Status: ${res.statusCode} | Time: ${new Date().toISOString()}`);
+    }
+    
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
       if (capturedJsonResponse) {
