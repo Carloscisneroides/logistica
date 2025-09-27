@@ -52,6 +52,19 @@ export const disputeStatusEnum = pgEnum("dispute_status", ["open", "investigatin
 export const chatMessageTypeEnum = pgEnum("chat_message_type", ["text", "file", "milestone", "contract", "system"]);
 export const commissionTierEnum = pgEnum("commission_tier", ["tier_30", "tier_20", "tier_15", "tier_10", "custom"]);
 
+// Ecommerce & Subscriptions Enums
+export const subscriptionPlanTypeEnum = pgEnum("subscription_plan_type", [
+  "merchant_basic", "merchant_premium", "merchant_enterprise",
+  "professional_basic", "professional_premium", "professional_verified"
+]);
+export const subscriptionStatusEnum = pgEnum("subscription_status", ["active", "cancelled", "expired", "suspended", "trial"]);
+export const commissionTypeEnum = pgEnum("commission_type", ["fixed_order", "percentage_project", "subscription_fee", "sponsorship"]);
+export const subscriptionFeatureEnum = pgEnum("subscription_feature", [
+  "priority_visibility", "ai_tools", "verified_badge", "advanced_analytics", 
+  "logistics_integration", "premium_support", "custom_branding", "api_access"
+]);
+export const orderTypeEnum = pgEnum("order_type", ["physical_product", "digital_service", "subscription_renewal"]);
+
 // Users table
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -1189,6 +1202,102 @@ export const marketplaceIntegrations = pgTable("marketplace_integrations", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+// Subscription Plans - Ecommerce & Professional Services
+export const subscriptionPlans = pgTable("subscription_plans", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").references(() => tenants.id),
+  name: text("name").notNull(), // "Merchant Premium", "Professional Verified"
+  type: subscriptionPlanTypeEnum("type").notNull(),
+  description: text("description"),
+  monthlyPrice: decimal("monthly_price", { precision: 10, scale: 2 }).notNull(),
+  annualPrice: decimal("annual_price", { precision: 10, scale: 2 }), // Discounted annual rate
+  features: json("features").$type<string[]>().default([]), // ["ai_tools", "verified_badge", "priority_visibility"]
+  commissionDiscount: decimal("commission_discount", { precision: 5, scale: 2 }).default("0.00"), // % reduction on commissions
+  maxListings: integer("max_listings"), // null = unlimited
+  maxProjects: integer("max_projects"), // null = unlimited  
+  supportLevel: text("support_level").default("standard"), // standard, priority, dedicated
+  isActive: boolean("is_active").notNull().default(true),
+  trialDays: integer("trial_days").default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// User Subscriptions - Track active subscriptions
+export const userSubscriptions = pgTable("user_subscriptions", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").references(() => users.id),
+  tenantId: uuid("tenant_id").references(() => tenants.id),
+  planId: uuid("plan_id").references(() => subscriptionPlans.id),
+  status: subscriptionStatusEnum("status").notNull().default("active"),
+  billingCycle: text("billing_cycle").default("monthly"), // monthly, annual
+  currentPeriodStart: timestamp("current_period_start").notNull(),
+  currentPeriodEnd: timestamp("current_period_end").notNull(),
+  trialStart: timestamp("trial_start"),
+  trialEnd: timestamp("trial_end"),
+  cancelledAt: timestamp("cancelled_at"),
+  pausedAt: timestamp("paused_at"),
+  resumedAt: timestamp("resumed_at"),
+  stripeSubscriptionId: text("stripe_subscription_id"), // For Stripe integration
+  autoRenew: boolean("auto_renew").notNull().default(true),
+  paymentFailures: integer("payment_failures").default(0),
+  lastPaymentDate: timestamp("last_payment_date"),
+  nextPaymentDate: timestamp("next_payment_date"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  // Unique constraint: one active subscription per user per tenant
+  uniqueActiveSubscription: unique().on(table.userId, table.tenantId, table.status),
+}));
+
+// Commission Tiers - Different rates for different categories
+export const commissionTiers = pgTable("commission_tiers", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").references(() => tenants.id),
+  name: text("name").notNull(), // "E-commerce Orders", "Developer Projects", "Social Media Services"
+  type: commissionTypeEnum("type").notNull(),
+  category: text("category"), // "physical_product", "web_development", "social_media", etc.
+  percentageRate: decimal("percentage_rate", { precision: 5, scale: 2 }), // For percentage commissions (15.00 = 15%)
+  fixedAmount: decimal("fixed_amount", { precision: 10, scale: 2 }), // For fixed commissions (€0.15 per order)
+  minimumAmount: decimal("minimum_amount", { precision: 10, scale: 2 }).default("0.00"),
+  maximumAmount: decimal("maximum_amount", { precision: 10, scale: 2 }), // null = no cap
+  recurringBonus: decimal("recurring_bonus", { precision: 5, scale: 2 }).default("0.00"), // Extra % for repeat customers
+  subscriptionDiscount: boolean("subscription_discount").default(false), // Reduced rate for subscribers
+  description: text("description"),
+  isActive: boolean("is_active").notNull().default(true),
+  effectiveFrom: timestamp("effective_from").notNull().defaultNow(),
+  effectiveTo: timestamp("effective_to"), // null = no expiry
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Order Commissions - Track all commission calculations
+export const orderCommissions = pgTable("order_commissions", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").references(() => tenants.id),
+  userId: uuid("user_id").references(() => users.id), // User who generated the commission
+  orderId: uuid("order_id"), // Can reference ecommerceOrders OR marketplace contracts
+  orderType: orderTypeEnum("order_type").notNull(),
+  commissionTierId: uuid("commission_tier_id").references(() => commissionTiers.id),
+  orderAmount: decimal("order_amount", { precision: 10, scale: 2 }).notNull(), // Original order/project value
+  commissionRate: decimal("commission_rate", { precision: 5, scale: 2 }), // Rate applied (can be discounted)
+  commissionAmount: decimal("commission_amount", { precision: 10, scale: 2 }).notNull(), // Final commission charged
+  isRecurring: boolean("is_recurring").default(false), // For recurring customers/projects
+  subscriptionDiscount: decimal("subscription_discount", { precision: 5, scale: 2 }).default("0.00"), // Discount applied
+  payoutStatus: text("payout_status").default("pending"), // pending, processed, failed
+  payoutDate: timestamp("payout_date"),
+  payoutReference: text("payout_reference"), // Stripe transfer ID, etc.
+  notes: text("notes"),
+  metadata: json("metadata"), // Additional data for AI analysis
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  // Indexes for analytics queries
+  orderTypeIdx: index().on(table.orderType),
+  userIdIdx: index().on(table.userId),
+  payoutStatusIdx: index().on(table.payoutStatus),
+  createdAtIdx: index().on(table.createdAt),
+}));
+
 // Relations
 export const usersRelations = relations(users, ({ one, many }) => ({
   tenant: one(tenants, {
@@ -1787,6 +1896,31 @@ export const insertAntiDisintermediationLogSchema = createInsertSchema(antiDisin
   createdAt: true,
 });
 
+// Ecommerce & Subscriptions Insert Schemas
+export const insertSubscriptionPlanSchema = createInsertSchema(subscriptionPlans).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertUserSubscriptionSchema = createInsertSchema(userSubscriptions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCommissionTierSchema = createInsertSchema(commissionTiers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertOrderCommissionSchema = createInsertSchema(orderCommissions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Fidelity Card Insert Schemas
 export const insertFidelitySettingsSchema = createInsertSchema(fidelitySettings).omit({
   id: true,
@@ -1956,3 +2090,13 @@ export type MarketplaceCommission = typeof marketplaceCommissions.$inferSelect;
 export type InsertMarketplaceCommission = z.infer<typeof insertMarketplaceCommissionSchema>;
 export type AntiDisintermediationLog = typeof antiDisintermediationLogs.$inferSelect;
 export type InsertAntiDisintermediationLog = z.infer<typeof insertAntiDisintermediationLogSchema>;
+
+// Ecommerce & Subscriptions Types
+export type SubscriptionPlan = typeof subscriptionPlans.$inferSelect;
+export type InsertSubscriptionPlan = z.infer<typeof insertSubscriptionPlanSchema>;
+export type UserSubscription = typeof userSubscriptions.$inferSelect;
+export type InsertUserSubscription = z.infer<typeof insertUserSubscriptionSchema>;
+export type CommissionTier = typeof commissionTiers.$inferSelect;
+export type InsertCommissionTier = z.infer<typeof insertCommissionTierSchema>;
+export type OrderCommission = typeof orderCommissions.$inferSelect;
+export type InsertOrderCommission = z.infer<typeof insertOrderCommissionSchema>;
