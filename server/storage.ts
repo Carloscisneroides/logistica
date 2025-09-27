@@ -38,6 +38,8 @@ import {
   type ProjectMilestone, type InsertProjectMilestone, type MarketplaceChatMessage, type InsertMarketplaceChatMessage,
   type MarketplaceDispute, type InsertMarketplaceDispute, type ProfessionalRating, type InsertProfessionalRating,
   type MarketplaceCommission, type InsertMarketplaceCommission, type AntiDisintermediationLog, type InsertAntiDisintermediationLog,
+  // Pattern Detection types - Milestone 2
+  type RiskCluster, type InsertRiskCluster, type PatternFlag, type InsertPatternFlag,
   // Shipments module types
   type FraudFlag, type InsertFraudFlag, type CourierAssignment, type InsertCourierAssignment,
   type DeliveryStatus, type InsertDeliveryStatus

@@ -23,7 +23,8 @@ import {
   insertSponsorSchema,
   insertPromoterProfileSchema,
   insertPromoterKpiSchema,
-  insertFidelityAiLogSchema
+  insertFidelityAiLogSchema,
+  insertAntiDisintermediationLogSchema, insertRiskClusterSchema, insertPatternFlagSchema
 } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
