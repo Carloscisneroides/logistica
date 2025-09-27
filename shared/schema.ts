@@ -52,6 +52,15 @@ export const disputeStatusEnum = pgEnum("dispute_status", ["open", "investigatin
 export const chatMessageTypeEnum = pgEnum("chat_message_type", ["text", "file", "milestone", "contract", "system"]);
 export const commissionTierEnum = pgEnum("commission_tier", ["tier_30", "tier_20", "tier_15", "tier_10", "custom"]);
 
+// Shipments & Logistics Enums
+export const shipmentDeliveryStatusEnum = pgEnum("shipment_delivery_status", [
+  "pending_pickup", "in_transit", "out_for_delivery", "delivered", "delivery_failed", "returned_to_sender"
+]);
+export const fraudSeverityEnum = pgEnum("fraud_severity", ["low", "medium", "high", "critical"]);
+export const courierAssignmentStatusEnum = pgEnum("courier_assignment_status", [
+  "assigned", "accepted", "in_progress", "completed", "cancelled", "reassigned"
+]);
+
 // Ecommerce & Subscriptions Enums
 export const subscriptionPlanTypeEnum = pgEnum("subscription_plan_type", [
   "merchant_basic", "merchant_premium", "merchant_enterprise",
@@ -133,13 +142,14 @@ export const shipments = pgTable("shipments", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   trackingNumber: text("tracking_number").notNull().unique(),
   clientId: uuid("client_id").references(() => clients.id),
+  tenantId: uuid("tenant_id").references(() => tenants.id),
   courierModuleId: uuid("courier_module_id").references(() => courierModules.id),
   fromAddress: text("from_address").notNull(),
   toAddress: text("to_address").notNull(),
   weight: decimal("weight", { precision: 8, scale: 2 }),
   dimensions: text("dimensions"),
   cost: decimal("cost", { precision: 10, scale: 2 }).notNull(),
-  status: text("status").notNull().default("created"),
+  status: trackingStatusEnum("status").notNull().default("created"),
   aiSelected: boolean("ai_selected").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -1298,6 +1308,56 @@ export const orderCommissions = pgTable("order_commissions", {
   createdAtIdx: index().on(table.createdAt),
 }));
 
+// Fraud Flags table - Antifraud integration for shipments
+export const fraudFlags = pgTable("fraud_flags", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").references(() => tenants.id),
+  shipmentId: uuid("shipment_id").references(() => shipments.id),
+  flagType: text("flag_type").notNull(), // anomaly_detection, pattern_suspicious, ai_analysis, manual_review
+  severity: fraudSeverityEnum("severity").notNull(),
+  description: text("description").notNull(),
+  evidence: json("evidence"), // GPS coordinates, timing anomalies, etc.
+  aiConfidence: decimal("ai_confidence", { precision: 5, scale: 2 }), // 0-100 AI confidence score
+  flaggedBy: uuid("flagged_by").references(() => users.id), // User who flagged (if manual)
+  investigationStatus: text("investigation_status").notNull().default("pending"), // pending, investigating, resolved, false_positive
+  resolvedAt: timestamp("resolved_at"),
+  resolvedBy: uuid("resolved_by").references(() => users.id),
+  resolutionNotes: text("resolution_notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, table => ({
+  tenantIdIdx: index("fraud_flags_tenant_id_idx").on(table.tenantId),
+  shipmentIdIdx: index("fraud_flags_shipment_id_idx").on(table.shipmentId),
+  severityIdx: index("fraud_flags_severity_idx").on(table.severity),
+  statusIdx: index("fraud_flags_status_idx").on(table.investigationStatus),
+}));
+
+// Courier Assignments table - Enhanced courier management
+export const courierAssignments = pgTable("courier_assignments", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").references(() => tenants.id),
+  shipmentId: uuid("shipment_id").references(() => shipments.id, { onDelete: "cascade" }),
+  courierId: uuid("courier_id").references(() => users.id), // Reference to courier user
+  courierModuleId: uuid("courier_module_id").references(() => courierModules.id),
+  status: courierAssignmentStatusEnum("status").notNull().default("assigned"),
+  assignedAt: timestamp("assigned_at").notNull().defaultNow(),
+  acceptedAt: timestamp("accepted_at"),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  gpsCoordinates: json("gps_coordinates"), // Real-time GPS tracking data
+  estimatedDelivery: timestamp("estimated_delivery"),
+  actualDelivery: timestamp("actual_delivery"),
+  deliveryProof: text("delivery_proof"), // Photo, signature, etc.
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, table => ({
+  tenantIdIdx: index("courier_assignments_tenant_id_idx").on(table.tenantId),
+  shipmentIdIdx: index("courier_assignments_shipment_id_idx").on(table.shipmentId),
+  courierIdIdx: index("courier_assignments_courier_id_idx").on(table.courierId),
+  statusIdx: index("courier_assignments_status_idx").on(table.status),
+}));
+
 // Relations
 export const usersRelations = relations(users, ({ one, many }) => ({
   tenant: one(tenants, {
@@ -1356,6 +1416,10 @@ export const shipmentsRelations = relations(shipments, ({ one, many }) => ({
     fields: [shipments.clientId],
     references: [clients.id],
   }),
+  tenant: one(tenants, {
+    fields: [shipments.tenantId],
+    references: [tenants.id],
+  }),
   courierModule: one(courierModules, {
     fields: [shipments.courierModuleId],
     references: [courierModules.id],
@@ -1365,6 +1429,9 @@ export const shipmentsRelations = relations(shipments, ({ one, many }) => ({
   tracking: many(shipmentTracking),
   returns: many(returns),
   storageItems: many(storageItems),
+  fraudFlags: many(fraudFlags),
+  courierAssignments: many(courierAssignments),
+  deliveryStatuses: many(deliveryStatus),
 }));
 
 export const invoicesRelations = relations(invoices, ({ one, many }) => ({
@@ -1692,6 +1759,86 @@ export const fidelityAiLogsRelations = relations(fidelityAiLogs, ({ one }) => ({
   }),
 }));
 
+// Delivery Status table - Track delivery outcomes and statuses
+export const deliveryStatus = pgTable("delivery_status", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").references(() => tenants.id),
+  shipmentId: uuid("shipment_id").references(() => shipments.id, { onDelete: "cascade" }),
+  courierAssignmentId: uuid("courier_assignment_id").references(() => courierAssignments.id),
+  status: shipmentDeliveryStatusEnum("status").notNull().default("pending_pickup"),
+  attemptNumber: integer("attempt_number").notNull().default(1),
+  attemptedAt: timestamp("attempted_at").notNull().defaultNow(),
+  deliveredAt: timestamp("delivered_at"),
+  failureReason: text("failure_reason"), // customer_not_home, address_incorrect, refused, etc.
+  deliveryNotes: text("delivery_notes"),
+  recipientName: text("recipient_name"),
+  signatureData: text("signature_data"), // Base64 encoded signature
+  photoEvidence: text("photo_evidence"), // Photo URL/path
+  gpsLocation: json("gps_location"), // Delivery GPS coordinates
+  nextAttemptScheduled: timestamp("next_attempt_scheduled"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, table => ({
+  tenantIdIdx: index("delivery_status_tenant_id_idx").on(table.tenantId),
+  shipmentIdIdx: index("delivery_status_shipment_id_idx").on(table.shipmentId),
+  statusIdx: index("delivery_status_status_idx").on(table.status),
+  attemptedAtIdx: index("delivery_status_attempted_at_idx").on(table.attemptedAt),
+}));
+
+// Relations for new Shipments module tables
+export const fraudFlagsRelations = relations(fraudFlags, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [fraudFlags.tenantId],
+    references: [tenants.id],
+  }),
+  shipment: one(shipments, {
+    fields: [fraudFlags.shipmentId],
+    references: [shipments.id],
+  }),
+  flaggedByUser: one(users, {
+    fields: [fraudFlags.flaggedBy],
+    references: [users.id],
+  }),
+  resolvedByUser: one(users, {
+    fields: [fraudFlags.resolvedBy],
+    references: [users.id],
+  }),
+}));
+
+export const courierAssignmentsRelations = relations(courierAssignments, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [courierAssignments.tenantId],
+    references: [tenants.id],
+  }),
+  shipment: one(shipments, {
+    fields: [courierAssignments.shipmentId],
+    references: [shipments.id],
+  }),
+  courier: one(users, {
+    fields: [courierAssignments.courierId],
+    references: [users.id],
+  }),
+  courierModule: one(courierModules, {
+    fields: [courierAssignments.courierModuleId],
+    references: [courierModules.id],
+  }),
+}));
+
+export const deliveryStatusRelations = relations(deliveryStatus, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [deliveryStatus.tenantId],
+    references: [tenants.id],
+  }),
+  shipment: one(shipments, {
+    fields: [deliveryStatus.shipmentId],
+    references: [shipments.id],
+  }),
+  courierAssignment: one(courierAssignments, {
+    fields: [deliveryStatus.courierAssignmentId],
+    references: [courierAssignments.id],
+  }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -1989,6 +2136,25 @@ export const insertFidelityAiLogSchema = createInsertSchema(fidelityAiLogs).omit
   createdAt: true,
 });
 
+// Insert schemas for Shipments module tables
+export const insertFraudFlagSchema = createInsertSchema(fraudFlags).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCourierAssignmentSchema = createInsertSchema(courierAssignments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertDeliveryStatusSchema = createInsertSchema(deliveryStatus).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -2100,3 +2266,11 @@ export type CommissionTier = typeof commissionTiers.$inferSelect;
 export type InsertCommissionTier = z.infer<typeof insertCommissionTierSchema>;
 export type OrderCommission = typeof orderCommissions.$inferSelect;
 export type InsertOrderCommission = z.infer<typeof insertOrderCommissionSchema>;
+
+// Shipments module types
+export type FraudFlag = typeof fraudFlags.$inferSelect;
+export type InsertFraudFlag = z.infer<typeof insertFraudFlagSchema>;
+export type CourierAssignment = typeof courierAssignments.$inferSelect;
+export type InsertCourierAssignment = z.infer<typeof insertCourierAssignmentSchema>;
+export type DeliveryStatus = typeof deliveryStatus.$inferSelect;
+export type InsertDeliveryStatus = z.infer<typeof insertDeliveryStatusSchema>;
