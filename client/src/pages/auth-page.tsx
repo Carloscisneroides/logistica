@@ -235,11 +235,6 @@ export default function AuthPage() {
             </div>
           </div>
           
-          <div className="bg-primary-foreground/10 rounded-lg p-4">
-            <p className="text-sm">
-              <strong>Separato da YS Logistics</strong> - Ambiente dedicato e scalabile su AWS
-            </p>
-          </div>
         </div>
       </div>
     </div>

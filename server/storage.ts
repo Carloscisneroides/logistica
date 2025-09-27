@@ -7,7 +7,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql } from "drizzle-orm";
-import session from "express-session";
+import session, { SessionOptions } from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
 
@@ -80,11 +80,11 @@ export interface IStorage {
     totalModules: number;
   }>;
   
-  sessionStore: session.SessionStore;
+  sessionStore: session.Store;
 }
 
 export class DatabaseStorage implements IStorage {
-  sessionStore: session.SessionStore;
+  sessionStore: session.Store;
 
   constructor() {
     this.sessionStore = new PostgresSessionStore({ 
@@ -231,14 +231,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPendingInvoices(tenantId: string): Promise<Invoice[]> {
-    return await db
-      .select()
+    const result = await db
+      .select({ invoice: invoices })
       .from(invoices)
       .leftJoin(clients, eq(invoices.clientId, clients.id))
       .where(and(
         eq(clients.tenantId, tenantId),
         eq(invoices.status, "sent")
       ));
+    return result.map(r => r.invoice);
   }
 
   async createInvoice(insertInvoice: InsertInvoice): Promise<Invoice> {
@@ -262,14 +263,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPendingCorrections(tenantId: string): Promise<Correction[]> {
-    return await db
-      .select()
+    const result = await db
+      .select({ correction: corrections })
       .from(corrections)
       .leftJoin(clients, eq(corrections.clientId, clients.id))
       .where(and(
         eq(clients.tenantId, tenantId),
         eq(corrections.status, "pending")
       ));
+    return result.map(r => r.correction);
   }
 
   async createCorrection(insertCorrection: InsertCorrection): Promise<Correction> {
@@ -289,17 +291,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCommissionsByCommercial(commercialId: string, month?: number, year?: number): Promise<Commission[]> {
-    let query = db.select().from(commissions).where(eq(commissions.commercialId, commercialId));
-    
     if (month && year) {
-      query = query.where(and(
+      return await db.select().from(commissions).where(and(
         eq(commissions.commercialId, commercialId),
         eq(commissions.month, month),
         eq(commissions.year, year)
       ));
+    } else {
+      return await db.select().from(commissions).where(eq(commissions.commercialId, commercialId));
     }
-    
-    return await query;
   }
 
   async createCommission(insertCommission: InsertCommission): Promise<Commission> {

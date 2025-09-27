@@ -5,16 +5,13 @@ import { storage } from "./storage";
 import { insertClientSchema, insertCourierModuleSchema, insertShipmentSchema, insertCorrectionSchema } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
-import csv from "csv-parse";
+import { parse } from "csv-parse";
 import Stripe from "stripe";
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
-}
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2024-12-18.acacia",
-});
+// Stripe setup - will be configured when API keys are provided
+const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: "2025-08-27.basil",
+}) : null;
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -211,8 +208,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         shipmentId: shipment.id,
         selectedCourierModuleId: selectedModule.id,
         alternativeCouriers: JSON.stringify(activeModules.slice(1).map(m => m.id)),
-        savings: 0, // TODO: Calculate actual savings
-        confidence: 0.95 // TODO: Calculate actual confidence
+        savings: "0", // TODO: Calculate actual savings
+        confidence: "0.95" // TODO: Calculate actual confidence
       });
 
       res.status(201).json(shipment);
@@ -275,7 +272,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const csvData = req.file.buffer.toString("utf-8");
       const records: any[] = [];
 
-      const parser = csv.parse({
+      const parser = parse({
         columns: true,
         skip_empty_lines: true
       });
@@ -348,6 +345,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Stripe Connect API
   app.post("/api/stripe/connect/account", isAuthenticated, async (req, res) => {
     try {
+      if (!stripe) {
+        return res.status(503).json({ error: "Stripe not configured. Please add API keys." });
+      }
+
       const user = req.user;
       
       if (user?.stripeAccountId) {
@@ -376,6 +377,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/stripe/connect/onboarding", isAuthenticated, async (req, res) => {
     try {
+      if (!stripe) {
+        return res.status(503).json({ error: "Stripe not configured. Please add API keys." });
+      }
+
       const user = req.user;
       
       if (!user?.stripeAccountId) {

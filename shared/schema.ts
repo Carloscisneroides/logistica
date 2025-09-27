@@ -12,6 +12,16 @@ export const billingModeEnum = pgEnum("billing_mode", ["prepaid", "postpaid"]);
 export const billingFrequencyEnum = pgEnum("billing_frequency", ["daily", "weekly", "biweekly", "monthly"]);
 export const invoiceStatusEnum = pgEnum("invoice_status", ["draft", "sent", "paid", "overdue", "cancelled"]);
 export const correctionStatusEnum = pgEnum("correction_status", ["pending", "processed", "error"]);
+export const platformTypeEnum = pgEnum("platform_type", ["ecommerce", "erp", "crm", "marketplace", "custom"]);
+export const platformStatusEnum = pgEnum("platform_status", ["connected", "disconnected", "pending", "error"]);
+export const trackingStatusEnum = pgEnum("tracking_status", ["created", "picked_up", "in_transit", "delivered", "failed", "returned"]);
+export const returnStatusEnum = pgEnum("return_status", ["requested", "approved", "picked_up", "received", "processed", "refunded"]);
+export const storageStatusEnum = pgEnum("storage_status", ["available", "reserved", "shipped", "damaged", "expired"]);
+export const ticketStatusEnum = pgEnum("ticket_status", ["open", "in_progress", "resolved", "closed", "escalated"]);
+export const ticketPriorityEnum = pgEnum("ticket_priority", ["low", "medium", "high", "urgent"]);
+export const notificationTypeEnum = pgEnum("notification_type", ["email", "sms", "webhook", "push"]);
+export const auditActionEnum = pgEnum("audit_action", ["create", "update", "delete", "login", "logout", "access"]);
+export const escalationStatusEnum = pgEnum("escalation_status", ["pending", "assigned", "resolved", "cancelled"]);
 
 // Users table
 export const users = pgTable("users", {
@@ -148,6 +158,181 @@ export const aiRoutingLogs = pgTable("ai_routing_logs", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Platform connections table - for client platform integrations
+export const platformConnections = pgTable("platform_connections", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  clientId: uuid("client_id").references(() => clients.id),
+  name: text("name").notNull(),
+  type: platformTypeEnum("type").notNull(),
+  status: platformStatusEnum("status").notNull().default("pending"),
+  apiEndpoint: text("api_endpoint"),
+  apiKey: text("api_key"),
+  webhookUrl: text("webhook_url"),
+  configuration: text("configuration"), // JSON configuration
+  lastSync: timestamp("last_sync"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Platform webhooks table - for webhook event management
+export const platformWebhooks = pgTable("platform_webhooks", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  platformConnectionId: uuid("platform_connection_id").references(() => platformConnections.id),
+  eventType: text("event_type").notNull(), // tracking, return, storage, etc.
+  payload: text("payload").notNull(), // JSON payload
+  status: text("status").notNull().default("pending"), // pending, sent, failed
+  retryCount: integer("retry_count").notNull().default(0),
+  lastAttempt: timestamp("last_attempt"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Shipment tracking table - for tracking events
+export const shipmentTracking = pgTable("shipment_tracking", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  shipmentId: uuid("shipment_id").references(() => shipments.id),
+  status: trackingStatusEnum("status").notNull(),
+  location: text("location"),
+  description: text("description"),
+  courierNote: text("courier_note"),
+  timestamp: timestamp("timestamp").notNull(),
+  isPublic: boolean("is_public").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Returns table - for return management
+export const returns = pgTable("returns", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  shipmentId: uuid("shipment_id").references(() => shipments.id),
+  clientId: uuid("client_id").references(() => clients.id),
+  returnNumber: text("return_number").notNull().unique(),
+  status: returnStatusEnum("status").notNull().default("requested"),
+  reason: text("reason").notNull(),
+  description: text("description"),
+  refundAmount: decimal("refund_amount", { precision: 10, scale: 2 }),
+  newShipmentId: uuid("new_shipment_id").references(() => shipments.id),
+  processedAt: timestamp("processed_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Storage items table - for warehouse/storage management
+export const storageItems = pgTable("storage_items", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  clientId: uuid("client_id").references(() => clients.id),
+  shipmentId: uuid("shipment_id").references(() => shipments.id),
+  returnId: uuid("return_id").references(() => returns.id),
+  itemCode: text("item_code").notNull(),
+  description: text("description"),
+  quantity: integer("quantity").notNull().default(1),
+  status: storageStatusEnum("status").notNull().default("available"),
+  location: text("location"),
+  expiryDate: timestamp("expiry_date"),
+  value: decimal("value", { precision: 10, scale: 2 }),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// CSM tickets table - for customer success management
+export const csmTickets = pgTable("csm_tickets", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  ticketNumber: text("ticket_number").notNull().unique(),
+  clientId: uuid("client_id").references(() => clients.id),
+  assignedTo: uuid("assigned_to").references(() => users.id),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  category: text("category").notNull(), // performance, retention, onboarding, etc.
+  status: ticketStatusEnum("status").notNull().default("open"),
+  priority: ticketPriorityEnum("priority").notNull().default("medium"),
+  dueDate: timestamp("due_date"),
+  resolvedAt: timestamp("resolved_at"),
+  resolutionNotes: text("resolution_notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// CSM KPI table - for customer success metrics
+export const csmKpi = pgTable("csm_kpi", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  clientId: uuid("client_id").references(() => clients.id),
+  month: integer("month").notNull(),
+  year: integer("year").notNull(),
+  shipmentsCount: integer("shipments_count").notNull().default(0),
+  averageCost: decimal("average_cost", { precision: 10, scale: 2 }).default("0.00"),
+  satisfactionScore: decimal("satisfaction_score", { precision: 3, scale: 2 }), // 0-5 scale
+  retentionScore: decimal("retention_score", { precision: 5, scale: 2 }), // percentage
+  issuesCount: integer("issues_count").notNull().default(0),
+  responseTime: integer("response_time"), // average in hours
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// TSM tickets table - for technical support management
+export const tsmTickets = pgTable("tsm_tickets", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  ticketNumber: text("ticket_number").notNull().unique(),
+  clientId: uuid("client_id").references(() => clients.id),
+  assignedTo: uuid("assigned_to").references(() => users.id),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  category: text("category").notNull(), // platform, integration, api, etc.
+  status: ticketStatusEnum("status").notNull().default("open"),
+  priority: ticketPriorityEnum("priority").notNull().default("medium"),
+  severity: text("severity").notNull().default("low"), // low, medium, high, critical
+  dueDate: timestamp("due_date"),
+  resolvedAt: timestamp("resolved_at"),
+  resolutionNotes: text("resolution_notes"),
+  escalationLevel: integer("escalation_level").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Audit logs table - for system audit trail
+export const auditLogs = pgTable("audit_logs", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").references(() => users.id),
+  clientId: uuid("client_id").references(() => clients.id),
+  action: auditActionEnum("action").notNull(),
+  entityType: text("entity_type").notNull(), // shipment, client, user, etc.
+  entityId: uuid("entity_id").notNull(),
+  changes: text("changes"), // JSON of changes made
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Escalations table - for automatic escalation management
+export const escalations = pgTable("escalations", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  ticketId: uuid("ticket_id"), // Can reference csm or tsm tickets
+  ticketType: text("ticket_type").notNull(), // csm, tsm
+  currentLevel: integer("current_level").notNull().default(1),
+  maxLevel: integer("max_level").notNull().default(3),
+  status: escalationStatusEnum("status").notNull().default("pending"),
+  rules: text("rules"), // JSON escalation rules
+  nextEscalationAt: timestamp("next_escalation_at"),
+  assignedTo: uuid("assigned_to").references(() => users.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Notifications table - for system notifications
+export const notifications = pgTable("notifications", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  recipientId: uuid("recipient_id").references(() => users.id),
+  clientId: uuid("client_id").references(() => clients.id),
+  type: notificationTypeEnum("type").notNull(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  category: text("category").notNull(), // tracking, return, billing, system, etc.
+  data: text("data"), // JSON additional data
+  isRead: boolean("is_read").notNull().default(false),
+  sentAt: timestamp("sent_at"),
+  deliveredAt: timestamp("delivered_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ one, many }) => ({
   tenant: one(tenants, {
@@ -182,6 +367,14 @@ export const clientsRelations = relations(clients, ({ one, many }) => ({
   invoices: many(invoices),
   corrections: many(corrections),
   commissions: many(commissions),
+  platformConnections: many(platformConnections),
+  returns: many(returns),
+  storageItems: many(storageItems),
+  csmTickets: many(csmTickets),
+  csmKpi: many(csmKpi),
+  tsmTickets: many(tsmTickets),
+  auditLogs: many(auditLogs),
+  notifications: many(notifications),
 }));
 
 export const courierModulesRelations = relations(courierModules, ({ one, many }) => ({
@@ -204,6 +397,9 @@ export const shipmentsRelations = relations(shipments, ({ one, many }) => ({
   }),
   corrections: many(corrections),
   aiRoutingLogs: many(aiRoutingLogs),
+  tracking: many(shipmentTracking),
+  returns: many(returns),
+  storageItems: many(storageItems),
 }));
 
 export const invoicesRelations = relations(invoices, ({ one, many }) => ({
@@ -248,6 +444,118 @@ export const aiRoutingLogsRelations = relations(aiRoutingLogs, ({ one }) => ({
   selectedCourierModule: one(courierModules, {
     fields: [aiRoutingLogs.selectedCourierModuleId],
     references: [courierModules.id],
+  }),
+}));
+
+// New table relations
+export const platformConnectionsRelations = relations(platformConnections, ({ one, many }) => ({
+  client: one(clients, {
+    fields: [platformConnections.clientId],
+    references: [clients.id],
+  }),
+  webhooks: many(platformWebhooks),
+}));
+
+export const platformWebhooksRelations = relations(platformWebhooks, ({ one }) => ({
+  platformConnection: one(platformConnections, {
+    fields: [platformWebhooks.platformConnectionId],
+    references: [platformConnections.id],
+  }),
+}));
+
+export const shipmentTrackingRelations = relations(shipmentTracking, ({ one }) => ({
+  shipment: one(shipments, {
+    fields: [shipmentTracking.shipmentId],
+    references: [shipments.id],
+  }),
+}));
+
+export const returnsRelations = relations(returns, ({ one, many }) => ({
+  client: one(clients, {
+    fields: [returns.clientId],
+    references: [clients.id],
+  }),
+  shipment: one(shipments, {
+    fields: [returns.shipmentId],
+    references: [shipments.id],
+  }),
+  newShipment: one(shipments, {
+    fields: [returns.newShipmentId],
+    references: [shipments.id],
+  }),
+  storageItems: many(storageItems),
+}));
+
+export const storageItemsRelations = relations(storageItems, ({ one }) => ({
+  client: one(clients, {
+    fields: [storageItems.clientId],
+    references: [clients.id],
+  }),
+  shipment: one(shipments, {
+    fields: [storageItems.shipmentId],
+    references: [shipments.id],
+  }),
+  return: one(returns, {
+    fields: [storageItems.returnId],
+    references: [returns.id],
+  }),
+}));
+
+export const csmTicketsRelations = relations(csmTickets, ({ one }) => ({
+  client: one(clients, {
+    fields: [csmTickets.clientId],
+    references: [clients.id],
+  }),
+  assignedTo: one(users, {
+    fields: [csmTickets.assignedTo],
+    references: [users.id],
+  }),
+}));
+
+export const csmKpiRelations = relations(csmKpi, ({ one }) => ({
+  client: one(clients, {
+    fields: [csmKpi.clientId],
+    references: [clients.id],
+  }),
+}));
+
+export const tsmTicketsRelations = relations(tsmTickets, ({ one }) => ({
+  client: one(clients, {
+    fields: [tsmTickets.clientId],
+    references: [clients.id],
+  }),
+  assignedTo: one(users, {
+    fields: [tsmTickets.assignedTo],
+    references: [users.id],
+  }),
+}));
+
+export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
+  user: one(users, {
+    fields: [auditLogs.userId],
+    references: [users.id],
+  }),
+  client: one(clients, {
+    fields: [auditLogs.clientId],
+    references: [clients.id],
+  }),
+}));
+
+export const escalationsRelations = relations(escalations, ({ one }) => ({
+  assignedTo: one(users, {
+    fields: [escalations.assignedTo],
+    references: [users.id],
+  }),
+}));
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  recipient: one(users, {
+    fields: [notifications.recipientId],
+    references: [users.id],
+  }),
+  client: one(clients, {
+    fields: [notifications.clientId],
+    references: [clients.id],
   }),
 }));
 
@@ -305,6 +613,69 @@ export const insertAiRoutingLogSchema = createInsertSchema(aiRoutingLogs).omit({
   createdAt: true,
 });
 
+// Insert schemas for new tables
+export const insertPlatformConnectionSchema = createInsertSchema(platformConnections).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertPlatformWebhookSchema = createInsertSchema(platformWebhooks).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertShipmentTrackingSchema = createInsertSchema(shipmentTracking).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertReturnSchema = createInsertSchema(returns).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertStorageItemSchema = createInsertSchema(storageItems).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCsmTicketSchema = createInsertSchema(csmTickets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCsmKpiSchema = createInsertSchema(csmKpi).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertTsmTicketSchema = createInsertSchema(tsmTickets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertEscalationSchema = createInsertSchema(escalations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertNotificationSchema = createInsertSchema(notifications).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -324,3 +695,27 @@ export type Commission = typeof commissions.$inferSelect;
 export type InsertCommission = z.infer<typeof insertCommissionSchema>;
 export type AiRoutingLog = typeof aiRoutingLogs.$inferSelect;
 export type InsertAiRoutingLog = z.infer<typeof insertAiRoutingLogSchema>;
+
+// Types for new tables
+export type PlatformConnection = typeof platformConnections.$inferSelect;
+export type InsertPlatformConnection = z.infer<typeof insertPlatformConnectionSchema>;
+export type PlatformWebhook = typeof platformWebhooks.$inferSelect;
+export type InsertPlatformWebhook = z.infer<typeof insertPlatformWebhookSchema>;
+export type ShipmentTracking = typeof shipmentTracking.$inferSelect;
+export type InsertShipmentTracking = z.infer<typeof insertShipmentTrackingSchema>;
+export type Return = typeof returns.$inferSelect;
+export type InsertReturn = z.infer<typeof insertReturnSchema>;
+export type StorageItem = typeof storageItems.$inferSelect;
+export type InsertStorageItem = z.infer<typeof insertStorageItemSchema>;
+export type CsmTicket = typeof csmTickets.$inferSelect;
+export type InsertCsmTicket = z.infer<typeof insertCsmTicketSchema>;
+export type CsmKpi = typeof csmKpi.$inferSelect;
+export type InsertCsmKpi = z.infer<typeof insertCsmKpiSchema>;
+export type TsmTicket = typeof tsmTickets.$inferSelect;
+export type InsertTsmTicket = z.infer<typeof insertTsmTicketSchema>;
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
+export type Escalation = typeof escalations.$inferSelect;
+export type InsertEscalation = z.infer<typeof insertEscalationSchema>;
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
