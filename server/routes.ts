@@ -270,6 +270,125 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ========== AI ANTIFRODE ENDPOINTS ==========
+  
+  // Individual user risk assessment
+  app.get("/api/ai/antifraud/user/:userId/risk", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+      
+      const { userId } = req.params;
+      
+      // Validate userId format (UUID)
+      if (!userId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) {
+        return res.status(400).json({ error: "Invalid userId format" });
+      }
+      
+      // Check if user has admin role for risk assessment
+      if (user.role !== 'admin') {
+        return res.status(403).json({ error: "Insufficient permissions for risk assessment" });
+      }
+      
+      // Defense-in-depth: Verify target user belongs to same tenant
+      const targetUser = await storage.getUser(userId);
+      if (!targetUser || targetUser.tenantId !== user.tenantId) {
+        return res.status(404).json({ error: "User not found or access denied" });
+      }
+      
+      const riskAssessment = await storage.calculateUserRiskScore(userId, user.tenantId);
+      res.json(riskAssessment);
+    } catch (error: any) {
+      console.error("Risk assessment error:", error);
+      res.status(500).json({ error: error.message || "Risk assessment failed" });
+    }
+  });
+
+  // Execute automated response
+  app.post("/api/ai/antifraud/user/:userId/respond", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+      
+      const { userId } = req.params;
+      const { riskLevel } = req.body;
+      
+      // Validate userId format (UUID)
+      if (!userId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) {
+        return res.status(400).json({ error: "Invalid userId format" });
+      }
+      
+      // Validate riskLevel
+      if (!riskLevel || typeof riskLevel !== 'string' || !['low', 'medium', 'high', 'critical'].includes(riskLevel)) {
+        return res.status(400).json({ error: "Invalid risk level. Must be: low, medium, high, or critical" });
+      }
+      
+      if (user.role !== 'admin') {
+        return res.status(403).json({ error: "Insufficient permissions for automated response" });
+      }
+      
+      // Defense-in-depth: Verify target user belongs to same tenant
+      const targetUser = await storage.getUser(userId);
+      if (!targetUser || targetUser.tenantId !== user.tenantId) {
+        return res.status(404).json({ error: "User not found or access denied" });
+      }
+      
+      const response = await storage.executeAutomatedResponse(userId, user.tenantId, riskLevel as 'low' | 'medium' | 'high' | 'critical');
+      res.json(response);
+    } catch (error: any) {
+      console.error("Automated response error:", error);
+      res.status(500).json({ error: error.message || "Automated response failed" });
+    }
+  });
+
+  // Get antifraud dashboard stats
+  app.get("/api/ai/antifraud/dashboard/stats", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+      
+      if (user.role !== 'admin') {
+        return res.status(403).json({ error: "Insufficient permissions for antifraud dashboard" });
+      }
+      
+      // Get recent anti-disintermediation logs
+      const antiDisintermediationLogs = await storage.getAntiDisintermediationLogsByTenant(user.tenantId);
+      const recentLogs = antiDisintermediationLogs.filter(log => 
+        log.createdAt > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // Last 30 days
+      );
+      
+      // Aggregate stats
+      const severityDistribution = recentLogs.reduce((acc, log) => {
+        acc[log.severity] = (acc[log.severity] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      const eventTypeDistribution = recentLogs.reduce((acc, log) => {
+        acc[log.eventType] = (acc[log.eventType] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      const unresolvedIncidents = recentLogs.filter(log => !log.isResolved).length;
+      
+      res.json({
+        totalIncidents: recentLogs.length,
+        unresolvedIncidents,
+        severityDistribution,
+        eventTypeDistribution,
+        lastUpdated: new Date()
+      });
+    } catch (error: any) {
+      console.error("Antifraud dashboard stats error:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch antifraud dashboard stats" });
+    }
+  });
+
   // AI Support Assistant endpoint
   app.post("/api/ai/support-assistant", isAuthenticated, async (req, res) => {
     try {

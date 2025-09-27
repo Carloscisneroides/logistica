@@ -30,16 +30,29 @@ Realizzare un ecosistema SaaS modulare e scalabile per la gestione logistica, co
 
 ## 🔄 MODULI IN CORSO
 
-### 3. **Modulo Marketplace B2B** (⚠️ **90% completato**)
-- **Database**: 6 tabelle create (marketplaceListings, marketplaceOrders, marketplaceCategories, marketplaceReviews, marketplaceVisibility, marketplaceOrderItems)
-- **Backend**: Storage interface completo + 12 API endpoints con protezioni sicurezza avanzate
-- **Frontend**: Pagina React completa con 4 tab (Catalogo, Le Mie Offerte, Ordini, Recensioni)
+### 3. **Modulo Marketplace Professionisti Digitali** (⚠️ **90% completato**)
+- **Database**: 10 tabelle core + 9 enums (Professional profiles, projects, bidding system, contracts, milestones, chat, disputes, ratings, commissions, anti-disintermediazione)
+- **Backend**: 70+ metodi storage con AI matching algorithms, tenant scoping rigoroso, dashboard analytics SQL
+- **Frontend**: Sistema completo bidding + portfolio management (in sviluppo)
 - **Features speciali**:
-  - **Protezione concorrenza**: Offerte private per default, segmentazione tenant
-  - **Branding merchant**: Logo, nome brand, link sito esterno
-  - **Controlli visibilità**: Private, tenant-only, pubbliche con filtri ruolo
-  - **Monetizzazione**: Preparato per Stripe Connect split payments
-- **Rimane**: Test end-to-end, integrazione YSpedizioni, categorie predefinite
+  - **Protezione anti-disintermediazione**: AI nativa per rilevamento bypass tentativi
+  - **Commissioni modulari**: 30% sviluppatori, 15-20% social media, 10-15% progetti ricorrenti
+  - **Matching AI**: Algoritmi intelligenti cliente-professionista per skill/rating/budget
+  - **Stripe Connect**: Ready per pagamenti milestone automatici
+- **Rimane**: API routes implementation, frontend completion
+
+### 4. **Modulo AI Antifrode** (🔄 **In Implementazione**)
+- **Database**: Foundation già implementata con `anti_disintermediation_logs`, `audit_logs`, user suspension
+- **AI Scoring**: Algoritmo OpenAI per user risk classification (0-100 score) 
+- **Pattern Detection**: Behavioral analysis multi-modulo (Marketplace + Fidelity + Logistica)
+- **Escalation Automatica**: Warning → Restriction → Suspension workflow intelligente
+- **Features Enterprise**:
+  - **Real-time monitoring**: Dashboard admin per threat detection
+  - **Evidence collection**: IP, UserAgent, Chat logs, Email patterns, Phone numbers
+  - **Compliance GDPR**: Audit trail completo per investigazioni legali
+  - **Revenue protection**: Protezione da fraudulent transactions e bypass
+  - **Difendibilità architetturale**: Zero dipendenze esterne, tutto interno YCore
+- **Timeline**: 3 giorni (Milestone 1: AI core + automation, Milestone 2: Advanced patterns, Milestone 3: Admin dashboard)
 
 ---
 

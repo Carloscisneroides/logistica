@@ -848,7 +848,7 @@ export const marketplaceCommissions = pgTable("marketplace_commissions", {
     isRecurring?: boolean;
     originalRate?: number;
     discountApplied?: number;
-  }>().default({}),
+  }>().default(sql`'{}'::json`),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => ({
   professionalIdx: index("marketplace_commissions_professional_idx").on(table.professionalId),
