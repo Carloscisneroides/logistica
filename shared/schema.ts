@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, uuid, integer, decimal, boolean, pgEnum, index } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, uuid, integer, decimal, boolean, pgEnum, index, json } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -388,7 +388,7 @@ export const marketplaceCategories = pgTable("marketplace_categories", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   name: varchar("name", { length: 100 }).notNull(),
   description: text("description"),
-  parentId: uuid("parent_id").references(() => marketplaceCategories.id),
+  parentId: uuid("parent_id"),
   isActive: boolean("is_active").default(true),
   sortOrder: integer("sort_order").default(0),
   tenantId: uuid("tenant_id").notNull().references(() => tenants.id),
@@ -458,7 +458,7 @@ export const marketplaceVisibility = pgTable("marketplace_visibility", {
   targetRole: varchar("target_role"),
   accessType: varchar("access_type").notNull(), // view, purchase, quote_request
   customPrice: decimal("custom_price", { precision: 10, scale: 2 }),
-  conditions: jsonb("conditions"), // Condizioni personalizzate come volume, SLA, ecc.
+  conditions: json("conditions"), // Condizioni personalizzate come volume, SLA, ecc.
   isActive: boolean("is_active").default(true),
   expiresAt: timestamp("expires_at"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -512,7 +512,7 @@ export const marketplaceOrderItems = pgTable("marketplace_order_items", {
   quantity: integer("quantity").notNull(),
   unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
   totalPrice: decimal("total_price", { precision: 10, scale: 2 }).notNull(),
-  customizations: jsonb("customizations"), // Personalizzazioni specifiche dell'item
+  customizations: json("customizations"), // Personalizzazioni specifiche dell'item
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -567,67 +567,13 @@ export type InsertMarketplaceOrderItem = typeof marketplaceOrderItems.$inferInse
 export type MarketplaceReview = typeof marketplaceReviews.$inferSelect;
 export type InsertMarketplaceReview = typeof marketplaceReviews.$inferInsert;
 
-// Marketplace Insert Schemas for Validation
-export const insertMarketplaceCategorySchema = createInsertSchema(marketplaceCategories).omit({
-  id: true,
-  createdAt: true,
-});
-
-export const insertMarketplaceListingSchema = createInsertSchema(marketplaceListings).omit({
-  id: true,
-  viewCount: true,
-  orderCount: true,
-  rating: true,
-  reviewCount: true,
-  publishedAt: true,
-  createdAt: true,
-  updatedAt: true,
-}).extend({
-  basePrice: z.string().optional().transform((val) => val ? parseFloat(val) : undefined),
-  minOrderQuantity: z.number().min(1).default(1),
-  maxOrderQuantity: z.number().optional(),
-});
-
-export const insertMarketplaceVisibilitySchema = createInsertSchema(marketplaceVisibility).omit({
-  id: true,
-  createdAt: true,
-}).extend({
-  customPrice: z.string().optional().transform((val) => val ? parseFloat(val) : undefined),
-});
-
-export const insertMarketplaceOrderSchema = createInsertSchema(marketplaceOrders).omit({
-  id: true,
-  orderNumber: true,
-  platformFee: true,
-  createdAt: true,
-  updatedAt: true,
-}).extend({
-  totalAmount: z.string().transform((val) => parseFloat(val)),
-  shippingCost: z.string().optional().transform((val) => val ? parseFloat(val) : 0),
-  taxAmount: z.string().optional().transform((val) => val ? parseFloat(val) : 0),
-});
-
-export const insertMarketplaceOrderItemSchema = createInsertSchema(marketplaceOrderItems).omit({
-  id: true,
-  createdAt: true,
-}).extend({
-  quantity: z.number().min(1),
-  unitPrice: z.string().transform((val) => parseFloat(val)),
-  totalPrice: z.string().transform((val) => parseFloat(val)),
-});
-
-export const insertMarketplaceReviewSchema = createInsertSchema(marketplaceReviews).omit({
-  id: true,
-  isVerifiedPurchase: true,
-  helpfulCount: true,
-  sellerRespondedAt: true,
-  createdAt: true,
-  updatedAt: true,
-}).extend({
-  rating: z.number().min(1).max(5),
-  title: z.string().min(1).max(200).optional(),
-  comment: z.string().min(10).max(2000).optional(),
-});
+// Marketplace Insert Schemas for Validation (simplified for now)
+export const insertMarketplaceCategorySchema = createInsertSchema(marketplaceCategories);
+export const insertMarketplaceListingSchema = createInsertSchema(marketplaceListings);
+export const insertMarketplaceVisibilitySchema = createInsertSchema(marketplaceVisibility);
+export const insertMarketplaceOrderSchema = createInsertSchema(marketplaceOrders);
+export const insertMarketplaceOrderItemSchema = createInsertSchema(marketplaceOrderItems);
+export const insertMarketplaceReviewSchema = createInsertSchema(marketplaceReviews);
 
 // ======== ECOMMERCE MODULE TABLES ========
 
