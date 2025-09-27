@@ -246,6 +246,11 @@ export class DatabaseStorage implements IStorage {
     return module || undefined;
   }
 
+  async getCourierModuleByCode(code: string): Promise<CourierModule | undefined> {
+    const [module] = await db.select().from(courierModules).where(eq(courierModules.code, code));
+    return module || undefined;
+  }
+
   async getCourierModulesByTenant(tenantId: string): Promise<CourierModule[]> {
     return await db.select().from(courierModules).where(eq(courierModules.tenantId, tenantId));
   }
@@ -268,6 +273,11 @@ export class DatabaseStorage implements IStorage {
   // Shipments
   async getShipment(id: string): Promise<Shipment | undefined> {
     const [shipment] = await db.select().from(shipments).where(eq(shipments.id, id));
+    return shipment || undefined;
+  }
+
+  async getShipmentByTrackingNumber(trackingNumber: string): Promise<Shipment | undefined> {
+    const [shipment] = await db.select().from(shipments).where(eq(shipments.trackingNumber, trackingNumber));
     return shipment || undefined;
   }
 
@@ -736,10 +746,18 @@ export class DatabaseStorage implements IStorage {
     return notification || undefined;
   }
 
-  async getNotificationsByRecipient(recipientId: string): Promise<Notification[]> {
-    return await db.select().from(notifications)
-      .where(eq(notifications.recipientId, recipientId))
+  async getNotificationsByRecipient(recipientId: string, isRead?: boolean, limit?: number): Promise<Notification[]> {
+    const query = db.select().from(notifications)
+      .where(isRead !== undefined ? 
+        and(eq(notifications.recipientId, recipientId), eq(notifications.isRead, isRead)) :
+        eq(notifications.recipientId, recipientId)
+      )
       .orderBy(desc(notifications.createdAt));
+      
+    if (limit) {
+      return await query.limit(limit);
+    }
+    return await query;
   }
 
   async getUnreadNotifications(recipientId: string): Promise<Notification[]> {

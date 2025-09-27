@@ -10,7 +10,8 @@ import {
   insertPlatformConnectionSchema,
   insertPlatformWebhookSchema,
   insertShipmentTrackingSchema,
-  insertReturnSchema 
+  insertReturnSchema,
+  insertNotificationSchema
 } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
@@ -838,6 +839,822 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Webhook processing error:", error);
       res.status(500).json({ error: "Webhook processing failed" });
+    }
+  });
+
+  // Shipment Tracking API - with courier sync and notifications
+  app.get("/api/shipments/:id/tracking", isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const user = req.user;
+
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      // Validate shipment belongs to user's tenant
+      const shipment = await storage.getShipment(id);
+      if (!shipment) {
+        return res.status(404).json({ error: "Shipment not found" });
+      }
+
+      const client = await storage.getClient(shipment.clientId);
+      if (!client || client.tenantId !== user.tenantId) {
+        return res.status(404).json({ error: "Access denied" });
+      }
+
+      const trackingHistory = await storage.getTrackingByShipment(id);
+      res.json(trackingHistory);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/shipments/:id/tracking", isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const user = req.user;
+
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      // Validate shipment belongs to user's tenant
+      const shipment = await storage.getShipment(id);
+      if (!shipment) {
+        return res.status(404).json({ error: "Shipment not found" });
+      }
+
+      const client = await storage.getClient(shipment.clientId);
+      if (!client || client.tenantId !== user.tenantId) {
+        return res.status(404).json({ error: "Access denied" });
+      }
+
+      const trackingData = {
+        ...req.body,
+        shipmentId: id,
+        timestamp: req.body.timestamp || new Date()
+      };
+
+      const validatedData = insertShipmentTrackingSchema.parse(trackingData);
+      const tracking = await storage.createShipmentTracking(validatedData);
+
+      // Send notifications for significant status changes
+      if (["picked_up", "delivered", "failed", "returned"].includes(validatedData.status)) {
+        try {
+          // Notify client via email/webhook
+          await storage.createNotification({
+            recipientId: client.userId || user.id,
+            clientId: client.id,
+            type: "email",
+            title: `Shipment ${validatedData.status}`,
+            message: `Your shipment ${shipment.trackingNumber} is now ${validatedData.status}`,
+            category: "tracking",
+            data: JSON.stringify({
+              shipmentId: id,
+              trackingNumber: shipment.trackingNumber,
+              status: validatedData.status,
+              location: validatedData.location
+            })
+          });
+
+          // Send webhook to connected platforms
+          const platformConnections = await storage.getPlatformConnectionsByClient(client.id);
+          for (const connection of platformConnections.filter(c => c.isActive && c.webhookUrl)) {
+            await storage.createPlatformWebhook({
+              platformConnectionId: connection.id,
+              eventType: "shipment_update",
+              payload: JSON.stringify({
+                type: "shipment_update",
+                data: {
+                  shipmentId: id,
+                  trackingNumber: shipment.trackingNumber,
+                  status: validatedData.status,
+                  location: validatedData.location,
+                  timestamp: validatedData.timestamp
+                }
+              }),
+              status: "pending"
+            });
+          }
+        } catch (notificationError) {
+          console.error("Failed to send notifications:", notificationError);
+          // Continue processing even if notifications fail
+        }
+      }
+
+      // Log tracking creation in audit trail
+      await storage.createAuditLog({
+        userId: user.id,
+        entityType: "shipment_tracking",
+        entityId: tracking.id,
+        action: "created",
+        details: `Tracking event created: ${validatedData.status}`,
+        ipAddress: req.ip
+      });
+
+      res.status(201).json(tracking);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/shipments/:id/tracking/:trackingId", isAuthenticated, async (req, res) => {
+    try {
+      const { id, trackingId } = req.params;
+      const user = req.user;
+
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      // Validate tracking belongs to user's tenant
+      const tracking = await storage.getShipmentTracking(trackingId);
+      if (!tracking) {
+        return res.status(404).json({ error: "Tracking not found" });
+      }
+
+      const shipment = await storage.getShipment(tracking.shipmentId);
+      if (!shipment || shipment.id !== id) {
+        return res.status(404).json({ error: "Tracking not found for this shipment" });
+      }
+
+      const client = await storage.getClient(shipment.clientId);
+      if (!client || client.tenantId !== user.tenantId) {
+        return res.status(404).json({ error: "Access denied" });
+      }
+
+      const updateSchema = insertShipmentTrackingSchema.partial().omit({ id: true, shipmentId: true });
+      const validatedUpdates = updateSchema.parse(req.body);
+      const updatedTracking = await storage.updateShipmentTracking(trackingId, validatedUpdates);
+
+      // Log tracking update in audit trail
+      await storage.createAuditLog({
+        userId: user.id,
+        entityType: "shipment_tracking",
+        entityId: trackingId,
+        action: "updated",
+        details: `Tracking event updated`,
+        ipAddress: req.ip
+      });
+
+      res.json(updatedTracking);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Courier Sync API - for automatic updates from courier systems
+  app.post("/api/tracking/sync/:courierCode", async (req, res) => {
+    try {
+      const { courierCode } = req.params;
+      const updates = req.body;
+
+      // Validate courier module exists and is active
+      const courierModule = await storage.getCourierModuleByCode(courierCode);
+      if (!courierModule || courierModule.status !== "active") {
+        return res.status(404).json({ error: "Courier module not found or inactive" });
+      }
+
+      const processedUpdates = [];
+      const errors = [];
+
+      for (const update of updates) {
+        try {
+          const { trackingNumber, status, location, timestamp, description } = update;
+
+          // Find shipment by tracking number
+          const shipment = await storage.getShipmentByTrackingNumber(trackingNumber);
+          if (!shipment) {
+            errors.push({ trackingNumber, error: "Shipment not found" });
+            continue;
+          }
+
+          // Create tracking entry
+          const trackingData = {
+            shipmentId: shipment.id,
+            status: status,
+            location: location || "",
+            description: description || "",
+            courierNote: `Auto-sync from ${courierCode}`,
+            timestamp: new Date(timestamp || Date.now()),
+            isPublic: true
+          };
+
+          const validatedData = insertShipmentTrackingSchema.parse(trackingData);
+          const tracking = await storage.createShipmentTracking(validatedData);
+
+          // Send notifications for major status changes
+          if (["picked_up", "delivered", "failed", "returned"].includes(status)) {
+            const client = await storage.getClient(shipment.clientId);
+            if (client) {
+              // Create notification
+              await storage.createNotification({
+                recipientId: client.userId || shipment.clientId,
+                clientId: client.id,
+                type: "email",
+                title: `Shipment ${status}`,
+                message: `Your shipment ${trackingNumber} is now ${status}`,
+                category: "tracking",
+                data: JSON.stringify({
+                  shipmentId: shipment.id,
+                  trackingNumber,
+                  status,
+                  location
+                })
+              });
+
+              // Send webhook to platforms
+              const platformConnections = await storage.getPlatformConnectionsByClient(client.id);
+              for (const connection of platformConnections.filter(c => c.isActive && c.webhookUrl)) {
+                await storage.createPlatformWebhook({
+                  platformConnectionId: connection.id,
+                  eventType: "shipment_update",
+                  payload: JSON.stringify({
+                    type: "shipment_update",
+                    data: {
+                      shipmentId: shipment.id,
+                      trackingNumber,
+                      status,
+                      location,
+                      timestamp: trackingData.timestamp
+                    }
+                  }),
+                  status: "pending"
+                });
+              }
+            }
+          }
+
+          processedUpdates.push({ trackingNumber, trackingId: tracking.id, status: "processed" });
+        } catch (updateError: any) {
+          errors.push({ trackingNumber: update.trackingNumber, error: updateError.message });
+        }
+      }
+
+      res.json({
+        message: "Tracking sync completed",
+        processed: processedUpdates.length,
+        errors: errors.length,
+        processedUpdates,
+        errors
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Real-time tracking notifications
+  app.get("/api/tracking/notifications", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const { status = "unread", limit = "50" } = req.query;
+      const notifications = await storage.getNotificationsByRecipient(
+        user.id, 
+        status === "unread" ? false : undefined,
+        parseInt(limit as string)
+      );
+
+      res.json(notifications);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/tracking/notifications/:id/read", isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const user = req.user;
+
+      // Validate notification belongs to user
+      const notification = await storage.getNotification(id);
+      if (!notification || notification.recipientId !== user.id) {
+        return res.status(404).json({ error: "Notification not found" });
+      }
+
+      const updatedNotification = await storage.updateNotification(id, {
+        isRead: true,
+        deliveredAt: new Date()
+      });
+
+      res.json(updatedNotification);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Reportistica e Analisi Predittiva API
+  
+  // Report Operativi
+  app.get("/api/reports/operational", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const { startDate, endDate, clientId } = req.query;
+      const start = startDate ? new Date(startDate as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // 30 giorni fa
+      const end = endDate ? new Date(endDate as string) : new Date();
+
+      // Get clients for the tenant
+      const clients = clientId ? 
+        [await storage.getClient(clientId as string)] : 
+        await storage.getClientsByTenant(user.tenantId);
+
+      const validClients = clients.filter(c => c && c.tenantId === user.tenantId);
+      const clientIds = validClients.map(c => c.id);
+
+      if (clientIds.length === 0) {
+        return res.json({ error: "No clients found" });
+      }
+
+      // Andamento spedizioni
+      const shipmentsData = [];
+      let totalShipments = 0;
+      let deliveredShipments = 0;
+      let failedShipments = 0;
+
+      for (const id of clientIds) {
+        const shipments = await storage.getShipmentsByClient(id);
+        const filteredShipments = shipments.filter(s => 
+          new Date(s.createdAt) >= start && new Date(s.createdAt) <= end
+        );
+        
+        totalShipments += filteredShipments.length;
+        
+        for (const shipment of filteredShipments) {
+          const tracking = await storage.getTrackingByShipment(shipment.id);
+          const latestStatus = tracking[0]?.status;
+          if (latestStatus === 'delivered') deliveredShipments++;
+          if (latestStatus === 'failed') failedShipments++;
+        }
+        
+        shipmentsData.push({
+          clientId: id,
+          clientName: validClients.find(c => c.id === id)?.name,
+          shipments: filteredShipments.length,
+          delivered: filteredShipments.filter(s => 
+            tracking.some(t => t.shipmentId === s.id && t.status === 'delivered')
+          ).length
+        });
+      }
+
+      // Andamento resi
+      const returnsData = [];
+      let totalReturns = 0;
+      
+      for (const id of clientIds) {
+        const returns = await storage.getReturnsByClient(id);
+        const filteredReturns = returns.filter(r => 
+          new Date(r.createdAt) >= start && new Date(r.createdAt) <= end
+        );
+        totalReturns += filteredReturns.length;
+        
+        returnsData.push({
+          clientId: id,
+          clientName: validClients.find(c => c.id === id)?.name,
+          returns: filteredReturns.length,
+          processed: filteredReturns.filter(r => r.status === 'processed').length
+        });
+      }
+
+      // Giacenze
+      const storageData = [];
+      let totalItems = 0;
+      
+      for (const id of clientIds) {
+        const items = await storage.getStorageItemsByClient(id);
+        totalItems += items.length;
+        
+        storageData.push({
+          clientId: id,
+          clientName: validClients.find(c => c.id === id)?.name,
+          totalItems: items.length,
+          available: items.filter(i => i.status === 'available').length,
+          reserved: items.filter(i => i.status === 'reserved').length,
+          shipped: items.filter(i => i.status === 'shipped').length
+        });
+      }
+
+      // Performance corrieri
+      const courierModules = await storage.getCourierModulesByTenant(user.tenantId);
+      const courierPerformance = [];
+      
+      for (const courier of courierModules) {
+        let courierShipments = 0;
+        let courierDelivered = 0;
+        let avgDeliveryTime = 0;
+        
+        for (const id of clientIds) {
+          const shipments = await storage.getShipmentsByClient(id);
+          const courierShips = shipments.filter(s => 
+            s.courierModuleId === courier.id &&
+            new Date(s.createdAt) >= start && new Date(s.createdAt) <= end
+          );
+          courierShipments += courierShips.length;
+          
+          // Calcola delivery rate e tempi
+          for (const shipment of courierShips) {
+            const tracking = await storage.getTrackingByShipment(shipment.id);
+            const delivered = tracking.find(t => t.status === 'delivered');
+            if (delivered) {
+              courierDelivered++;
+              const deliveryTime = new Date(delivered.timestamp).getTime() - new Date(shipment.createdAt).getTime();
+              avgDeliveryTime += deliveryTime / (1000 * 60 * 60 * 24); // giorni
+            }
+          }
+        }
+        
+        courierPerformance.push({
+          courierId: courier.id,
+          courierName: courier.name,
+          shipments: courierShipments,
+          delivered: courierDelivered,
+          deliveryRate: courierShipments > 0 ? (courierDelivered / courierShipments * 100).toFixed(1) : '0',
+          avgDeliveryDays: courierDelivered > 0 ? (avgDeliveryTime / courierDelivered).toFixed(1) : '0'
+        });
+      }
+
+      res.json({
+        period: { startDate: start, endDate: end },
+        summary: {
+          totalShipments,
+          deliveredShipments,
+          failedShipments,
+          deliveryRate: totalShipments > 0 ? (deliveredShipments / totalShipments * 100).toFixed(1) : '0',
+          totalReturns,
+          totalStorageItems: totalItems
+        },
+        shipments: shipmentsData,
+        returns: returnsData,
+        storage: storageData,
+        courierPerformance
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // KPI e Statistiche
+  app.get("/api/reports/kpi", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const { period = "month", clientId, commercialId } = req.query;
+      
+      // Calcola date periodo
+      const now = new Date();
+      let startDate: Date;
+      
+      switch (period) {
+        case "week":
+          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case "quarter":
+          startDate = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+          break;
+        case "year":
+          startDate = new Date(now.getFullYear(), 0, 1);
+          break;
+        default: // month
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      }
+
+      // Get data scope based on user role and filters
+      let clients;
+      if (user.role === "commercial" && !commercialId) {
+        clients = await storage.getClientsByCommercial(user.id);
+      } else if (commercialId && user.role === "admin") {
+        clients = await storage.getClientsByCommercial(commercialId as string);
+      } else if (clientId) {
+        const client = await storage.getClient(clientId as string);
+        clients = client && client.tenantId === user.tenantId ? [client] : [];
+      } else {
+        clients = await storage.getClientsByTenant(user.tenantId);
+      }
+
+      const clientIds = clients.map(c => c.id);
+
+      // KPI Operativi
+      let totalShipments = 0;
+      let totalRevenue = 0;
+      let totalCosts = 0;
+      let onTimeDeliveries = 0;
+      let avgDeliveryTime = 0;
+      let customerSatisfaction = 0;
+      
+      for (const id of clientIds) {
+        const shipments = await storage.getShipmentsByClient(id);
+        const periodShipments = shipments.filter(s => 
+          new Date(s.createdAt) >= startDate && new Date(s.createdAt) <= now
+        );
+        
+        totalShipments += periodShipments.length;
+        totalRevenue += periodShipments.reduce((sum, s) => sum + parseFloat(s.cost || '0'), 0);
+        
+        // Calcola performance delivery
+        for (const shipment of periodShipments) {
+          const tracking = await storage.getTrackingByShipment(shipment.id);
+          const delivered = tracking.find(t => t.status === 'delivered');
+          if (delivered) {
+            const deliveryTime = new Date(delivered.timestamp).getTime() - new Date(shipment.createdAt).getTime();
+            const days = deliveryTime / (1000 * 60 * 60 * 24);
+            avgDeliveryTime += days;
+            
+            // Considera on-time se consegnato entro 3 giorni (configurabile)
+            if (days <= 3) onTimeDeliveries++;
+          }
+        }
+      }
+
+      // KPI Commerciali
+      const invoices = await storage.getPendingInvoices(user.tenantId);
+      const periodInvoices = invoices.filter(i => 
+        new Date(i.createdAt) >= startDate && new Date(i.createdAt) <= now
+      );
+      
+      const paidInvoices = periodInvoices.filter(i => i.status === 'paid');
+      const totalInvoiceValue = periodInvoices.reduce((sum, i) => sum + parseFloat(i.amount), 0);
+      const paidValue = paidInvoices.reduce((sum, i) => sum + parseFloat(i.amount), 0);
+
+      // Crescita rispetto periodo precedente
+      const prevPeriodStart = new Date(startDate.getTime() - (now.getTime() - startDate.getTime()));
+      const prevShipments = [];
+      
+      for (const id of clientIds) {
+        const shipments = await storage.getShipmentsByClient(id);
+        const prevPeriodShipments = shipments.filter(s => 
+          new Date(s.createdAt) >= prevPeriodStart && new Date(s.createdAt) < startDate
+        );
+        prevShipments.push(...prevPeriodShipments);
+      }
+
+      const growthRate = prevShipments.length > 0 ? 
+        ((totalShipments - prevShipments.length) / prevShipments.length * 100).toFixed(1) : '0';
+
+      res.json({
+        period: { startDate, endDate: now, type: period },
+        scope: {
+          clients: clients.length,
+          commercial: commercialId || (user.role === "commercial" ? user.id : null)
+        },
+        operationalKPI: {
+          totalShipments,
+          deliveryRate: totalShipments > 0 ? (onTimeDeliveries / totalShipments * 100).toFixed(1) : '0',
+          avgDeliveryDays: totalShipments > 0 ? (avgDeliveryTime / totalShipments).toFixed(1) : '0',
+          customerSatisfaction: '0', // TODO: implementare sistema feedback
+          growthRate: `${growthRate}%`
+        },
+        commercialKPI: {
+          totalRevenue: totalRevenue.toFixed(2),
+          totalInvoices: periodInvoices.length,
+          paidInvoices: paidInvoices.length,
+          paymentRate: periodInvoices.length > 0 ? (paidInvoices.length / periodInvoices.length * 100).toFixed(1) : '0',
+          averageOrderValue: totalShipments > 0 ? (totalRevenue / totalShipments).toFixed(2) : '0',
+          outstandingAmount: (totalInvoiceValue - paidValue).toFixed(2)
+        },
+        trends: {
+          shipmentsGrowth: `${growthRate}%`,
+          revenueGrowth: '0%', // TODO: calcolare crescita revenue
+          efficiency: onTimeDeliveries > 0 ? ((onTimeDeliveries / totalShipments) * 100).toFixed(1) : '0'
+        }
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Previsioni Algoritmiche
+  app.get("/api/reports/predictions", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const { type = "operational", horizon = "month", clientId } = req.query;
+
+      // Get historical data per calcoli predittivi
+      const clients = clientId ? 
+        [await storage.getClient(clientId as string)] : 
+        await storage.getClientsByTenant(user.tenantId);
+      
+      const validClients = clients.filter(c => c && c.tenantId === user.tenantId);
+      const clientIds = validClients.map(c => c.id);
+
+      // Analizza storico ultimi 6 mesi per trend
+      const sixMonthsAgo = new Date(Date.now() - 6 * 30 * 24 * 60 * 60 * 1000);
+      const historicalData = [];
+
+      for (let month = 0; month < 6; month++) {
+        const monthStart = new Date(sixMonthsAgo.getTime() + month * 30 * 24 * 60 * 60 * 1000);
+        const monthEnd = new Date(monthStart.getTime() + 30 * 24 * 60 * 60 * 1000);
+        
+        let monthShipments = 0;
+        let monthRevenue = 0;
+        let monthDelivered = 0;
+
+        for (const id of clientIds) {
+          const shipments = await storage.getShipmentsByClient(id);
+          const monthShips = shipments.filter(s => 
+            new Date(s.createdAt) >= monthStart && new Date(s.createdAt) < monthEnd
+          );
+          
+          monthShipments += monthShips.length;
+          monthRevenue += monthShips.reduce((sum, s) => sum + parseFloat(s.cost || '0'), 0);
+          
+          for (const shipment of monthShips) {
+            const tracking = await storage.getTrackingByShipment(shipment.id);
+            if (tracking.some(t => t.status === 'delivered')) {
+              monthDelivered++;
+            }
+          }
+        }
+
+        historicalData.push({
+          month: monthStart.toISOString().substring(0, 7),
+          shipments: monthShipments,
+          revenue: monthRevenue,
+          deliveryRate: monthShipments > 0 ? monthDelivered / monthShipments : 0
+        });
+      }
+
+      if (type === "operational") {
+        // Previsione successo operativo
+        const avgDeliveryRate = historicalData.reduce((sum, d) => sum + d.deliveryRate, 0) / historicalData.length;
+        const deliveryTrend = historicalData.length > 1 ? 
+          (historicalData[historicalData.length - 1].deliveryRate - historicalData[0].deliveryRate) / historicalData.length : 0;
+        
+        // Previsione delivery rate prossimo periodo
+        const predictedDeliveryRate = Math.min(1, Math.max(0, avgDeliveryRate + deliveryTrend));
+        
+        // Calcola fattori di rischio
+        const recentPerformance = historicalData.slice(-3).map(d => d.deliveryRate);
+        const volatility = recentPerformance.length > 1 ? 
+          Math.sqrt(recentPerformance.reduce((sum, rate) => sum + Math.pow(rate - avgDeliveryRate, 2), 0) / recentPerformance.length) : 0;
+        
+        // Identifica criticità potenziali
+        const criticalFactors = [];
+        if (avgDeliveryRate < 0.9) criticalFactors.push("Delivery rate sotto standard (90%)");
+        if (volatility > 0.1) criticalFactors.push("Alta variabilità performance");
+        if (deliveryTrend < -0.05) criticalFactors.push("Trend delivery in peggioramento");
+
+        res.json({
+          type: "operational",
+          horizon,
+          period: `${new Date().toISOString().substring(0, 7)} - ${horizon}`,
+          predictions: {
+            successRate: (predictedDeliveryRate * 100).toFixed(1),
+            confidence: Math.max(60, 100 - (volatility * 400)).toFixed(0),
+            expectedIssues: Math.round((1 - predictedDeliveryRate) * 100),
+            trend: deliveryTrend > 0 ? "improving" : deliveryTrend < 0 ? "declining" : "stable"
+          },
+          riskFactors: criticalFactors,
+          recommendations: [
+            avgDeliveryRate < 0.9 ? "Analizzare cause principali ritardi" : null,
+            volatility > 0.1 ? "Stabilizzare processi operativi" : null,
+            "Monitorare performance corrieri settimanalmente",
+            "Implementare alert automatici per anomalie"
+          ].filter(Boolean),
+          historicalTrend: historicalData.map(d => ({
+            period: d.month,
+            deliveryRate: (d.deliveryRate * 100).toFixed(1),
+            volume: d.shipments
+          }))
+        });
+
+      } else if (type === "revenue") {
+        // Previsione fatturato
+        const avgRevenue = historicalData.reduce((sum, d) => sum + d.revenue, 0) / historicalData.length;
+        const revenueGrowth = historicalData.length > 1 ? 
+          (historicalData[historicalData.length - 1].revenue - historicalData[0].revenue) / (historicalData.length - 1) : 0;
+        
+        // Applica stagionalità (semplificata - aumenta in Q4)
+        const currentMonth = new Date().getMonth();
+        const seasonalityFactor = currentMonth >= 9 ? 1.2 : currentMonth <= 2 ? 0.9 : 1.0;
+        
+        // Previsione fatturato prossimo periodo
+        const baseRevenue = avgRevenue + revenueGrowth;
+        const predictedRevenue = baseRevenue * seasonalityFactor;
+        
+        // Margini previsti (basati su costi medi)
+        const avgMargin = 0.15; // 15% margine medio stimato
+        const predictedMargin = predictedRevenue * avgMargin;
+
+        res.json({
+          type: "revenue",
+          horizon,
+          period: `${new Date().toISOString().substring(0, 7)} - ${horizon}`,
+          predictions: {
+            expectedRevenue: predictedRevenue.toFixed(2),
+            expectedMargin: predictedMargin.toFixed(2),
+            marginPercentage: (avgMargin * 100).toFixed(1),
+            confidence: "75",
+            growthRate: historicalData.length > 1 ? 
+              ((revenueGrowth / avgRevenue) * 100).toFixed(1) : "0"
+          },
+          factors: {
+            baseRevenue: baseRevenue.toFixed(2),
+            seasonalityFactor: seasonalityFactor.toFixed(2),
+            trendContribution: (revenueGrowth * seasonalityFactor).toFixed(2),
+            volumeImpact: "Medium" // TODO: calcolare impatto volume
+          },
+          scenarios: {
+            optimistic: (predictedRevenue * 1.2).toFixed(2),
+            realistic: predictedRevenue.toFixed(2),
+            pessimistic: (predictedRevenue * 0.8).toFixed(2)
+          },
+          historicalTrend: historicalData.map(d => ({
+            period: d.month,
+            revenue: d.revenue.toFixed(2),
+            shipments: d.shipments
+          }))
+        });
+      }
+
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Dashboard Configurazione Report
+  app.get("/api/reports/config", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      // Opzioni configurabili per report
+      const clients = await storage.getClientsByTenant(user.tenantId);
+      const commercials = user.role === "admin" ? 
+        await storage.getCommercialUsers(user.tenantId) : [];
+      const courierModules = await storage.getCourierModulesByTenant(user.tenantId);
+
+      res.json({
+        availableFilters: {
+          periods: [
+            { value: "week", label: "Ultima settimana" },
+            { value: "month", label: "Ultimo mese" },
+            { value: "quarter", label: "Ultimo trimestre" },
+            { value: "year", label: "Ultimo anno" },
+            { value: "custom", label: "Periodo personalizzato" }
+          ],
+          clients: clients.map(c => ({
+            id: c.id,
+            name: c.name,
+            hasConnectedPlatform: false // TODO: verificare connessioni platform
+          })),
+          commercials: commercials.map(c => ({
+            id: c.id,
+            name: c.username,
+            email: c.email
+          })),
+          couriers: courierModules.map(c => ({
+            id: c.id,
+            name: c.name,
+            code: c.code,
+            status: c.status
+          }))
+        },
+        reportTypes: [
+          {
+            type: "operational",
+            name: "Report Operativo",
+            description: "Andamento spedizioni, resi, giacenze e performance corrieri",
+            metrics: ["shipments", "deliveries", "returns", "storage", "couriers"]
+          },
+          {
+            type: "kpi",
+            name: "KPI e Statistiche",
+            description: "Indicatori chiave configurabili per merchant e commerciali",
+            metrics: ["revenue", "growth", "efficiency", "satisfaction"]
+          },
+          {
+            type: "predictions",
+            name: "Analisi Predittiva",
+            description: "Previsioni algoritmiche per successo operativo e fatturato",
+            metrics: ["forecast", "risks", "opportunities", "trends"]
+          }
+        ],
+        userAccess: {
+          role: user.role,
+          canViewAll: user.role === "admin",
+          canViewCommercial: user.role === "commercial",
+          canExport: true,
+          canSchedule: user.role === "admin"
+        }
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
     }
   });
 

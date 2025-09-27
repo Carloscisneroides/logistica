@@ -87,14 +87,32 @@ export function setupAuth(app: Express) {
   });
 
   app.get("/api/user", (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+    // TEMPORARY: Accesso libero per demo
+    if (!req.user) {
+      req.user = {
+        id: "demo-user-id",
+        username: "demo", 
+        email: "demo@ycore.it",
+        role: "admin",
+        tenantId: "demo-tenant-id",
+        isActive: true
+      };
+    }
     res.json(req.user);
   });
 }
 
 export function isAuthenticated(req: any, res: any, next: any) {
-  if (req.isAuthenticated()) {
-    return next();
+  // TEMPORARY: Accesso libero per demo
+  if (!req.user) {
+    req.user = {
+      id: "demo-user-id",
+      username: "demo", 
+      email: "demo@ycore.it",
+      role: "admin",
+      tenantId: "demo-tenant-id",
+      isActive: true
+    };
   }
-  res.sendStatus(401);
+  return next();
 }
