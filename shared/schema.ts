@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, uuid, integer, decimal, boolean, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, uuid, integer, decimal, boolean, pgEnum, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -161,36 +161,46 @@ export const aiRoutingLogs = pgTable("ai_routing_logs", {
 // Platform connections table - for client platform integrations
 export const platformConnections = pgTable("platform_connections", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  clientId: uuid("client_id").references(() => clients.id),
+  clientId: uuid("client_id").references(() => clients.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   type: platformTypeEnum("type").notNull(),
   status: platformStatusEnum("status").notNull().default("pending"),
   apiEndpoint: text("api_endpoint"),
-  apiKey: text("api_key"),
+  apiKey: text("api_key"), // TODO: Encrypt this field
   webhookUrl: text("webhook_url"),
   configuration: text("configuration"), // JSON configuration
   lastSync: timestamp("last_sync"),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  clientIdIdx: index("platform_connections_client_id_idx").on(table.clientId),
+  statusIdx: index("platform_connections_status_idx").on(table.status),
+  typeIdx: index("platform_connections_type_idx").on(table.type),
+  createdAtIdx: index("platform_connections_created_at_idx").on(table.createdAt),
+}));
 
 // Platform webhooks table - for webhook event management
 export const platformWebhooks = pgTable("platform_webhooks", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  platformConnectionId: uuid("platform_connection_id").references(() => platformConnections.id),
+  platformConnectionId: uuid("platform_connection_id").references(() => platformConnections.id, { onDelete: "cascade" }),
   eventType: text("event_type").notNull(), // tracking, return, storage, etc.
-  payload: text("payload").notNull(), // JSON payload
+  payload: text("payload").notNull(), // JSON payload - TODO: Consider encryption
   status: text("status").notNull().default("pending"), // pending, sent, failed
   retryCount: integer("retry_count").notNull().default(0),
   lastAttempt: timestamp("last_attempt"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  connectionIdIdx: index("platform_webhooks_connection_id_idx").on(table.platformConnectionId),
+  statusIdx: index("platform_webhooks_status_idx").on(table.status),
+  createdAtIdx: index("platform_webhooks_created_at_idx").on(table.createdAt),
+  eventTypeIdx: index("platform_webhooks_event_type_idx").on(table.eventType),
+}));
 
 // Shipment tracking table - for tracking events
 export const shipmentTracking = pgTable("shipment_tracking", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  shipmentId: uuid("shipment_id").references(() => shipments.id),
+  shipmentId: uuid("shipment_id").references(() => shipments.id, { onDelete: "cascade" }),
   status: trackingStatusEnum("status").notNull(),
   location: text("location"),
   description: text("description"),
@@ -198,13 +208,17 @@ export const shipmentTracking = pgTable("shipment_tracking", {
   timestamp: timestamp("timestamp").notNull(),
   isPublic: boolean("is_public").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  shipmentIdIdx: index("shipment_tracking_shipment_id_idx").on(table.shipmentId),
+  statusIdx: index("shipment_tracking_status_idx").on(table.status),
+  timestampIdx: index("shipment_tracking_timestamp_idx").on(table.timestamp),
+}));
 
 // Returns table - for return management
 export const returns = pgTable("returns", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  shipmentId: uuid("shipment_id").references(() => shipments.id),
-  clientId: uuid("client_id").references(() => clients.id),
+  shipmentId: uuid("shipment_id").references(() => shipments.id, { onDelete: "cascade" }),
+  clientId: uuid("client_id").references(() => clients.id, { onDelete: "cascade" }),
   returnNumber: text("return_number").notNull().unique(),
   status: returnStatusEnum("status").notNull().default("requested"),
   reason: text("reason").notNull(),
@@ -214,12 +228,17 @@ export const returns = pgTable("returns", {
   processedAt: timestamp("processed_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  clientIdIdx: index("returns_client_id_idx").on(table.clientId),
+  shipmentIdIdx: index("returns_shipment_id_idx").on(table.shipmentId),
+  statusIdx: index("returns_status_idx").on(table.status),
+  returnNumberIdx: index("returns_return_number_idx").on(table.returnNumber),
+}));
 
 // Storage items table - for warehouse/storage management
 export const storageItems = pgTable("storage_items", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  clientId: uuid("client_id").references(() => clients.id),
+  clientId: uuid("client_id").references(() => clients.id, { onDelete: "cascade" }),
   shipmentId: uuid("shipment_id").references(() => shipments.id),
   returnId: uuid("return_id").references(() => returns.id),
   itemCode: text("item_code").notNull(),
@@ -232,13 +251,18 @@ export const storageItems = pgTable("storage_items", {
   notes: text("notes"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  clientIdIdx: index("storage_items_client_id_idx").on(table.clientId),
+  statusIdx: index("storage_items_status_idx").on(table.status),
+  itemCodeIdx: index("storage_items_item_code_idx").on(table.itemCode),
+  expiryDateIdx: index("storage_items_expiry_date_idx").on(table.expiryDate),
+}));
 
 // CSM tickets table - for customer success management
 export const csmTickets = pgTable("csm_tickets", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   ticketNumber: text("ticket_number").notNull().unique(),
-  clientId: uuid("client_id").references(() => clients.id),
+  clientId: uuid("client_id").references(() => clients.id, { onDelete: "cascade" }),
   assignedTo: uuid("assigned_to").references(() => users.id),
   title: text("title").notNull(),
   description: text("description").notNull(),
@@ -250,7 +274,13 @@ export const csmTickets = pgTable("csm_tickets", {
   resolutionNotes: text("resolution_notes"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  clientIdIdx: index("csm_tickets_client_id_idx").on(table.clientId),
+  assignedToIdx: index("csm_tickets_assigned_to_idx").on(table.assignedTo),
+  statusIdx: index("csm_tickets_status_idx").on(table.status),
+  priorityIdx: index("csm_tickets_priority_idx").on(table.priority),
+  dueDateIdx: index("csm_tickets_due_date_idx").on(table.dueDate),
+}));
 
 // CSM KPI table - for customer success metrics
 export const csmKpi = pgTable("csm_kpi", {
@@ -272,7 +302,7 @@ export const csmKpi = pgTable("csm_kpi", {
 export const tsmTickets = pgTable("tsm_tickets", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   ticketNumber: text("ticket_number").notNull().unique(),
-  clientId: uuid("client_id").references(() => clients.id),
+  clientId: uuid("client_id").references(() => clients.id, { onDelete: "cascade" }),
   assignedTo: uuid("assigned_to").references(() => users.id),
   title: text("title").notNull(),
   description: text("description").notNull(),
@@ -286,7 +316,14 @@ export const tsmTickets = pgTable("tsm_tickets", {
   escalationLevel: integer("escalation_level").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  clientIdIdx: index("tsm_tickets_client_id_idx").on(table.clientId),
+  assignedToIdx: index("tsm_tickets_assigned_to_idx").on(table.assignedTo),
+  statusIdx: index("tsm_tickets_status_idx").on(table.status),
+  priorityIdx: index("tsm_tickets_priority_idx").on(table.priority),
+  severityIdx: index("tsm_tickets_severity_idx").on(table.severity),
+  escalationLevelIdx: index("tsm_tickets_escalation_level_idx").on(table.escalationLevel),
+}));
 
 // Audit logs table - for system audit trail
 export const auditLogs = pgTable("audit_logs", {
@@ -320,18 +357,24 @@ export const escalations = pgTable("escalations", {
 // Notifications table - for system notifications
 export const notifications = pgTable("notifications", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  recipientId: uuid("recipient_id").references(() => users.id),
+  recipientId: uuid("recipient_id").references(() => users.id, { onDelete: "cascade" }),
   clientId: uuid("client_id").references(() => clients.id),
   type: notificationTypeEnum("type").notNull(),
   title: text("title").notNull(),
   message: text("message").notNull(),
   category: text("category").notNull(), // tracking, return, billing, system, etc.
-  data: text("data"), // JSON additional data
+  data: text("data"), // JSON additional data - TODO: Consider encryption for sensitive data
   isRead: boolean("is_read").notNull().default(false),
   sentAt: timestamp("sent_at"),
   deliveredAt: timestamp("delivered_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  recipientIdIdx: index("notifications_recipient_id_idx").on(table.recipientId),
+  isReadIdx: index("notifications_is_read_idx").on(table.isRead),
+  createdAtIdx: index("notifications_created_at_idx").on(table.createdAt),
+  categoryIdx: index("notifications_category_idx").on(table.category),
+  typeIdx: index("notifications_type_idx").on(table.type),
+}));
 
 // Relations
 export const usersRelations = relations(users, ({ one, many }) => ({
