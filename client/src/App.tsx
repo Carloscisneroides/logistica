@@ -17,6 +17,7 @@ import Clients from "@/pages/clients";
 import Billing from "@/pages/billing";
 import Corrections from "@/pages/corrections";
 import Commercial from "@/pages/commercial";
+import SupportPage from "@/pages/support-page";
 import NotFound from "@/pages/not-found";
 
 function MainLayout({ children }: { children: React.ReactNode }) {
@@ -70,6 +71,11 @@ function Router() {
       <ProtectedRoute path="/commercial" component={() => (
         <MainLayout>
           <Commercial />
+        </MainLayout>
+      )} />
+      <ProtectedRoute path="/support" component={() => (
+        <MainLayout>
+          <SupportPage />
         </MainLayout>
       )} />
       <Route component={NotFound} />

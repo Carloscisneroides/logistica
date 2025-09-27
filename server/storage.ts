@@ -635,6 +635,14 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(csmTickets).where(eq(csmTickets.assignedTo, assignedTo));
   }
 
+  async getCsmTicketsByTenant(tenantId: string): Promise<CsmTicket[]> {
+    return await db.select()
+      .from(csmTickets)
+      .innerJoin(clients, eq(csmTickets.clientId, clients.id))
+      .where(eq(clients.tenantId, tenantId))
+      .then(rows => rows.map(row => row.csm_tickets));
+  }
+
   async createCsmTicket(insertTicket: InsertCsmTicket): Promise<CsmTicket> {
     const [ticket] = await db.insert(csmTickets).values(insertTicket).returning();
     return ticket;
@@ -695,6 +703,14 @@ export class DatabaseStorage implements IStorage {
   async updateTsmTicket(id: string, updates: Partial<TsmTicket>): Promise<TsmTicket> {
     const [ticket] = await db.update(tsmTickets).set(updates).where(eq(tsmTickets.id, id)).returning();
     return ticket;
+  }
+
+  async getTsmTicketsByTenant(tenantId: string): Promise<TsmTicket[]> {
+    return await db.select()
+      .from(tsmTickets)
+      .innerJoin(clients, eq(tsmTickets.clientId, clients.id))
+      .where(eq(clients.tenantId, tenantId))
+      .then(rows => rows.map(row => row.tsm_tickets));
   }
 
   // Audit Logs

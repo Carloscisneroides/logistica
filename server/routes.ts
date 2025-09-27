@@ -11,13 +11,16 @@ import {
   insertPlatformWebhookSchema,
   insertShipmentTrackingSchema,
   insertReturnSchema,
-  insertNotificationSchema
+  insertNotificationSchema,
+  insertCsmTicketSchema,
+  insertTsmTicketSchema
 } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
 import { parse } from "csv-parse";
 import Stripe from "stripe";
 import crypto from "node:crypto";
+import OpenAI from "openai";
 
 // Stripe setup - will be configured when API keys are provided
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY, {
@@ -148,6 +151,200 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(updatedClient);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Support Tickets API - CSM/TSM Management
+  
+  // CSM Tickets endpoints
+  app.get("/api/support/csm-tickets", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const tickets = await storage.getCsmTicketsByTenant(user.tenantId);
+      res.json(tickets);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/support/csm-tickets", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      // Validate clientId belongs to tenant if provided
+      if (req.body.clientId) {
+        const client = await storage.getClient(req.body.clientId);
+        if (!client || client.tenantId !== user.tenantId) {
+          return res.status(404).json({ error: "Client not found" });
+        }
+      }
+
+      // Generate ticket number
+      const ticketNumber = `CSM-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
+
+      const validatedData = insertCsmTicketSchema.parse({
+        ...req.body,
+        ticketNumber,
+        // Auto-assign high priority tickets for demo
+        dueDate: req.body.priority === "urgent" ? new Date(Date.now() + 24 * 60 * 60 * 1000) : 
+                  req.body.priority === "high" ? new Date(Date.now() + 3 * 24 * 60 * 60 * 1000) : null
+      });
+
+      const ticket = await storage.createCsmTicket(validatedData);
+      res.status(201).json(ticket);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // TSM Tickets endpoints
+  app.get("/api/support/tsm-tickets", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const tickets = await storage.getTsmTicketsByTenant(user.tenantId);
+      res.json(tickets);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/support/tsm-tickets", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      // Validate clientId belongs to tenant if provided
+      if (req.body.clientId) {
+        const client = await storage.getClient(req.body.clientId);
+        if (!client || client.tenantId !== user.tenantId) {
+          return res.status(404).json({ error: "Client not found" });
+        }
+      }
+
+      // Generate ticket number
+      const ticketNumber = `TSM-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
+
+      // Set severity based on priority for TSM tickets
+      let severity = "low";
+      if (req.body.priority === "urgent") severity = "critical";
+      else if (req.body.priority === "high") severity = "high";
+      else if (req.body.priority === "medium") severity = "medium";
+
+      const validatedData = insertTsmTicketSchema.parse({
+        ...req.body,
+        ticketNumber,
+        severity,
+        // Auto-escalation for critical issues
+        escalationLevel: req.body.priority === "urgent" ? 1 : 0,
+        dueDate: req.body.priority === "urgent" ? new Date(Date.now() + 4 * 60 * 60 * 1000) : 
+                  req.body.priority === "high" ? new Date(Date.now() + 24 * 60 * 60 * 1000) : null
+      });
+
+      const ticket = await storage.createTsmTicket(validatedData);
+      res.status(201).json(ticket);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // AI Support Assistant endpoint
+  app.post("/api/ai/support-assistant", isAuthenticated, async (req, res) => {
+    try {
+      const { question } = req.body;
+      const user = req.user;
+      
+      if (!question || typeof question !== "string") {
+        return res.status(400).json({ error: "Question is required" });
+      }
+
+      if (!process.env.OPENAI_API_KEY) {
+        return res.status(503).json({ 
+          error: "AI Assistant not configured", 
+          response: "L'AI Assistant non è al momento disponibile. Puoi comunque aprire un ticket manualmente." 
+        });
+      }
+
+      // Use OpenAI to provide contextual support
+      const systemPrompt = `Sei l'AI Assistant di YCore, una piattaforma SaaS per gestione spedizioni.
+      
+Ruolo utente: ${user?.role || "merchant"}
+Contesto: Sistema multi-tenant con gestione corrieri, spedizioni, fatturazione.
+
+Fornisci risposte brevi e utili in italiano per:
+- Problemi con pacchi (ritardo, smarrito, danneggiato)
+- Questioni di fatturazione 
+- Problemi tecnici della piattaforma
+- Suggerimenti per aprire ticket appropriati
+
+Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.`;
+
+      const openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+      });
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-3.5-turbo",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: question }
+        ],
+        max_tokens: 200,
+        temperature: 0.7
+      });
+
+      const aiResponse = completion.choices[0]?.message?.content || "Mi dispiace, non sono riuscito a elaborare la tua richiesta. Prova a riformulare la domanda.";
+
+      // Generate suggestions based on question content
+      const suggestions = [];
+      if (question.toLowerCase().includes("ritardo") || question.toLowerCase().includes("non arrivato")) {
+        suggestions.push({
+          type: "ticket",
+          category: "pacco_ritardo",
+          title: "Pacco in ritardo",
+          priority: "medium"
+        });
+      }
+      if (question.toLowerCase().includes("danneggiato") || question.toLowerCase().includes("rotto")) {
+        suggestions.push({
+          type: "ticket", 
+          category: "pacco_danneggiato",
+          title: "Pacco danneggiato",
+          priority: "high"
+        });
+      }
+      if (question.toLowerCase().includes("fattura") || question.toLowerCase().includes("pagamento")) {
+        suggestions.push({
+          type: "ticket",
+          category: "fatturazione", 
+          title: "Problema fatturazione",
+          priority: "medium"
+        });
+      }
+
+      res.json({
+        response: aiResponse,
+        suggestions: suggestions.length > 0 ? suggestions : null
+      });
+
+    } catch (error: any) {
+      console.error("AI Assistant error:", error);
+      res.status(500).json({ 
+        error: "AI Assistant temporarily unavailable",
+        response: "L'AI Assistant non è al momento disponibile. Puoi comunque aprire un ticket manualmente selezionando la categoria appropriata."
+      });
     }
   });
 

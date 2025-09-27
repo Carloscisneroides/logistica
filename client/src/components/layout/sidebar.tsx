@@ -12,6 +12,7 @@ import {
   BarChart3,
   Settings,
   Bot,
+  Headphones,
 } from "lucide-react";
 
 const menuItems = [
@@ -50,6 +51,12 @@ const menuItems = [
     href: "/commercial",
     icon: Bus,
     roles: ["admin"],
+  },
+  {
+    title: "Assistenza Clienti",
+    href: "/support",
+    icon: Headphones,
+    roles: ["admin", "merchant", "commercial"],
   },
   {
     title: "Analytics",
