@@ -22,7 +22,7 @@ import {
   type MarketplaceOrderItem, type InsertMarketplaceOrderItem, type MarketplaceReview, type InsertMarketplaceReview
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, sql, isNull } from "drizzle-orm";
+import { eq, and, or, desc, sql, isNull } from "drizzle-orm";
 import session, { SessionOptions } from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -1109,21 +1109,22 @@ export class DatabaseStorage implements IStorage {
 
   // Marketplace Listings with Security Controls
   async getMarketplaceListings(viewerTenantId: string, viewerRole: string, categoryId?: string): Promise<MarketplaceListing[]> {
-    let query = db.select().from(marketplaceListings)
-      .where(and(
-        eq(marketplaceListings.status, "active"),
-        or(
-          eq(marketplaceListings.visibility, "public"),
-          eq(marketplaceListings.sellerTenantId, viewerTenantId), // Own tenant listings
-          sql`${marketplaceListings.allowedTenantIds} @> ARRAY[${viewerTenantId}]`, // Explicitly allowed
-          sql`${marketplaceListings.allowedRoles} @> ARRAY[${viewerRole}]` // Role-based access
-        ),
-        not(sql`${marketplaceListings.blockedTenantIds} @> ARRAY[${viewerTenantId}]`) // Not blocked
-      ));
+    const conditions = [
+      eq(marketplaceListings.status, "active"),
+      or(
+        eq(marketplaceListings.visibility, "public"),
+        eq(marketplaceListings.sellerTenantId, viewerTenantId), // Own tenant listings
+        sql`${marketplaceListings.allowedTenantIds} @> ARRAY[${viewerTenantId}]`, // Explicitly allowed
+        sql`${marketplaceListings.allowedRoles} @> ARRAY[${viewerRole}]` // Role-based access
+      ),
+      not(sql`${marketplaceListings.blockedTenantIds} @> ARRAY[${viewerTenantId}]`) // Not blocked
+    ];
 
     if (categoryId) {
-      query = query.where(eq(marketplaceListings.categoryId, categoryId));
+      conditions.push(eq(marketplaceListings.categoryId, categoryId));
     }
+
+    const query = db.select().from(marketplaceListings).where(and(...conditions));
 
     return query.orderBy(desc(marketplaceListings.createdAt));
   }

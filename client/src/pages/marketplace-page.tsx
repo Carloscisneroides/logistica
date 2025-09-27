@@ -54,7 +54,7 @@ type CreateListingForm = z.infer<typeof createListingSchema>;
 export function MarketplacePage() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   // Queries
@@ -75,7 +75,29 @@ export function MarketplacePage() {
   });
 
   const { data: listings = [], isLoading: listingsLoading } = useQuery<any[]>({
-    queryKey: ["/api/marketplace/listings", selectedCategory]
+    queryKey: ["/api/marketplace/listings", { category: selectedCategory === "all" ? undefined : selectedCategory }],
+    queryFn: async () => {
+      try {
+        const searchParams = new URLSearchParams();
+        if (selectedCategory && selectedCategory !== "all") {
+          searchParams.set("category", selectedCategory);
+        }
+        const url = `/api/marketplace/listings${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+          console.error(`API Error ${response.status}:`, await response.text());
+          return []; // Return empty array on error
+        }
+        
+        const data = await response.json();
+        // Ensure we always return an array
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.error('Marketplace listings fetch error:', error);
+        return []; // Return empty array on error
+      }
+    }
   });
 
   const { data: myListings = [], isLoading: myListingsLoading } = useQuery<any[]>({
@@ -164,10 +186,15 @@ export function MarketplacePage() {
     }
   });
 
-  const filteredListings = listings.filter(listing =>
-    listing.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    listing.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredListings = listings.filter(listing => {
+    const matchesSearch = listing.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         listing.description.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesCategory = selectedCategory === "all" || selectedCategory === "" || 
+                           listing.categoryId === selectedCategory;
+    
+    return matchesSearch && matchesCategory;
+  });
 
   const onCreateListing = (data: CreateListingForm) => {
     createListingMutation.mutate(data);
@@ -499,7 +526,7 @@ export function MarketplacePage() {
                 <SelectValue placeholder="Filtra per categoria" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Tutte le categorie</SelectItem>
+                <SelectItem value="all">Tutte le categorie</SelectItem>
                 {categories.map((category: any) => (
                   <SelectItem key={category.id} value={category.id}>
                     {category.name}

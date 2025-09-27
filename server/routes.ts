@@ -2137,11 +2137,15 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
   app.get("/api/marketplace/listings", isAuthenticated, async (req, res) => {
     try {
       const user = req.user;
+      console.log("🔍 [MARKETPLACE LISTINGS] User:", user?.tenantId, "Role:", user?.role);
+      
       if (!user?.tenantId) {
+        console.log("❌ [MARKETPLACE LISTINGS] Access denied - no tenantId");
         return res.status(403).json({ error: "Access denied" });
       }
 
       const { category } = req.query;
+      console.log("🔍 [MARKETPLACE LISTINGS] Category filter:", category);
       
       // Implement concurrency protection rules - only show listings that user can see
       const listings = await storage.getMarketplaceListings(
@@ -2150,9 +2154,11 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
         category as string
       );
       
+      console.log("✅ [MARKETPLACE LISTINGS] Found", listings.length, "listings");
       res.json(listings);
     } catch (error) {
-      console.error("Error fetching marketplace listings:", error);
+      console.error("❌ [MARKETPLACE LISTINGS] Error:", error);
+      console.error("❌ [MARKETPLACE LISTINGS] Stack:", error.stack);
       res.status(500).json({ error: "Internal server error" });
     }
   });
