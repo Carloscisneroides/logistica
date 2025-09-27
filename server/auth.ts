@@ -87,14 +87,14 @@ export function setupAuth(app: Express) {
   });
 
   app.get("/api/user", (req, res) => {
-    // TEMPORARY: Accesso libero per demo
+    // TEMPORARY: Accesso libero per demo con UUID validi
     if (!req.user) {
       req.user = {
-        id: "demo-user-id",
+        id: "550e8400-e29b-41d4-a716-446655440001",
         username: "demo", 
         email: "demo@ycore.it",
         role: "admin",
-        tenantId: "demo-tenant-id",
+        tenantId: "550e8400-e29b-41d4-a716-446655440000",
         isActive: true
       };
     }
@@ -103,14 +103,14 @@ export function setupAuth(app: Express) {
 }
 
 export function isAuthenticated(req: any, res: any, next: any) {
-  // TEMPORARY: Accesso libero per demo
+  // TEMPORARY: Accesso libero per demo con UUID validi
   if (!req.user) {
     req.user = {
-      id: "demo-user-id",
+      id: "550e8400-e29b-41d4-a716-446655440001",
       username: "demo", 
       email: "demo@ycore.it",
       role: "admin",
-      tenantId: "demo-tenant-id",
+      tenantId: "550e8400-e29b-41d4-a716-446655440000",
       isActive: true
     };
   }
