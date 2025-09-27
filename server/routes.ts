@@ -132,9 +132,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       const updates = req.body;
+      const user = req.user;
       
-      const client = await storage.updateClient(id, updates);
-      res.json(client);
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+      
+      // Verify client belongs to user's tenant
+      const client = await storage.getClient(id);
+      if (!client || client.tenantId !== user.tenantId) {
+        return res.status(404).json({ error: "Client not found" });
+      }
+      
+      const updatedClient = await storage.updateClient(id, updates);
+      res.json(updatedClient);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
     }
@@ -178,9 +189,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       const updates = req.body;
+      const user = req.user;
       
-      const module = await storage.updateCourierModule(id, updates);
-      res.json(module);
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+      
+      // Verify module belongs to user's tenant
+      const module = await storage.getCourierModule(id);
+      if (!module || module.tenantId !== user.tenantId) {
+        return res.status(404).json({ error: "Courier module not found" });
+      }
+      
+      const updatedModule = await storage.updateCourierModule(id, updates);
+      res.json(updatedModule);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
     }
@@ -190,19 +212,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       const { contractCode } = req.body;
+      const user = req.user;
+
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
 
       if (!contractCode) {
         return res.status(400).json({ error: "Contract code is required" });
       }
 
+      // Verify module belongs to user's tenant
+      const module = await storage.getCourierModule(id);
+      if (!module || module.tenantId !== user.tenantId) {
+        return res.status(404).json({ error: "Courier module not found" });
+      }
+
       // TODO: Implement contract validation logic
       // For now, just update the module status to active
-      const module = await storage.updateCourierModule(id, {
+      const updatedModule = await storage.updateCourierModule(id, {
         contractCode,
         status: "active"
       });
 
-      res.json(module);
+      res.json(updatedModule);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
     }
@@ -212,9 +245,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/shipments", isAuthenticated, async (req, res) => {
     try {
       const { clientId } = req.query;
+      const user = req.user;
+      
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
       
       if (!clientId) {
         return res.status(400).json({ error: "Client ID is required" });
+      }
+      
+      // Verify client belongs to user's tenant
+      const client = await storage.getClient(clientId as string);
+      if (!client || client.tenantId !== user.tenantId) {
+        return res.status(404).json({ error: "Client not found" });
       }
 
       const shipments = await storage.getShipmentsByClient(clientId as string);
@@ -232,6 +276,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const validatedData = insertShipmentSchema.parse(req.body);
+      
+      // Verify client belongs to user's tenant
+      const client = await storage.getClient(validatedData.clientId);
+      if (!client || client.tenantId !== user.tenantId) {
+        return res.status(404).json({ error: "Client not found" });
+      }
 
       // TODO: Implement AI routing logic here
       const activeModules = await storage.getActiveCourierModules(user.tenantId);
@@ -271,9 +321,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/invoices", isAuthenticated, async (req, res) => {
     try {
       const { clientId } = req.query;
+      const user = req.user;
+      
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
       
       if (!clientId) {
         return res.status(400).json({ error: "Client ID is required" });
+      }
+      
+      // Verify client belongs to user's tenant
+      const client = await storage.getClient(clientId as string);
+      if (!client || client.tenantId !== user.tenantId) {
+        return res.status(404).json({ error: "Client not found" });
       }
 
       const invoices = await storage.getInvoicesByClient(clientId as string);
@@ -337,9 +398,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       parser.on("end", async () => {
         try {
+          const user = req.user;
+          if (!user?.tenantId) {
+            return res.status(400).json({ error: "Tenant not found" });
+          }
+          
           const results = [];
           
           for (const record of records) {
+            // Verify client belongs to user's tenant if clientId is provided
+            if (record.clientId) {
+              const client = await storage.getClient(record.clientId);
+              if (!client || client.tenantId !== user.tenantId) {
+                return res.status(400).json({ 
+                  error: `Client ${record.clientId} not found or access denied` 
+                });
+              }
+            }
+            
             const correctionData = {
               clientId: record.clientId || null,
               trackingNumber: record.trackingNumber,
@@ -766,8 +842,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Verify HMAC signature for security
-      if (signature && connection.webhookSecret) {
+      // Verify HMAC signature for security - REQUIRED when secret configured
+      if (connection.webhookSecret) {
+        if (!signature) {
+          console.warn(`Missing required webhook signature for connection ${connectionId}`);
+          return res.status(401).json({ error: "Webhook signature required" });
+        }
+        
         const payloadString = JSON.stringify(payload);
         const isValidSignature = verifyWebhookSignature(payloadString, signature, connection.webhookSecret);
         
@@ -775,8 +856,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.warn(`Invalid webhook signature for connection ${connectionId}`);
           return res.status(401).json({ error: "Invalid webhook signature" });
         }
-      } else if (signature && !connection.webhookSecret) {
-        console.warn(`No webhook secret configured for connection ${connectionId}`);
+      } else if (signature) {
+        console.warn(`Unexpected webhook signature for connection ${connectionId} - no secret configured`);
         return res.status(401).json({ error: "Webhook signature provided but no secret configured" });
       }
 
