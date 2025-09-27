@@ -9,6 +9,9 @@ import {
   fidelitySettings, fidelityCards, fidelityWallets, fidelityWalletTransactions, fidelityOffers,
   fidelityRedemptions, sponsors, promoterProfiles, promoterKpis, fidelityAiProfiles, fidelityAiLogs,
   riskClusters, patternFlags,
+  // Global Logistics tables
+  assets, containers, containerSensorReadings, customsDocuments, shipmentLegs, 
+  globalTrackingEvents, logisticsPartners,
   type User, type InsertUser, type Client, type InsertClient, type Tenant, type InsertTenant,
   type CourierModule, type InsertCourierModule, type Shipment, type InsertShipment,
   type Invoice, type InsertInvoice, type Correction, type InsertCorrection,
@@ -42,7 +45,13 @@ import {
   type RiskCluster, type InsertRiskCluster, type PatternFlag, type InsertPatternFlag,
   // Shipments module types
   type FraudFlag, type InsertFraudFlag, type CourierAssignment, type InsertCourierAssignment,
-  type DeliveryStatus, type InsertDeliveryStatus
+  type DeliveryStatus, type InsertDeliveryStatus,
+  // Global Logistics types
+  type Asset, type InsertAsset, type Container, type InsertContainer,
+  type ContainerSensorReading, type InsertContainerSensorReading,
+  type CustomsDocument, type InsertCustomsDocument, type ShipmentLeg, type InsertShipmentLeg,
+  type GlobalTrackingEvent, type InsertGlobalTrackingEvent,
+  type LogisticsPartner, type InsertLogisticsPartner
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, not, desc, sql, isNull } from "drizzle-orm";
@@ -513,6 +522,100 @@ export interface IStorage {
     matchScore: number;
     reasons: string[];
   }>>;
+
+  // ======== GLOBAL LOGISTICS MODULE METHODS ========
+
+  // Assets - Flotte Marittime/Aeree
+  getAsset(id: string): Promise<Asset | undefined>;
+  getAssetsByTenant(tenantId: string): Promise<Asset[]>;
+  getAssetsByType(type: string, tenantId: string): Promise<Asset[]>;
+  getActiveAssets(tenantId: string): Promise<Asset[]>;
+  createAsset(asset: InsertAsset): Promise<Asset>;
+  updateAsset(id: string, updates: Partial<Asset>): Promise<Asset>;
+
+  // Containers - Gestione Container (ISO 6346, RFID/IoT, cold chain)
+  getContainer(id: string): Promise<Container | undefined>;
+  getContainersByTenant(tenantId: string): Promise<Container[]>;
+  getContainerByNumber(containerNumber: string): Promise<Container | undefined>;
+  getContainersByStatus(status: string, tenantId: string): Promise<Container[]>;
+  getTemperatureControlledContainers(tenantId: string): Promise<Container[]>;
+  createContainer(container: InsertContainer): Promise<Container>;
+  updateContainer(id: string, updates: Partial<Container>): Promise<Container>;
+
+  // Container Sensor Readings - Real-time IoT data
+  getContainerSensorReading(id: string): Promise<ContainerSensorReading | undefined>;
+  getLatestSensorReadings(containerId: string, limit?: number): Promise<ContainerSensorReading[]>;
+  getSensorReadingsByTimeRange(containerId: string, startTime: Date, endTime: Date): Promise<ContainerSensorReading[]>;
+  createContainerSensorReading(reading: InsertContainerSensorReading): Promise<ContainerSensorReading>;
+  bulkCreateSensorReadings(readings: InsertContainerSensorReading[]): Promise<ContainerSensorReading[]>;
+
+  // Customs Documents - Documentazione Doganale AI
+  getCustomsDocument(id: string): Promise<CustomsDocument | undefined>;
+  getCustomsDocumentsByTenant(tenantId: string): Promise<CustomsDocument[]>;
+  getCustomsDocumentsByShipment(shipmentId: string): Promise<CustomsDocument[]>;
+  getCustomsDocumentsByStatus(status: string, tenantId: string): Promise<CustomsDocument[]>;
+  getPendingReviewDocuments(tenantId: string): Promise<CustomsDocument[]>;
+  createCustomsDocument(document: InsertCustomsDocument): Promise<CustomsDocument>;
+  updateCustomsDocument(id: string, updates: Partial<CustomsDocument>): Promise<CustomsDocument>;
+
+  // Shipment Legs - Tracking Intercontinentale
+  getShipmentLeg(id: string): Promise<ShipmentLeg | undefined>;
+  getShipmentLegsByShipment(shipmentId: string): Promise<ShipmentLeg[]>;
+  getShipmentLegsByTenant(tenantId: string): Promise<ShipmentLeg[]>;
+  getShipmentLegsByStatus(status: string, tenantId: string): Promise<ShipmentLeg[]>;
+  getShipmentLegsByPartner(partnerId: string): Promise<ShipmentLeg[]>;
+  createShipmentLeg(leg: InsertShipmentLeg): Promise<ShipmentLeg>;
+  updateShipmentLeg(id: string, updates: Partial<ShipmentLeg>): Promise<ShipmentLeg>;
+
+  // Global Tracking Events - Eventi di tracking dettagliati
+  getGlobalTrackingEvent(id: string): Promise<GlobalTrackingEvent | undefined>;
+  getGlobalTrackingEventsByShipment(shipmentId: string): Promise<GlobalTrackingEvent[]>;
+  getGlobalTrackingEventsByLeg(legId: string): Promise<GlobalTrackingEvent[]>;
+  getGlobalTrackingEventsByTenant(tenantId: string): Promise<GlobalTrackingEvent[]>;
+  createGlobalTrackingEvent(event: InsertGlobalTrackingEvent): Promise<GlobalTrackingEvent>;
+  updateGlobalTrackingEvent(id: string, updates: Partial<GlobalTrackingEvent>): Promise<GlobalTrackingEvent>;
+
+  // Logistics Partners - Partner strategici (Maersk, DHL, Cainiao, ecc.)
+  getLogisticsPartner(id: string): Promise<LogisticsPartner | undefined>;
+  getLogisticsPartnersByTenant(tenantId: string): Promise<LogisticsPartner[]>;
+  getLogisticsPartnersByType(type: string, tenantId: string): Promise<LogisticsPartner[]>;
+  getActiveLogisticsPartners(tenantId: string): Promise<LogisticsPartner[]>;
+  getLogisticsPartnerByCode(code: string): Promise<LogisticsPartner | undefined>;
+  createLogisticsPartner(partner: InsertLogisticsPartner): Promise<LogisticsPartner>;
+  updateLogisticsPartner(id: string, updates: Partial<LogisticsPartner>): Promise<LogisticsPartner>;
+
+  // Global Logistics Dashboard Stats
+  getGlobalLogisticsDashboardStats(tenantId: string): Promise<{
+    totalAssets: number;
+    activeAssets: number;
+    totalContainers: number;
+    containersInTransit: number;
+    pendingCustomsDocuments: number;
+    activeShipmentLegs: number;
+    totalPartners: number;
+    temperatureAlerts: number;
+    onTimeDeliveryRate: number;
+    averageTransitTime: number; // hours
+    topPartners: Array<{id: string; name: string; shipments: number; onTimeRate: number}>;
+    assetUtilization: Array<{assetId: string; name: string; utilizationPercent: number}>;
+  }>;
+
+  // AI-powered ETA and Anomaly Detection
+  calculateETA(legId: string): Promise<{
+    estimatedArrival: Date;
+    confidence: number; // 0-100
+    factors: string[];
+  }>;
+  detectAnomalies(shipmentId: string): Promise<{
+    anomalies: Array<{
+      type: string;
+      severity: 'low' | 'medium' | 'high' | 'critical';
+      description: string;
+      evidence: any;
+    }>;
+    riskScore: number; // 0-100
+    recommendations: string[];
+  }>;
   
   sessionStore: session.Store;
 }
