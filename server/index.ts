@@ -1,3 +1,15 @@
+/*
+ * YCore SaaS Ecosystem - Backend Server
+ * Copyright © 2025 YCore SRL Innovativa - All Rights Reserved
+ * 
+ * WATERMARK: ycore-server-d7e8f9a0-1b2c-3d4e-5f6a-7b8c9d0e1f2a
+ * BUILD: 2025-09-27T22:08:15.000Z
+ * MODULE: Express API Server & Authentication
+ * 
+ * THIS IS PROPRIETARY SOFTWARE CONTAINING TRADE SECRETS AND CONFIDENTIAL
+ * INFORMATION. UNAUTHORIZED ACCESS, USE, OR DISCLOSURE IS PROHIBITED.
+ */
+
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";

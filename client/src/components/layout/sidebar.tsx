@@ -1,3 +1,13 @@
+/*
+ * YCore Navigation Component - Proprietary UI Module
+ * Copyright © 2025 YCore SRL Innovativa - All Rights Reserved
+ * 
+ * WATERMARK: ycore-nav-a1b2c3d4-e5f6-7890-abcd-ef1234567890
+ * BUILD: 2025-09-27T22:08:15.000Z
+ * 
+ * CONFIDENTIAL AND PROPRIETARY - NOT FOR DISTRIBUTION
+ */
+
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useLocation, Link } from "wouter";
