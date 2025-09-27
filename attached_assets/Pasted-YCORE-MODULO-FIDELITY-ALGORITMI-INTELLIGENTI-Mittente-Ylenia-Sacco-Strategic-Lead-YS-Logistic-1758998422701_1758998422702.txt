@@ -1,0 +1,17 @@
+YCORE – MODULO FIDELITY & ALGORITMI INTELLIGENTI Mittente: Ylenia Sacco – Strategic Lead YS Logistics Destinatario: Team Reply – Tecnico & Strategico
+
+Obiettivo Attivare un modulo Fidelity Card digitale all’interno del Marketplace YCore, accessibile a tutte le attività commerciali (negozi, parrucchieri, cartolerie, ecc.), con gestione AI, visibilità geolocalizzata e monetizzazione multilivello.
+
+Stato attuale Architettura e flusso operativo completamente definiti. Integrazioni previste: Google Pay, Telegram Bot, Stripe Connect. Modulo non attivo in produzione → nessun costo da sostenere ora. Attivazione manuale futura da pannello admin.
+
+Fidelity Card – Cliente finale Gratuita per tutti i clienti. Accesso a sconti, promozioni e vantaggi presso merchant aderenti. Card digitale con QR o codice univoco. Branding sponsor opzionale (Netflix, Spotify, Coop, ecc.). Suggerimenti personalizzati tramite AI Assistant. Visualizzazione card e offerte attive nel profilo utente.
+
+Funzionalità merchant Iscrizione gratuita al Marketplace YCore. Visualizzazione clienti registrati con Fidelity. Configurazione sconti, cashback, offerte. Logging utilizzi e impatto commerciale. Accesso a YSpedizioni per logistica urbana. Possibilità di sponsorizzare sezioni Fidelity.
+
+Promoter e sponsor Attivazione territoriale tramite promoter locali. Onboarding merchant, distribuzione Fidelity Card, supporto eventi e campagne. Modello a performance o fee fissa. Possibilità di sponsorizzazione da parte di brand nazionali/internazionali. Logo su Fidelity Card, offerte dedicate, visibilità nel circuito YCore.
+
+Algoritmi intelligenti Ogni funzione YCore è accompagnata da un algoritmo dedicato. Fidelity Card: analisi comportamentale, suggerimento offerte, notifiche personalizzate. Marketplace: segmentazione geografica automatica, protezione concorrenza, visibilità dinamica. Logistica: rilevamento congestione, meteo, scioperi → proposta alternativa. Sponsor: matching brand–utente, tracciamento conversioni, visibilità dinamica. Promoter: KPI territoriali, bonus produttività, logging attivazioni. Dashboard: KPI predittivi, alert automatici, analisi performance merchant/promoter.
+
+Dashboard YCore Guadagni da ordini, spedizioni, sponsor. Spese operative (Fidelity, AI, promoter). Attivazioni merchant e clienti. Performance territoriali e per zona. KPI e alert automatici. Export dati per analisi esterna.
+
+Posizionamento strategico YCore Fidelity non è un modulo accessorio, ma un motore di engagement territoriale, dove ogni funzionalità è accompagnata da un algoritmo dedicato. Questo garantisce innovazione reale e difendibile, scalabilità modulare, monetizzazione multilivello, impatto sociale (rete promoter) e sponsorizzabilità da brand globali.

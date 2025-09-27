@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, uuid, integer, decimal, boolean, pgEnum, index, json } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, uuid, integer, decimal, boolean, pgEnum, index, json, unique } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -26,6 +26,15 @@ export const orderStatusEnum = pgEnum("order_status", ["pending", "processing", 
 export const paymentStatusEnum = pgEnum("payment_status", ["pending", "paid", "failed", "refunded"]);
 export const productStatusEnum = pgEnum("product_status", ["active", "inactive", "discontinued", "out_of_stock"]);
 export const integrationStatusEnum = pgEnum("integration_status", ["active", "inactive", "error", "syncing"]);
+
+// Fidelity Card Enums
+export const fidelityCardStatusEnum = pgEnum("fidelity_card_status", ["active", "suspended", "expired", "revoked"]);
+export const fidelityOfferTypeEnum = pgEnum("fidelity_offer_type", ["discount", "cashback", "promo", "points"]);
+export const fidelityOfferStatusEnum = pgEnum("fidelity_offer_status", ["draft", "active", "paused", "expired", "cancelled"]);
+export const fidelityTransactionTypeEnum = pgEnum("fidelity_transaction_type", ["accrue", "redeem", "adjust", "bonus"]);
+export const fidelityRedemptionStatusEnum = pgEnum("fidelity_redemption_status", ["pending", "confirmed", "cancelled", "failed"]);
+export const fidelityChannelEnum = pgEnum("fidelity_channel", ["pos", "online", "mobile", "qr_scan"]);
+export const sponsorFundingModelEnum = pgEnum("sponsor_funding_model", ["performance", "fixed", "hybrid", "revenue_share"]);
 
 // Users table
 export const users = pgTable("users", {
@@ -575,6 +584,194 @@ export const insertMarketplaceOrderSchema = createInsertSchema(marketplaceOrders
 export const insertMarketplaceOrderItemSchema = createInsertSchema(marketplaceOrderItems);
 export const insertMarketplaceReviewSchema = createInsertSchema(marketplaceReviews);
 
+// ======== FIDELITY CARD MODULE TABLES ========
+
+// Fidelity Settings - Configurazione per tenant
+export const fidelitySettings = pgTable("fidelity_settings", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").notNull().references(() => tenants.id),
+  isActive: boolean("is_active").default(false),
+  defaultSponsor: text("default_sponsor"),
+  geoMode: boolean("geo_mode").default(false), // Geolocalizzazione attiva
+  branding: json("branding"), // Logo, colori, personalizzazione
+  maxCardsPerCustomer: integer("max_cards_per_customer").default(1),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Fidelity Cards - Carte fedeltà digitali
+export const fidelityCards = pgTable("fidelity_cards", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").notNull().references(() => tenants.id),
+  customerId: uuid("customer_id").notNull().references(() => ecommerceCustomers.id),
+  code: varchar("code", { length: 50 }).notNull(), // Codice univoco carta per tenant
+  qrHash: text("qr_hash").notNull().unique(), // Hash per QR code (globally unique)
+  status: fidelityCardStatusEnum("status").default("active"),
+  sponsorBranding: json("sponsor_branding"), // Branding sponsor specifico
+  issuedAt: timestamp("issued_at").notNull().defaultNow(),
+  expiresAt: timestamp("expires_at"),
+  lastUsedAt: timestamp("last_used_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  // Tenant-scoped unique constraint for multi-tenant isolation
+  uniqueCodePerTenant: unique().on(table.tenantId, table.code),
+  // Performance indexes for common queries
+  tenantIdIndex: index().on(table.tenantId),
+  customerIdIndex: index().on(table.customerId),
+  statusIndex: index().on(table.status),
+}));
+
+// Fidelity Wallets - Portafogli virtuali per carte
+export const fidelityWallets = pgTable("fidelity_wallets", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  cardId: uuid("card_id").notNull().references(() => fidelityCards.id, { onDelete: 'cascade' }),
+  balance: decimal("balance", { precision: 10, scale: 2 }).default("0.00"),
+  totalAccrued: decimal("total_accrued", { precision: 10, scale: 2 }).default("0.00"),
+  totalRedeemed: decimal("total_redeemed", { precision: 10, scale: 2 }).default("0.00"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Fidelity Wallet Transactions - Movimenti portafoglio
+export const fidelityWalletTransactions = pgTable("fidelity_wallet_transactions", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  cardId: uuid("card_id").notNull().references(() => fidelityCards.id),
+  walletId: uuid("wallet_id").notNull().references(() => fidelityWallets.id),
+  type: fidelityTransactionTypeEnum("type").notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  description: text("description"),
+  referenceType: text("reference_type"), // redemption, campaign, adjustment
+  referenceId: uuid("reference_id"), // ID dell'operazione di riferimento
+  merchantId: uuid("merchant_id").references(() => clients.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Fidelity Offers - Offerte e promozioni merchant
+export const fidelityOffers = pgTable("fidelity_offers", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").notNull().references(() => tenants.id),
+  merchantId: uuid("merchant_id").notNull().references(() => clients.id), // Merchant che offre
+  title: varchar("title", { length: 200 }).notNull(),
+  description: text("description"),
+  type: fidelityOfferTypeEnum("type").notNull(),
+  rules: json("rules"), // Regole eligibilità, min spend, ecc.
+  discountValue: decimal("discount_value", { precision: 5, scale: 2 }), // % o importo fisso
+  cashbackPercent: decimal("cashback_percent", { precision: 5, scale: 2 }),
+  pointsValue: integer("points_value"),
+  geofence: json("geofence"), // Area geografica validità
+  maxRedemptions: integer("max_redemptions"),
+  usedRedemptions: integer("used_redemptions").default(0),
+  status: fidelityOfferStatusEnum("status").default("draft"),
+  startAt: timestamp("start_at").notNull(),
+  endAt: timestamp("end_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Fidelity Redemptions - Riscatti effettuati
+export const fidelityRedemptions = pgTable("fidelity_redemptions", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").notNull().references(() => tenants.id),
+  cardId: uuid("card_id").notNull().references(() => fidelityCards.id),
+  offerId: uuid("offer_id").notNull().references(() => fidelityOffers.id),
+  merchantClientId: uuid("merchant_client_id").notNull().references(() => clients.id),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(), // Importo transazione
+  discountApplied: decimal("discount_applied", { precision: 10, scale: 2 }).default("0.00"),
+  cashbackAmount: decimal("cashback_amount", { precision: 10, scale: 2 }).default("0.00"),
+  pointsEarned: integer("points_earned").default(0),
+  channel: fidelityChannelEnum("channel").notNull(),
+  latitude: decimal("latitude", { precision: 10, scale: 6 }),
+  longitude: decimal("longitude", { precision: 10, scale: 6 }),
+  status: fidelityRedemptionStatusEnum("status").default("pending"),
+  idempotencyKey: varchar("idempotency_key", { length: 100 }).notNull(),
+  redeemedAt: timestamp("redeemed_at").notNull().defaultNow(),
+  confirmedAt: timestamp("confirmed_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  // Idempotency enforced per tenant for replay protection
+  uniqueIdempotencyPerTenant: unique().on(table.tenantId, table.idempotencyKey),
+  // Performance indexes for common queries
+  tenantIdIndex: index().on(table.tenantId),
+  cardIdIndex: index().on(table.cardId),
+  offerIdIndex: index().on(table.offerId),
+}));
+
+// Sponsors - Sponsor brand per visibilità
+export const sponsors = pgTable("sponsors", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").references(() => tenants.id), // null = sponsor globale
+  brand: varchar("brand", { length: 100 }).notNull(),
+  logo: text("logo"), // URL logo sponsor
+  website: text("website"),
+  assets: json("assets"), // Materiali marketing, colori brand
+  fundingModel: sponsorFundingModelEnum("funding_model").default("performance"),
+  contractValue: decimal("contract_value", { precision: 12, scale: 2 }),
+  isActive: boolean("is_active").default(true),
+  validFrom: timestamp("valid_from").notNull().defaultNow(),
+  validTo: timestamp("valid_to"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Promoter Profiles - Profili promoter territoriali
+export const promoterProfiles = pgTable("promoter_profiles", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").notNull().references(() => tenants.id),
+  userId: uuid("user_id").notNull().references(() => users.id),
+  fullName: varchar("full_name", { length: 200 }).notNull(),
+  email: text("email").notNull(),
+  phone: varchar("phone", { length: 20 }),
+  area: json("area"), // Zone geografiche assegnate
+  performanceTarget: decimal("performance_target", { precision: 10, scale: 2 }),
+  commissionRate: decimal("commission_rate", { precision: 5, scale: 2 }).default("10.00"), // %
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Promoter KPIs - Metriche performance promoter
+export const promoterKpis = pgTable("promoter_kpis", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  promoterId: uuid("promoter_id").notNull().references(() => promoterProfiles.id),
+  period: varchar("period", { length: 10 }).notNull(), // YYYY-MM format
+  onboardedMerchants: integer("onboarded_merchants").default(0),
+  cardsDistributed: integer("cards_distributed").default(0),
+  activeOffers: integer("active_offers").default(0),
+  conversions: integer("conversions").default(0),
+  revenue: decimal("revenue", { precision: 10, scale: 2 }).default("0.00"),
+  commission: decimal("commission", { precision: 10, scale: 2 }).default("0.00"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Fidelity AI Profiles - Profili comportamentali AI
+export const fidelityAiProfiles = pgTable("fidelity_ai_profiles", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  cardId: uuid("card_id").notNull().references(() => fidelityCards.id, { onDelete: 'cascade' }),
+  preferences: json("preferences"), // Preferenze dedotte AI
+  lastSegments: json("last_segments"), // Ultimi segmenti calcolati
+  behaviorScore: decimal("behavior_score", { precision: 5, scale: 2 }).default("0.00"),
+  loyaltyScore: decimal("loyalty_score", { precision: 5, scale: 2 }).default("0.00"),
+  lastAnalyzedAt: timestamp("last_analyzed_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Fidelity AI Logs - Log analisi AI
+export const fidelityAiLogs = pgTable("fidelity_ai_logs", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").notNull().references(() => tenants.id),
+  entity: varchar("entity", { length: 50 }).notNull(), // card, offer, merchant
+  entityId: uuid("entity_id").notNull(),
+  operation: varchar("operation", { length: 50 }).notNull(), // suggest, analyze, score
+  input: json("input"), // Dati input per AI
+  output: json("output"), // Risultato AI
+  score: decimal("score", { precision: 5, scale: 2 }),
+  processingTime: integer("processing_time"), // ms
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // ======== ECOMMERCE MODULE TABLES ========
 
 // eCommerce Customers (different from B2B clients)
@@ -951,6 +1148,123 @@ export const marketplaceIntegrationsRelations = relations(marketplaceIntegration
   }),
 }));
 
+// Fidelity Card Relations
+export const fidelitySettingsRelations = relations(fidelitySettings, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [fidelitySettings.tenantId],
+    references: [tenants.id],
+  }),
+}));
+
+export const fidelityCardsRelations = relations(fidelityCards, ({ one, many }) => ({
+  tenant: one(tenants, {
+    fields: [fidelityCards.tenantId],
+    references: [tenants.id],
+  }),
+  customer: one(ecommerceCustomers, {
+    fields: [fidelityCards.customerId],
+    references: [ecommerceCustomers.id],
+  }),
+  wallet: one(fidelityWallets),
+  transactions: many(fidelityWalletTransactions),
+  redemptions: many(fidelityRedemptions),
+  aiProfile: one(fidelityAiProfiles),
+}));
+
+export const fidelityWalletsRelations = relations(fidelityWallets, ({ one, many }) => ({
+  card: one(fidelityCards, {
+    fields: [fidelityWallets.cardId],
+    references: [fidelityCards.id],
+  }),
+  transactions: many(fidelityWalletTransactions),
+}));
+
+export const fidelityWalletTransactionsRelations = relations(fidelityWalletTransactions, ({ one }) => ({
+  card: one(fidelityCards, {
+    fields: [fidelityWalletTransactions.cardId],
+    references: [fidelityCards.id],
+  }),
+  wallet: one(fidelityWallets, {
+    fields: [fidelityWalletTransactions.walletId],
+    references: [fidelityWallets.id],
+  }),
+  merchant: one(clients, {
+    fields: [fidelityWalletTransactions.merchantId],
+    references: [clients.id],
+  }),
+}));
+
+export const fidelityOffersRelations = relations(fidelityOffers, ({ one, many }) => ({
+  tenant: one(tenants, {
+    fields: [fidelityOffers.tenantId],
+    references: [tenants.id],
+  }),
+  merchant: one(clients, {
+    fields: [fidelityOffers.merchantId],
+    references: [clients.id],
+  }),
+  redemptions: many(fidelityRedemptions),
+}));
+
+export const fidelityRedemptionsRelations = relations(fidelityRedemptions, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [fidelityRedemptions.tenantId],
+    references: [tenants.id],
+  }),
+  card: one(fidelityCards, {
+    fields: [fidelityRedemptions.cardId],
+    references: [fidelityCards.id],
+  }),
+  offer: one(fidelityOffers, {
+    fields: [fidelityRedemptions.offerId],
+    references: [fidelityOffers.id],
+  }),
+  merchant: one(clients, {
+    fields: [fidelityRedemptions.merchantClientId],
+    references: [clients.id],
+  }),
+}));
+
+export const sponsorsRelations = relations(sponsors, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [sponsors.tenantId],
+    references: [tenants.id],
+  }),
+}));
+
+export const promoterProfilesRelations = relations(promoterProfiles, ({ one, many }) => ({
+  tenant: one(tenants, {
+    fields: [promoterProfiles.tenantId],
+    references: [tenants.id],
+  }),
+  user: one(users, {
+    fields: [promoterProfiles.userId],
+    references: [users.id],
+  }),
+  kpis: many(promoterKpis),
+}));
+
+export const promoterKpisRelations = relations(promoterKpis, ({ one }) => ({
+  promoter: one(promoterProfiles, {
+    fields: [promoterKpis.promoterId],
+    references: [promoterProfiles.id],
+  }),
+}));
+
+export const fidelityAiProfilesRelations = relations(fidelityAiProfiles, ({ one }) => ({
+  card: one(fidelityCards, {
+    fields: [fidelityAiProfiles.cardId],
+    references: [fidelityCards.id],
+  }),
+}));
+
+export const fidelityAiLogsRelations = relations(fidelityAiLogs, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [fidelityAiLogs.tenantId],
+    references: [tenants.id],
+  }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -1098,6 +1412,74 @@ export const insertMarketplaceIntegrationSchema = createInsertSchema(marketplace
   updatedAt: true,
 });
 
+// Fidelity Card Insert Schemas
+export const insertFidelitySettingsSchema = createInsertSchema(fidelitySettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertFidelityCardSchema = createInsertSchema(fidelityCards).omit({
+  id: true,
+  issuedAt: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertFidelityWalletSchema = createInsertSchema(fidelityWallets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertFidelityWalletTransactionSchema = createInsertSchema(fidelityWalletTransactions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertFidelityOfferSchema = createInsertSchema(fidelityOffers).omit({
+  id: true,
+  usedRedemptions: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertFidelityRedemptionSchema = createInsertSchema(fidelityRedemptions).omit({
+  id: true,
+  redeemedAt: true,
+  createdAt: true,
+});
+
+export const insertSponsorSchema = createInsertSchema(sponsors).omit({
+  id: true,
+  validFrom: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertPromoterProfileSchema = createInsertSchema(promoterProfiles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertPromoterKpiSchema = createInsertSchema(promoterKpis).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertFidelityAiProfileSchema = createInsertSchema(fidelityAiProfiles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertFidelityAiLogSchema = createInsertSchema(fidelityAiLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -1153,3 +1535,27 @@ export type OrderItem = typeof orderItems.$inferSelect;
 export type InsertOrderItem = z.infer<typeof insertOrderItemSchema>;
 export type MarketplaceIntegration = typeof marketplaceIntegrations.$inferSelect;
 export type InsertMarketplaceIntegration = z.infer<typeof insertMarketplaceIntegrationSchema>;
+
+// Fidelity Card Types
+export type FidelitySettings = typeof fidelitySettings.$inferSelect;
+export type InsertFidelitySettings = z.infer<typeof insertFidelitySettingsSchema>;
+export type FidelityCard = typeof fidelityCards.$inferSelect;
+export type InsertFidelityCard = z.infer<typeof insertFidelityCardSchema>;
+export type FidelityWallet = typeof fidelityWallets.$inferSelect;
+export type InsertFidelityWallet = z.infer<typeof insertFidelityWalletSchema>;
+export type FidelityWalletTransaction = typeof fidelityWalletTransactions.$inferSelect;
+export type InsertFidelityWalletTransaction = z.infer<typeof insertFidelityWalletTransactionSchema>;
+export type FidelityOffer = typeof fidelityOffers.$inferSelect;
+export type InsertFidelityOffer = z.infer<typeof insertFidelityOfferSchema>;
+export type FidelityRedemption = typeof fidelityRedemptions.$inferSelect;
+export type InsertFidelityRedemption = z.infer<typeof insertFidelityRedemptionSchema>;
+export type Sponsor = typeof sponsors.$inferSelect;
+export type InsertSponsor = z.infer<typeof insertSponsorSchema>;
+export type PromoterProfile = typeof promoterProfiles.$inferSelect;
+export type InsertPromoterProfile = z.infer<typeof insertPromoterProfileSchema>;
+export type PromoterKpi = typeof promoterKpis.$inferSelect;
+export type InsertPromoterKpi = z.infer<typeof insertPromoterKpiSchema>;
+export type FidelityAiProfile = typeof fidelityAiProfiles.$inferSelect;
+export type InsertFidelityAiProfile = z.infer<typeof insertFidelityAiProfileSchema>;
+export type FidelityAiLog = typeof fidelityAiLogs.$inferSelect;
+export type InsertFidelityAiLog = z.infer<typeof insertFidelityAiLogSchema>;
