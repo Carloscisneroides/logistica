@@ -27,7 +27,15 @@ import {
   type FidelityOffer, type InsertFidelityOffer, type FidelityRedemption, type InsertFidelityRedemption,
   type Sponsor, type InsertSponsor, type PromoterProfile, type InsertPromoterProfile,
   type PromoterKpi, type InsertPromoterKpi, type FidelityAiProfile, type InsertFidelityAiProfile,
-  type FidelityAiLog, type InsertFidelityAiLog
+  type FidelityAiLog, type InsertFidelityAiLog,
+  // Marketplace Professionisti Digitali types
+  professionalProfiles, clientProjects, projectBids, marketplaceContracts, projectMilestones,
+  marketplaceChatMessages, marketplaceDisputes, professionalRatings, marketplaceCommissions, antiDisintermediationLogs,
+  type ProfessionalProfile, type InsertProfessionalProfile, type ClientProject, type InsertClientProject,
+  type ProjectBid, type InsertProjectBid, type MarketplaceContract, type InsertMarketplaceContract,
+  type ProjectMilestone, type InsertProjectMilestone, type MarketplaceChatMessage, type InsertMarketplaceChatMessage,
+  type MarketplaceDispute, type InsertMarketplaceDispute, type ProfessionalRating, type InsertProfessionalRating,
+  type MarketplaceCommission, type InsertMarketplaceCommission, type AntiDisintermediationLog, type InsertAntiDisintermediationLog
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, not, desc, sql, isNull } from "drizzle-orm";
@@ -315,6 +323,122 @@ export interface IStorage {
     topMerchants: Array<{id: string; name: string; redemptions: number}>;
     promoterStats: Array<{id: string; name: string; cardsDistributed: number; conversions: number}>;
   }>;
+
+  // Marketplace Professionisti Digitali
+  // Professional Profiles
+  getProfessionalProfile(id: string): Promise<ProfessionalProfile | undefined>;
+  getProfessionalProfileByUser(userId: string, tenantId: string): Promise<ProfessionalProfile | undefined>;
+  getProfessionalProfilesByTenant(tenantId: string): Promise<ProfessionalProfile[]>;
+  getProfessionalProfilesByCategory(category: string, tenantId: string): Promise<ProfessionalProfile[]>;
+  searchProfessionalProfiles(tenantId: string, filters: {
+    category?: string;
+    skills?: string[];
+    rating?: number;
+    isAvailable?: boolean;
+    search?: string;
+  }): Promise<ProfessionalProfile[]>;
+  createProfessionalProfile(profile: InsertProfessionalProfile): Promise<ProfessionalProfile>;
+  updateProfessionalProfile(id: string, updates: Partial<ProfessionalProfile>): Promise<ProfessionalProfile>;
+  deleteProfessionalProfile(id: string, tenantId: string): Promise<void>;
+
+  // Client Projects
+  getClientProject(id: string): Promise<ClientProject | undefined>;
+  getClientProjectsByClient(clientId: string): Promise<ClientProject[]>;
+  getClientProjectsByTenant(tenantId: string): Promise<ClientProject[]>;
+  getPublishedProjects(tenantId: string, filters?: {
+    category?: string;
+    budget?: {min?: number; max?: number};
+    deadline?: Date;
+  }): Promise<ClientProject[]>;
+  createClientProject(project: InsertClientProject): Promise<ClientProject>;
+  updateClientProject(id: string, updates: Partial<ClientProject>): Promise<ClientProject>;
+  deleteClientProject(id: string, tenantId: string): Promise<void>;
+
+  // Project Bids
+  getProjectBid(id: string): Promise<ProjectBid | undefined>;
+  getProjectBidsByProject(projectId: string): Promise<ProjectBid[]>;
+  getProjectBidsByProfessional(professionalId: string): Promise<ProjectBid[]>;
+  createProjectBid(bid: InsertProjectBid): Promise<ProjectBid>;
+  updateProjectBid(id: string, updates: Partial<ProjectBid>): Promise<ProjectBid>;
+  deleteProjectBid(id: string, tenantId: string): Promise<void>;
+
+  // Marketplace Contracts
+  getMarketplaceContract(id: string): Promise<MarketplaceContract | undefined>;
+  getMarketplaceContractsByClient(clientId: string): Promise<MarketplaceContract[]>;
+  getMarketplaceContractsByProfessional(professionalId: string): Promise<MarketplaceContract[]>;
+  getMarketplaceContractsByTenant(tenantId: string): Promise<MarketplaceContract[]>;
+  createMarketplaceContract(contract: InsertMarketplaceContract): Promise<MarketplaceContract>;
+  updateMarketplaceContract(id: string, updates: Partial<MarketplaceContract>): Promise<MarketplaceContract>;
+  deleteMarketplaceContract(id: string, tenantId: string): Promise<void>;
+
+  // Project Milestones
+  getProjectMilestone(id: string): Promise<ProjectMilestone | undefined>;
+  getProjectMilestonesByContract(contractId: string): Promise<ProjectMilestone[]>;
+  getPendingMilestones(tenantId: string): Promise<ProjectMilestone[]>;
+  createProjectMilestone(milestone: InsertProjectMilestone): Promise<ProjectMilestone>;
+  updateProjectMilestone(id: string, updates: Partial<ProjectMilestone>): Promise<ProjectMilestone>;
+  deleteProjectMilestone(id: string, tenantId: string): Promise<void>;
+
+  // Marketplace Chat Messages
+  getMarketplaceChatMessage(id: string): Promise<MarketplaceChatMessage | undefined>;
+  getMarketplaceChatMessagesByContract(contractId: string): Promise<MarketplaceChatMessage[]>;
+  createMarketplaceChatMessage(message: InsertMarketplaceChatMessage): Promise<MarketplaceChatMessage>;
+  deleteMarketplaceChatMessage(id: string, tenantId: string): Promise<void>;
+  markMessagesAsRead(contractId: string, userId: string): Promise<void>;
+
+  // Marketplace Disputes
+  getMarketplaceDispute(id: string): Promise<MarketplaceDispute | undefined>;
+  getMarketplaceDisputesByTenant(tenantId: string): Promise<MarketplaceDispute[]>;
+  getMarketplaceDisputesByContract(contractId: string): Promise<MarketplaceDispute[]>;
+  createMarketplaceDispute(dispute: InsertMarketplaceDispute): Promise<MarketplaceDispute>;
+  updateMarketplaceDispute(id: string, updates: Partial<MarketplaceDispute>): Promise<MarketplaceDispute>;
+  deleteMarketplaceDispute(id: string, tenantId: string): Promise<void>;
+
+  // Professional Ratings
+  getProfessionalRating(id: string): Promise<ProfessionalRating | undefined>;
+  getProfessionalRatingsByProfessional(professionalId: string): Promise<ProfessionalRating[]>;
+  createProfessionalRating(rating: InsertProfessionalRating): Promise<ProfessionalRating>;
+  deleteProfessionalRating(id: string, tenantId: string): Promise<void>;
+
+  // Marketplace Commissions
+  getMarketplaceCommission(id: string): Promise<MarketplaceCommission | undefined>;
+  getMarketplaceCommissionsByProfessional(professionalId: string): Promise<MarketplaceCommission[]>;
+  getMarketplaceCommissionsByTenant(tenantId: string): Promise<MarketplaceCommission[]>;
+  createMarketplaceCommission(commission: InsertMarketplaceCommission): Promise<MarketplaceCommission>;
+  updateMarketplaceCommission(id: string, updates: Partial<MarketplaceCommission>): Promise<MarketplaceCommission>;
+  deleteMarketplaceCommission(id: string, tenantId: string): Promise<void>;
+
+  // Anti-Disintermediation Logs
+  getAntiDisintermediationLog(id: string): Promise<AntiDisintermediationLog | undefined>;
+  getAntiDisintermediationLogsByTenant(tenantId: string): Promise<AntiDisintermediationLog[]>;
+  createAntiDisintermediationLog(log: InsertAntiDisintermediationLog): Promise<AntiDisintermediationLog>;
+  deleteAntiDisintermediationLog(id: string, tenantId: string): Promise<void>;
+
+  // Marketplace Dashboard & Analytics
+  getMarketplaceDashboardStats(tenantId: string): Promise<{
+    totalProfessionals: number;
+    activeProfessionals: number;
+    totalProjects: number;
+    activeProjects: number;
+    totalContracts: number;
+    completedContracts: number;
+    totalCommissions: number;
+    monthlyRevenue: number;
+    topProfessionals: Array<{id: string; name: string; rating: number; completedProjects: number}>;
+    categoryStats: Array<{category: string; professionals: number; projects: number; avgBudget: number}>;
+  }>;
+
+  // AI Matching & Suggestions
+  getMatchingProfessionalsForProject(projectId: string): Promise<Array<{
+    professional: ProfessionalProfile;
+    matchScore: number;
+    reasons: string[];
+  }>>;
+  getSuggestedProjectsForProfessional(professionalId: string): Promise<Array<{
+    project: ClientProject;
+    matchScore: number;
+    reasons: string[];
+  }>>;
   
   sessionStore: session.Store;
 }
@@ -1958,6 +2082,734 @@ export class DatabaseStorage implements IStorage {
         conversions: p.conversions
       }))
     };
+  }
+
+  // ======== MARKETPLACE PROFESSIONISTI DIGITALI IMPLEMENTATIONS ========
+
+  // Professional Profiles
+  async getProfessionalProfile(id: string): Promise<ProfessionalProfile | undefined> {
+    const [profile] = await db.select().from(professionalProfiles).where(eq(professionalProfiles.id, id));
+    return profile || undefined;
+  }
+
+  async getProfessionalProfileByUser(userId: string, tenantId: string): Promise<ProfessionalProfile | undefined> {
+    const [profile] = await db.select().from(professionalProfiles)
+      .where(and(eq(professionalProfiles.userId, userId), eq(professionalProfiles.tenantId, tenantId)));
+    return profile || undefined;
+  }
+
+  async getProfessionalProfilesByTenant(tenantId: string): Promise<ProfessionalProfile[]> {
+    return db.select().from(professionalProfiles)
+      .where(eq(professionalProfiles.tenantId, tenantId))
+      .orderBy(desc(professionalProfiles.rating));
+  }
+
+  async getProfessionalProfilesByCategory(category: string, tenantId: string): Promise<ProfessionalProfile[]> {
+    return db.select().from(professionalProfiles)
+      .where(and(eq(professionalProfiles.category, category), eq(professionalProfiles.tenantId, tenantId)))
+      .orderBy(desc(professionalProfiles.rating));
+  }
+
+  async searchProfessionalProfiles(tenantId: string, filters: {
+    category?: string;
+    skills?: string[];
+    rating?: number;
+    isAvailable?: boolean;
+    search?: string;
+  }): Promise<ProfessionalProfile[]> {
+    let query = db.select().from(professionalProfiles).$dynamic();
+    
+    const conditions = [eq(professionalProfiles.tenantId, tenantId)];
+    
+    if (filters.category) {
+      conditions.push(eq(professionalProfiles.category, filters.category));
+    }
+    
+    if (filters.rating) {
+      conditions.push(sql`${professionalProfiles.rating} >= ${filters.rating}`);
+    }
+    
+    if (filters.isAvailable !== undefined) {
+      conditions.push(eq(professionalProfiles.isAvailable, filters.isAvailable));
+    }
+    
+    if (filters.search) {
+      conditions.push(or(
+        sql`${professionalProfiles.title} ILIKE ${'%' + filters.search + '%'}`,
+        sql`${professionalProfiles.description} ILIKE ${'%' + filters.search + '%'}`
+      ));
+    }
+    
+    query = query.where(and(...conditions));
+    return query.orderBy(desc(professionalProfiles.rating));
+  }
+
+  async createProfessionalProfile(profile: InsertProfessionalProfile): Promise<ProfessionalProfile> {
+    const [created] = await db.insert(professionalProfiles).values(profile).returning();
+    return created;
+  }
+
+  async updateProfessionalProfile(id: string, updates: Partial<ProfessionalProfile>): Promise<ProfessionalProfile> {
+    const [updated] = await db.update(professionalProfiles)
+      .set({...updates, updatedAt: new Date()})
+      .where(eq(professionalProfiles.id, id))
+      .returning();
+    return updated;
+  }
+
+  // Client Projects
+  async getClientProject(id: string): Promise<ClientProject | undefined> {
+    const [project] = await db.select().from(clientProjects).where(eq(clientProjects.id, id));
+    return project || undefined;
+  }
+
+  async getClientProjectsByClient(clientId: string): Promise<ClientProject[]> {
+    return db.select().from(clientProjects)
+      .where(eq(clientProjects.clientId, clientId))
+      .orderBy(desc(clientProjects.createdAt));
+  }
+
+  async getClientProjectsByTenant(tenantId: string): Promise<ClientProject[]> {
+    return db.select().from(clientProjects)
+      .where(eq(clientProjects.tenantId, tenantId))
+      .orderBy(desc(clientProjects.createdAt));
+  }
+
+  async getPublishedProjects(tenantId: string, filters?: {
+    category?: string;
+    budget?: {min?: number; max?: number};
+    deadline?: Date;
+  }): Promise<ClientProject[]> {
+    let query = db.select().from(clientProjects).$dynamic();
+    
+    const conditions = [
+      eq(clientProjects.tenantId, tenantId),
+      eq(clientProjects.status, "published")
+    ];
+    
+    if (filters?.category) {
+      conditions.push(eq(clientProjects.category, filters.category));
+    }
+    
+    if (filters?.budget?.min) {
+      conditions.push(sql`${clientProjects.budget} >= ${filters.budget.min}`);
+    }
+    
+    if (filters?.budget?.max) {
+      conditions.push(sql`${clientProjects.budget} <= ${filters.budget.max}`);
+    }
+    
+    if (filters?.deadline) {
+      conditions.push(sql`${clientProjects.deadline} >= ${filters.deadline}`);
+    }
+    
+    query = query.where(and(...conditions));
+    return query.orderBy(desc(clientProjects.publishedAt));
+  }
+
+  async createClientProject(project: InsertClientProject): Promise<ClientProject> {
+    const [created] = await db.insert(clientProjects).values(project).returning();
+    return created;
+  }
+
+  async updateClientProject(id: string, updates: Partial<ClientProject>): Promise<ClientProject> {
+    const [updated] = await db.update(clientProjects)
+      .set({...updates, updatedAt: new Date()})
+      .where(eq(clientProjects.id, id))
+      .returning();
+    return updated;
+  }
+
+  // Project Bids  
+  async getProjectBid(id: string): Promise<ProjectBid | undefined> {
+    const [bid] = await db.select().from(projectBids).where(eq(projectBids.id, id));
+    return bid || undefined;
+  }
+
+  async getProjectBidsByProject(projectId: string): Promise<ProjectBid[]> {
+    return db.select().from(projectBids)
+      .where(eq(projectBids.projectId, projectId))
+      .orderBy(projectBids.submittedAt);
+  }
+
+  async getProjectBidsByProfessional(professionalId: string): Promise<ProjectBid[]> {
+    return db.select().from(projectBids)
+      .where(eq(projectBids.professionalId, professionalId))
+      .orderBy(desc(projectBids.submittedAt));
+  }
+
+  async createProjectBid(bid: InsertProjectBid): Promise<ProjectBid> {
+    const [created] = await db.insert(projectBids).values(bid).returning();
+    
+    // Update project bids count
+    await db.update(clientProjects)
+      .set({bidsCount: sql`${clientProjects.bidsCount} + 1`})
+      .where(eq(clientProjects.id, created.projectId));
+    
+    return created;
+  }
+
+  async updateProjectBid(id: string, updates: Partial<ProjectBid>): Promise<ProjectBid> {
+    const [updated] = await db.update(projectBids)
+      .set(updates)
+      .where(eq(projectBids.id, id))
+      .returning();
+    return updated;
+  }
+
+  // Marketplace Contracts
+  async getMarketplaceContract(id: string): Promise<MarketplaceContract | undefined> {
+    const [contract] = await db.select().from(marketplaceContracts).where(eq(marketplaceContracts.id, id));
+    return contract || undefined;
+  }
+
+  async getMarketplaceContractsByClient(clientId: string): Promise<MarketplaceContract[]> {
+    return db.select().from(marketplaceContracts)
+      .where(eq(marketplaceContracts.clientId, clientId))
+      .orderBy(desc(marketplaceContracts.createdAt));
+  }
+
+  async getMarketplaceContractsByProfessional(professionalId: string): Promise<MarketplaceContract[]> {
+    return db.select().from(marketplaceContracts)
+      .where(eq(marketplaceContracts.professionalId, professionalId))
+      .orderBy(desc(marketplaceContracts.createdAt));
+  }
+
+  async getMarketplaceContractsByTenant(tenantId: string): Promise<MarketplaceContract[]> {
+    return db.select().from(marketplaceContracts)
+      .where(eq(marketplaceContracts.tenantId, tenantId))
+      .orderBy(desc(marketplaceContracts.createdAt));
+  }
+
+  async createMarketplaceContract(contract: InsertMarketplaceContract): Promise<MarketplaceContract> {
+    // Generate contract number
+    const contractData = {
+      ...contract,
+      contractNumber: `MP-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`
+    };
+    
+    const [created] = await db.insert(marketplaceContracts).values(contractData).returning();
+    
+    // Update project status to awarded
+    await db.update(clientProjects)
+      .set({status: "awarded", awardedAt: new Date()})
+      .where(eq(clientProjects.id, created.projectId));
+    
+    return created;
+  }
+
+  async updateMarketplaceContract(id: string, updates: Partial<MarketplaceContract>): Promise<MarketplaceContract> {
+    const [updated] = await db.update(marketplaceContracts)
+      .set({...updates, updatedAt: new Date()})
+      .where(eq(marketplaceContracts.id, id))
+      .returning();
+    return updated;
+  }
+
+  // Project Milestones
+  async getProjectMilestone(id: string): Promise<ProjectMilestone | undefined> {
+    const [milestone] = await db.select().from(projectMilestones).where(eq(projectMilestones.id, id));
+    return milestone || undefined;
+  }
+
+  async getProjectMilestonesByContract(contractId: string): Promise<ProjectMilestone[]> {
+    return db.select().from(projectMilestones)
+      .where(eq(projectMilestones.contractId, contractId))
+      .orderBy(projectMilestones.dueDate);
+  }
+
+  async getPendingMilestones(tenantId: string): Promise<ProjectMilestone[]> {
+    return db.select().from(projectMilestones)
+      .innerJoin(marketplaceContracts, eq(projectMilestones.contractId, marketplaceContracts.id))
+      .where(and(
+        eq(marketplaceContracts.tenantId, tenantId),
+        eq(projectMilestones.status, "pending")
+      ))
+      .orderBy(projectMilestones.dueDate)
+      .then(results => results.map(r => r.project_milestones));
+  }
+
+  async createProjectMilestone(milestone: InsertProjectMilestone): Promise<ProjectMilestone> {
+    const [created] = await db.insert(projectMilestones).values(milestone).returning();
+    return created;
+  }
+
+  async updateProjectMilestone(id: string, updates: Partial<ProjectMilestone>): Promise<ProjectMilestone> {
+    const [updated] = await db.update(projectMilestones)
+      .set({...updates, updatedAt: new Date()})
+      .where(eq(projectMilestones.id, id))
+      .returning();
+    return updated;
+  }
+
+  // Marketplace Chat Messages
+  async getMarketplaceChatMessage(id: string): Promise<MarketplaceChatMessage | undefined> {
+    const [message] = await db.select().from(marketplaceChatMessages).where(eq(marketplaceChatMessages.id, id));
+    return message || undefined;
+  }
+
+  async getMarketplaceChatMessagesByContract(contractId: string): Promise<MarketplaceChatMessage[]> {
+    return db.select().from(marketplaceChatMessages)
+      .where(eq(marketplaceChatMessages.contractId, contractId))
+      .orderBy(marketplaceChatMessages.createdAt);
+  }
+
+  async createMarketplaceChatMessage(message: InsertMarketplaceChatMessage): Promise<MarketplaceChatMessage> {
+    const [created] = await db.insert(marketplaceChatMessages).values(message).returning();
+    return created;
+  }
+
+  async markMessagesAsRead(contractId: string, userId: string): Promise<void> {
+    await db.update(marketplaceChatMessages)
+      .set({isRead: true})
+      .where(and(
+        eq(marketplaceChatMessages.contractId, contractId),
+        not(eq(marketplaceChatMessages.senderId, userId)),
+        eq(marketplaceChatMessages.isRead, false)
+      ));
+  }
+
+  // Marketplace Disputes
+  async getMarketplaceDispute(id: string): Promise<MarketplaceDispute | undefined> {
+    const [dispute] = await db.select().from(marketplaceDisputes).where(eq(marketplaceDisputes.id, id));
+    return dispute || undefined;
+  }
+
+  async getMarketplaceDisputesByTenant(tenantId: string): Promise<MarketplaceDispute[]> {
+    return db.select().from(marketplaceDisputes)
+      .where(eq(marketplaceDisputes.tenantId, tenantId))
+      .orderBy(desc(marketplaceDisputes.createdAt));
+  }
+
+  async getMarketplaceDisputesByContract(contractId: string): Promise<MarketplaceDispute[]> {
+    return db.select().from(marketplaceDisputes)
+      .where(eq(marketplaceDisputes.contractId, contractId))
+      .orderBy(desc(marketplaceDisputes.createdAt));
+  }
+
+  async createMarketplaceDispute(dispute: InsertMarketplaceDispute): Promise<MarketplaceDispute> {
+    const [created] = await db.insert(marketplaceDisputes).values(dispute).returning();
+    return created;
+  }
+
+  async updateMarketplaceDispute(id: string, updates: Partial<MarketplaceDispute>): Promise<MarketplaceDispute> {
+    const [updated] = await db.update(marketplaceDisputes)
+      .set({...updates, updatedAt: new Date()})
+      .where(eq(marketplaceDisputes.id, id))
+      .returning();
+    return updated;
+  }
+
+  // Professional Ratings
+  async getProfessionalRating(id: string): Promise<ProfessionalRating | undefined> {
+    const [rating] = await db.select().from(professionalRatings).where(eq(professionalRatings.id, id));
+    return rating || undefined;
+  }
+
+  async getProfessionalRatingsByProfessional(professionalId: string): Promise<ProfessionalRating[]> {
+    return db.select().from(professionalRatings)
+      .where(eq(professionalRatings.professionalId, professionalId))
+      .orderBy(desc(professionalRatings.createdAt));
+  }
+
+  async createProfessionalRating(rating: InsertProfessionalRating): Promise<ProfessionalRating> {
+    const [created] = await db.insert(professionalRatings).values(rating).returning();
+    
+    // Update professional profile rating and review count
+    const ratings = await db.select().from(professionalRatings)
+      .where(eq(professionalRatings.professionalId, created.professionalId));
+    
+    const avgRating = ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length;
+    
+    await db.update(professionalProfiles)
+      .set({
+        rating: avgRating.toFixed(2),
+        reviewCount: ratings.length
+      })
+      .where(eq(professionalProfiles.id, created.professionalId));
+    
+    return created;
+  }
+
+  // Marketplace Commissions
+  async getMarketplaceCommission(id: string): Promise<MarketplaceCommission | undefined> {
+    const [commission] = await db.select().from(marketplaceCommissions).where(eq(marketplaceCommissions.id, id));
+    return commission || undefined;
+  }
+
+  async getMarketplaceCommissionsByProfessional(professionalId: string): Promise<MarketplaceCommission[]> {
+    return db.select().from(marketplaceCommissions)
+      .where(eq(marketplaceCommissions.professionalId, professionalId))
+      .orderBy(desc(marketplaceCommissions.createdAt));
+  }
+
+  async getMarketplaceCommissionsByTenant(tenantId: string): Promise<MarketplaceCommission[]> {
+    return db.select().from(marketplaceCommissions)
+      .where(eq(marketplaceCommissions.tenantId, tenantId))
+      .orderBy(desc(marketplaceCommissions.createdAt));
+  }
+
+  async createMarketplaceCommission(commission: InsertMarketplaceCommission): Promise<MarketplaceCommission> {
+    const [created] = await db.insert(marketplaceCommissions).values(commission).returning();
+    return created;
+  }
+
+  async updateMarketplaceCommission(id: string, updates: Partial<MarketplaceCommission>): Promise<MarketplaceCommission> {
+    const [updated] = await db.update(marketplaceCommissions)
+      .set(updates)
+      .where(eq(marketplaceCommissions.id, id))
+      .returning();
+    return updated;
+  }
+
+  // Anti-Disintermediation Logs
+  async getAntiDisintermediationLog(id: string): Promise<AntiDisintermediationLog | undefined> {
+    const [log] = await db.select().from(antiDisintermediationLogs).where(eq(antiDisintermediationLogs.id, id));
+    return log || undefined;
+  }
+
+  async getAntiDisintermediationLogsByTenant(tenantId: string): Promise<AntiDisintermediationLog[]> {
+    return db.select().from(antiDisintermediationLogs)
+      .where(eq(antiDisintermediationLogs.tenantId, tenantId))
+      .orderBy(desc(antiDisintermediationLogs.createdAt));
+  }
+
+  async createAntiDisintermediationLog(log: InsertAntiDisintermediationLog): Promise<AntiDisintermediationLog> {
+    const [created] = await db.insert(antiDisintermediationLogs).values(log).returning();
+    return created;
+  }
+
+  // Marketplace Dashboard & Analytics
+  async getMarketplaceDashboardStats(tenantId: string): Promise<{
+    totalProfessionals: number;
+    activeProfessionals: number;
+    totalProjects: number;
+    activeProjects: number;
+    totalContracts: number;
+    completedContracts: number;
+    totalCommissions: number;
+    monthlyRevenue: number;
+    topProfessionals: Array<{id: string; name: string; rating: number; completedProjects: number}>;
+    categoryStats: Array<{category: string; professionals: number; projects: number; avgBudget: number}>;
+  }> {
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    // Total professionals
+    const [totalProfessionalsResult] = await db.select({
+      count: sql`count(*)`
+    }).from(professionalProfiles).where(eq(professionalProfiles.tenantId, tenantId));
+
+    // Active professionals (with activity in last 30 days)
+    const [activeProfessionalsResult] = await db.select({
+      count: sql`count(distinct ${professionalProfiles.id})`
+    })
+    .from(professionalProfiles)
+    .leftJoin(marketplaceContracts, eq(professionalProfiles.id, marketplaceContracts.professionalId))
+    .where(and(
+      eq(professionalProfiles.tenantId, tenantId),
+      sql`${marketplaceContracts.createdAt} >= ${startOfMonth}`
+    ));
+
+    // Total projects
+    const [totalProjectsResult] = await db.select({
+      count: sql`count(*)`
+    }).from(clientProjects).where(eq(clientProjects.tenantId, tenantId));
+
+    // Active projects
+    const [activeProjectsResult] = await db.select({
+      count: sql`count(*)`
+    })
+    .from(clientProjects)
+    .where(and(
+      eq(clientProjects.tenantId, tenantId),
+      or(
+        eq(clientProjects.status, "published"),
+        eq(clientProjects.status, "bidding"),
+        eq(clientProjects.status, "in_progress")
+      )
+    ));
+
+    // Total contracts
+    const [totalContractsResult] = await db.select({
+      count: sql`count(*)`
+    }).from(marketplaceContracts).where(eq(marketplaceContracts.tenantId, tenantId));
+
+    // Completed contracts
+    const [completedContractsResult] = await db.select({
+      count: sql`count(*)`
+    })
+    .from(marketplaceContracts)
+    .where(and(
+      eq(marketplaceContracts.tenantId, tenantId),
+      eq(marketplaceContracts.status, "completed")
+    ));
+
+    // Total commissions
+    const [totalCommissionsResult] = await db.select({
+      sum: sql`sum(${marketplaceCommissions.commissionAmount})`
+    })
+    .from(marketplaceCommissions)
+    .where(eq(marketplaceCommissions.tenantId, tenantId));
+
+    // Monthly revenue
+    const [monthlyRevenueResult] = await db.select({
+      sum: sql`sum(${marketplaceCommissions.commissionAmount})`
+    })
+    .from(marketplaceCommissions)
+    .where(and(
+      eq(marketplaceCommissions.tenantId, tenantId),
+      sql`${marketplaceCommissions.createdAt} >= ${startOfMonth}`
+    ));
+
+    // Top professionals
+    const topProfessionalsResults = await db.select({
+      id: professionalProfiles.id,
+      title: professionalProfiles.title,
+      rating: professionalProfiles.rating,
+      completedProjects: professionalProfiles.completedProjects
+    })
+    .from(professionalProfiles)
+    .where(eq(professionalProfiles.tenantId, tenantId))
+    .orderBy(desc(professionalProfiles.rating))
+    .limit(5);
+
+    // Category stats
+    const categoryStatsResults = await db.select({
+      category: clientProjects.category,
+      professionals: sql`count(distinct ${professionalProfiles.id})`,
+      projects: sql`count(distinct ${clientProjects.id})`,
+      avgBudget: sql`avg(${clientProjects.budget})`
+    })
+    .from(clientProjects)
+    .leftJoin(projectBids, eq(clientProjects.id, projectBids.projectId))
+    .leftJoin(professionalProfiles, eq(projectBids.professionalId, professionalProfiles.id))
+    .where(eq(clientProjects.tenantId, tenantId))
+    .groupBy(clientProjects.category);
+
+    return {
+      totalProfessionals: parseInt(String(totalProfessionalsResult?.count || 0)),
+      activeProfessionals: parseInt(String(activeProfessionalsResult?.count || 0)),
+      totalProjects: parseInt(String(totalProjectsResult?.count || 0)),
+      activeProjects: parseInt(String(activeProjectsResult?.count || 0)),
+      totalContracts: parseInt(String(totalContractsResult?.count || 0)),
+      completedContracts: parseInt(String(completedContractsResult?.count || 0)),
+      totalCommissions: parseFloat(String(totalCommissionsResult?.sum || 0)),
+      monthlyRevenue: parseFloat(String(monthlyRevenueResult?.sum || 0)),
+      topProfessionals: topProfessionalsResults.map(p => ({
+        id: p.id,
+        name: p.title || 'Unknown Professional',
+        rating: parseFloat(String(p.rating || 0)),
+        completedProjects: p.completedProjects || 0
+      })),
+      categoryStats: categoryStatsResults.map(c => ({
+        category: String(c.category),
+        professionals: parseInt(String(c.professionals || 0)),
+        projects: parseInt(String(c.projects || 0)),
+        avgBudget: parseFloat(String(c.avgBudget || 0))
+      }))
+    };
+  }
+
+  // AI Matching & Suggestions
+  async getMatchingProfessionalsForProject(projectId: string): Promise<Array<{
+    professional: ProfessionalProfile;
+    matchScore: number;
+    reasons: string[];
+  }>> {
+    const [project] = await db.select().from(clientProjects).where(eq(clientProjects.id, projectId));
+    if (!project) return [];
+
+    const professionals = await db.select().from(professionalProfiles)
+      .where(and(
+        eq(professionalProfiles.tenantId, project.tenantId),
+        eq(professionalProfiles.category, project.category),
+        eq(professionalProfiles.isAvailable, true)
+      ))
+      .orderBy(desc(professionalProfiles.rating));
+
+    return professionals.map(prof => {
+      const reasons: string[] = [];
+      let matchScore = 50; // Base score
+
+      // Category match
+      if (prof.category === project.category) {
+        matchScore += 20;
+        reasons.push(`Specializes in ${project.category}`);
+      }
+
+      // Rating bonus
+      const rating = parseFloat(String(prof.rating || 0));
+      if (rating >= 4.5) {
+        matchScore += 15;
+        reasons.push(`Excellent rating (${rating}/5)`);
+      } else if (rating >= 4.0) {
+        matchScore += 10;
+        reasons.push(`Good rating (${rating}/5)`);
+      }
+
+      // Experience bonus
+      if (prof.completedProjects && prof.completedProjects >= 10) {
+        matchScore += 10;
+        reasons.push(`Experienced (${prof.completedProjects} projects)`);
+      }
+
+      // Budget compatibility
+      const projectBudget = parseFloat(String(project.budget || 0));
+      const profMinRate = parseFloat(String(prof.fixedRateMin || 0));
+      const profMaxRate = parseFloat(String(prof.fixedRateMax || 0));
+      
+      if (profMinRate && profMaxRate && projectBudget >= profMinRate && projectBudget <= profMaxRate) {
+        matchScore += 15;
+        reasons.push('Budget compatible');
+      }
+
+      // Verification bonus
+      if (prof.isVerified) {
+        matchScore += 5;
+        reasons.push('Verified professional');
+      }
+
+      return {
+        professional: prof,
+        matchScore: Math.min(matchScore, 100),
+        reasons
+      };
+    }).sort((a, b) => b.matchScore - a.matchScore);
+  }
+
+  async getSuggestedProjectsForProfessional(professionalId: string): Promise<Array<{
+    project: ClientProject;
+    matchScore: number;
+    reasons: string[];
+  }>> {
+    const [professional] = await db.select().from(professionalProfiles).where(eq(professionalProfiles.id, professionalId));
+    if (!professional) return [];
+
+    const projects = await db.select().from(clientProjects)
+      .where(and(
+        eq(clientProjects.tenantId, professional.tenantId),
+        eq(clientProjects.status, "published"),
+        eq(clientProjects.category, professional.category)
+      ))
+      .orderBy(desc(clientProjects.publishedAt));
+
+    return projects.map(project => {
+      const reasons: string[] = [];
+      let matchScore = 50; // Base score
+
+      // Category match
+      if (project.category === professional.category) {
+        matchScore += 20;
+        reasons.push(`Matches your specialty: ${project.category}`);
+      }
+
+      // Budget compatibility
+      const projectBudget = parseFloat(String(project.budget || 0));
+      const profMinRate = parseFloat(String(professional.fixedRateMin || 0));
+      const profMaxRate = parseFloat(String(professional.fixedRateMax || 0));
+      
+      if (profMinRate && profMaxRate) {
+        if (projectBudget >= profMinRate && projectBudget <= profMaxRate) {
+          matchScore += 20;
+          reasons.push('Perfect budget match');
+        } else if (projectBudget >= profMinRate * 0.8) {
+          matchScore += 10;
+          reasons.push('Good budget range');
+        }
+      }
+
+      // Deadline feasibility
+      if (project.deadline) {
+        const daysUntilDeadline = Math.ceil((project.deadline.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+        if (daysUntilDeadline >= 7) {
+          matchScore += 10;
+          reasons.push('Reasonable deadline');
+        }
+      }
+
+      // Competition level (fewer bids = better opportunity)
+      const bidsCount = project.bidsCount || 0;
+      if (bidsCount === 0) {
+        matchScore += 15;
+        reasons.push('No competition yet');
+      } else if (bidsCount <= 3) {
+        matchScore += 10;
+        reasons.push('Low competition');
+      }
+
+      return {
+        project,
+        matchScore: Math.min(matchScore, 100),
+        reasons
+      };
+    }).sort((a, b) => b.matchScore - a.matchScore);
+  }
+
+  // Delete Methods with Tenant Scoping for Security
+  async deleteProfessionalProfile(id: string, tenantId: string): Promise<void> {
+    await db.delete(professionalProfiles)
+      .where(and(eq(professionalProfiles.id, id), eq(professionalProfiles.tenantId, tenantId)));
+  }
+
+  async deleteClientProject(id: string, tenantId: string): Promise<void> {
+    await db.delete(clientProjects)
+      .where(and(eq(clientProjects.id, id), eq(clientProjects.tenantId, tenantId)));
+  }
+
+  async deleteProjectBid(id: string, tenantId: string): Promise<void> {
+    await db.delete(projectBids)
+      .where(and(eq(projectBids.id, id), eq(projectBids.tenantId, tenantId)));
+  }
+
+  async deleteMarketplaceContract(id: string, tenantId: string): Promise<void> {
+    await db.delete(marketplaceContracts)
+      .where(and(eq(marketplaceContracts.id, id), eq(marketplaceContracts.tenantId, tenantId)));
+  }
+
+  async deleteProjectMilestone(id: string, tenantId: string): Promise<void> {
+    // Delete via contract tenant scoping for security
+    const milestone = await db.select().from(projectMilestones)
+      .innerJoin(marketplaceContracts, eq(projectMilestones.contractId, marketplaceContracts.id))
+      .where(and(eq(projectMilestones.id, id), eq(marketplaceContracts.tenantId, tenantId)))
+      .limit(1);
+    
+    if (milestone.length > 0) {
+      await db.delete(projectMilestones).where(eq(projectMilestones.id, id));
+    }
+  }
+
+  async deleteMarketplaceChatMessage(id: string, tenantId: string): Promise<void> {
+    // Delete via contract tenant scoping for security
+    const message = await db.select().from(marketplaceChatMessages)
+      .innerJoin(marketplaceContracts, eq(marketplaceChatMessages.contractId, marketplaceContracts.id))
+      .where(and(eq(marketplaceChatMessages.id, id), eq(marketplaceContracts.tenantId, tenantId)))
+      .limit(1);
+    
+    if (message.length > 0) {
+      await db.delete(marketplaceChatMessages).where(eq(marketplaceChatMessages.id, id));
+    }
+  }
+
+  async deleteMarketplaceDispute(id: string, tenantId: string): Promise<void> {
+    await db.delete(marketplaceDisputes)
+      .where(and(eq(marketplaceDisputes.id, id), eq(marketplaceDisputes.tenantId, tenantId)));
+  }
+
+  async deleteProfessionalRating(id: string, tenantId: string): Promise<void> {
+    await db.delete(professionalRatings)
+      .where(and(eq(professionalRatings.id, id), eq(professionalRatings.tenantId, tenantId)));
+  }
+
+  async deleteMarketplaceCommission(id: string, tenantId: string): Promise<void> {
+    await db.delete(marketplaceCommissions)
+      .where(and(eq(marketplaceCommissions.id, id), eq(marketplaceCommissions.tenantId, tenantId)));
+  }
+
+  async deleteAntiDisintermediationLog(id: string, tenantId: string): Promise<void> {
+    await db.delete(antiDisintermediationLogs)
+      .where(and(eq(antiDisintermediationLogs.id, id), eq(antiDisintermediationLogs.tenantId, tenantId)));
   }
 }
 
