@@ -1,0 +1,85 @@
+📋 RICHIESTA IMPLEMENTAZIONE – Modulo Assistenza Clienti + TSM/CSM + Icona AI Globale
+
+Mittente: Ylenia Sacco – Strategic Lead YS Logistics Destinatario: Team Reply / AI interlocutore tecnico
+
+🎯 Obiettivo Integrare in YCore un modulo completo di Assistenza Clienti, accessibile dal menu principale, con apertura ticket automatica/manuale e gestione intelligente tramite AI. Il modulo dovrà essere collegato ai ruoli e flussi TSM (Technical Support Management) e CSM (Customer Success Management), che sono moduli operativi separati, non semplici categorie di ticket.
+
+Funzionalità richieste
+
+Voce di menu dedicata
+
+“Assistenza Clienti” visibile nella sidebar
+
+Accesso per merchant, subclienti e commerciali (ruoli granulari)
+
+Apertura ticket
+
+Modalità AI assistita: suggerimenti automatici, routing intelligente
+
+Modalità manuale: compilazione guidata per casi complessi
+
+Collegamento diretto con assistenza corrieri e piattaforme clienti
+
+Invio richieste via API, email o webhook
+
+I clienti devono poter aprire ticket normali, anche senza AI
+
+Tipologie ticket predefinite
+
+Pacco in ritardo
+
+Pacco smarrito
+
+Pacco danneggiato
+
+Pacco consegnato ma non ricevuto
+
+Fatturazione
+
+Funzionalità piattaforma
+
+Altre domande
+
+Dashboard ticket
+
+Stato ticket, assegnazione, SLA, escalation
+
+Logging eventi e risposte
+
+Statistiche e performance
+
+AI Assistant Iconico (“AI”)
+
+Deve essere presente in tutti i moduli, a partire già dall’interfaccia
+
+Icona visibile e accessibile in ogni sezione della piattaforma
+
+Risponde alle richieste dei clienti in base alla categoria/ruolo
+
+Istruito direttamente da Ylenia
+
+Suggerisce azioni, link, moduli, flussi
+
+Supporta merchant, subclienti e commerciali
+
+Espandibile per onboarding, training, FAQ dinamiche
+
+Collegamento ai moduli TSM / CSM
+
+TSM: gestione tecnica, bug, SLA, escalation
+
+CSM: supporto clienti, onboarding, retention
+
+Ruoli granulari e dashboard dedicate
+
+Logging interventi e performance
+
+Compatibilità multi-tenant
+
+TSM e CSM devono essere moduli operativi indipendenti, non categorie di ticket
+
+📌 Note strategiche Questo modulo rafforza la qualità del servizio, riduce i tempi di intervento e crea un asset AI difendibile. È anche il primo passo verso un AI operativo per merchant e commerciali, che potremo strutturare in fase successiva.
+
+Fatemi sapere appena il task è preso in carico o se serve documentazione aggiuntiva.
+
+Grazie, Ylenia

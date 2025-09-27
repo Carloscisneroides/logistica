@@ -263,7 +263,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI Support Assistant endpoint
   app.post("/api/ai/support-assistant", isAuthenticated, async (req, res) => {
     try {
-      const { question } = req.body;
+      const { question, context, module } = req.body;
       const user = req.user;
       
       if (!question || typeof question !== "string") {
@@ -277,13 +277,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Use OpenAI to provide contextual support
-      const systemPrompt = `Sei l'AI Assistant di YCore, una piattaforma SaaS per gestione spedizioni.
-      
-Ruolo utente: ${user?.role || "merchant"}
-Contesto: Sistema multi-tenant con gestione corrieri, spedizioni, fatturazione.
+      // Generate contextual system prompt based on current module
+      const getContextualSystemPrompt = (moduleName: string, userRole: string) => {
+        const contexts = {
+          "dashboard": "Dashboard principale - statistiche, overview generale, KPI aziendali",
+          "clients": "Gestione clienti - onboarding, fatturazione, supporto clienti, gestione crediti",  
+          "courier-modules": "Moduli corrieri - configurazione, attivazione, integrazione API, tariffe",
+          "billing": "Fatturazione - invoice, pagamenti, Stripe, crediti, saldi",
+          "support": "Assistenza clienti - ticket, problemi spedizioni, supporto tecnico",
+          "commercial": "Area commerciale - commissioni, performance, target, prospect"
+        };
 
-Fornisci risposte brevi e utili in italiano per:
+        const contextDescription = contexts[moduleName as keyof typeof contexts] || "Sistema generale YCore";
+
+        return `Sei l'AI Assistant di YCore, piattaforma SaaS per gestione spedizioni multi-tenant.
+
+CONTESTO CORRENTE: ${contextDescription}
+RUOLO UTENTE: ${userRole}
+MODULO ATTIVO: ${moduleName || "dashboard"}
+
+Fornisci risposte brevi, specifiche al contesto attuale e sempre in italiano per:`;
+      };
+      
+      // Use contextual system prompt
+      const systemPrompt = getContextualSystemPrompt(module, user?.role || "merchant") + `
 - Problemi con pacchi (ritardo, smarrito, danneggiato)
 - Questioni di fatturazione 
 - Problemi tecnici della piattaforma
@@ -341,9 +358,37 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
 
     } catch (error: any) {
       console.error("AI Assistant error:", error);
-      res.status(500).json({ 
-        error: "AI Assistant temporarily unavailable",
-        response: "L'AI Assistant non è al momento disponibile. Puoi comunque aprire un ticket manualmente selezionando la categoria appropriata."
+      
+      // Handle OpenAI API errors gracefully
+      if (error.status === 401 || error.message?.includes("invalid_api_key") || error.message?.includes("Incorrect API key")) {
+        return res.json({
+          response: "L'AI Assistant richiede una configurazione aggiuntiva. Nel frattempo, puoi aprire un ticket manualmente selezionando la categoria appropriata per il tuo problema.",
+          suggestions: [{
+            type: "ticket",
+            category: "pacco_ritardo",
+            title: "Pacco in ritardo",
+            priority: "medium"
+          }]
+        });
+      }
+      
+      // Generic fallback for other errors
+      res.json({ 
+        response: "L'AI Assistant non è al momento disponibile, ma sono qui per aiutarti! Seleziona la categoria più appropriata per il tuo problema e crea un ticket - il nostro team ti risponderà rapidamente.",
+        suggestions: [
+          {
+            type: "ticket",
+            category: "pacco_ritardo", 
+            title: "Pacco in ritardo",
+            priority: "medium"
+          },
+          {
+            type: "ticket",
+            category: "pacco_danneggiato",
+            title: "Pacco danneggiato", 
+            priority: "high"
+          }
+        ]
       });
     }
   });

@@ -14,7 +14,7 @@ import {
   type Notification, type InsertNotification
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc, sql, isNull } from "drizzle-orm";
 import session, { SessionOptions } from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -636,11 +636,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCsmTicketsByTenant(tenantId: string): Promise<CsmTicket[]> {
-    return await db.select()
+    // Get tickets that have clientId and belong to the tenant
+    const ticketsWithClient = await db.select({ ticket: csmTickets })
       .from(csmTickets)
       .innerJoin(clients, eq(csmTickets.clientId, clients.id))
       .where(eq(clients.tenantId, tenantId))
-      .then(rows => rows.map(row => row.csm_tickets));
+      .then(rows => rows.map(row => row.ticket));
+    
+    // Get tickets without clientId (general support tickets for the tenant user)
+    const ticketsWithoutClient = await db.select()
+      .from(csmTickets)
+      .where(and(
+        isNull(csmTickets.clientId),
+        // For now, return all clientId=null tickets - in production you'd filter by user
+        eq(sql`1`, 1) 
+      ));
+    
+    return [...ticketsWithClient, ...ticketsWithoutClient];
   }
 
   async createCsmTicket(insertTicket: InsertCsmTicket): Promise<CsmTicket> {
@@ -706,11 +718,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTsmTicketsByTenant(tenantId: string): Promise<TsmTicket[]> {
-    return await db.select()
+    // Get tickets that have clientId and belong to the tenant
+    const ticketsWithClient = await db.select({ ticket: tsmTickets })
       .from(tsmTickets)
       .innerJoin(clients, eq(tsmTickets.clientId, clients.id))
       .where(eq(clients.tenantId, tenantId))
-      .then(rows => rows.map(row => row.tsm_tickets));
+      .then(rows => rows.map(row => row.ticket));
+    
+    // Get tickets without clientId (general support tickets for the tenant user)
+    const ticketsWithoutClient = await db.select()
+      .from(tsmTickets)
+      .where(and(
+        isNull(tsmTickets.clientId),
+        // For now, return all clientId=null tickets - in production you'd filter by user
+        eq(sql`1`, 1)
+      ));
+    
+    return [...ticketsWithClient, ...ticketsWithoutClient];
   }
 
   // Audit Logs

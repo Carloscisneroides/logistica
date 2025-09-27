@@ -4,6 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Bell, Plus, Menu, Crown } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { GlobalAIAssistant } from "@/components/ai/global-ai-assistant";
 
 interface HeaderProps {
   title: string;
@@ -68,6 +69,9 @@ export function Header({ title, onMenuToggle }: HeaderProps) {
             </SelectContent>
           </Select>
           
+          {/* AI Assistant Globale */}
+          <GlobalAIAssistant variant="header" />
+
           {/* Notifications */}
           <div className="relative">
             <Button 

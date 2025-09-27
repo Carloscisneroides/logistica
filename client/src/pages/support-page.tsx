@@ -53,8 +53,8 @@ function AIAssistant({ onSuggestionClick }: { onSuggestionClick: (suggestion: an
 
   const askAI = useMutation({
     mutationFn: async (question: string) => {
-      const response = await apiRequest("/api/ai/support-assistant", "POST", { question });
-      return response;
+      const response = await apiRequest("POST", "/api/ai/support-assistant", { question });
+      return response.json();
     },
     onSuccess: (data: any) => {
       setAiResponse(data.response);
@@ -164,7 +164,7 @@ export default function SupportPage() {
   const createTicket = useMutation({
     mutationFn: async (data: SupportTicketForm) => {
       const endpoint = data.ticketType === "csm" ? "/api/support/csm-tickets" : "/api/support/tsm-tickets";
-      return apiRequest(endpoint, "POST", data);
+      return apiRequest("POST", endpoint, data);
     },
     onSuccess: () => {
       toast({
@@ -524,9 +524,7 @@ export default function SupportPage() {
       </Tabs>
 
       {/* AI Assistant floating button */}
-      <AIAssistant onSuggestionClick={(suggestion) => {
-        // Handle AI suggestions
-      }} />
+      {/* AI Assistant è ora disponibile globalmente nell'header */}
     </div>
   );
 }
