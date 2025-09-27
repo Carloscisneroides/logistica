@@ -5,6 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { Form } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertUserSchema } from "@shared/schema";
@@ -13,18 +16,67 @@ import { Redirect } from "wouter";
 import { Loader2, Truck, Shield, Users, Zap } from "lucide-react";
 
 const loginSchema = insertUserSchema.pick({ username: true, password: true });
+// Validazione Partita IVA italiana (11 cifre)
+const validatePartitaIVA = (piva: string) => {
+  if (!/^\d{11}$/.test(piva)) return false;
+  let sum = 0;
+  for (let i = 0; i < 10; i++) {
+    let digit = parseInt(piva[i]);
+    if (i % 2 === 1) {
+      digit *= 2;
+      if (digit > 9) digit = digit - 9;
+    }
+    sum += digit;
+  }
+  return (10 - (sum % 10)) % 10 === parseInt(piva[10]);
+};
+
+// Validazione Codice Fiscale italiano
+const validateCodiceFiscale = (cf: string) => {
+  return /^[A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z]$/.test(cf.toUpperCase());
+};
+
 const registerSchema = z.object({
   username: z.string().min(3, "Username deve avere almeno 3 caratteri"),
   email: z.string().email("Email non valida"),
   password: z.string().min(6, "Password deve avere almeno 6 caratteri"),
   passwordConfirm: z.string(),
+  
+  // Dati anagrafici
+  firstName: z.string().min(2, "Nome richiesto"),
+  lastName: z.string().min(2, "Cognome richiesto"),
   companyName: z.string().optional(),
-  phoneNumber: z.string().optional(),
-  businessType: z.string().optional(),
+  phoneNumber: z.string().min(8, "Numero di telefono richiesto"),
+  
+  // Categoria cliente YCore
+  clientCategory: z.enum([
+    "merchant_territoriali",
+    "marketplace_regionali", 
+    "logistiche",
+    "broker_doganali",
+    "partner_asiatici",
+    "srl_territoriali",
+    "professionisti"
+  ], { errorMap: () => ({ message: "Seleziona una categoria cliente" }) }),
+  
+  // Validazione fiscale internazionale
+  country: z.enum(["IT", "CN", "GB", "DE", "FR", "US", "DK", "SG"], {
+    errorMap: () => ({ message: "Seleziona il paese" })
+  }),
+  fiscalType: z.string().optional(),
+  fiscalId: z.string().min(1, "Identificativo fiscale richiesto"),
+  
+  // Dati aggiuntivi
+  businessDescription: z.string().min(10, "Descrivi brevemente la tua attività (min 10 caratteri)"),
   message: z.string().optional(),
 }).refine((data) => data.password === data.passwordConfirm, {
   message: "Le password non coincidono",
   path: ["passwordConfirm"],
+}).refine((data) => {
+  return validateFiscalId(data.fiscalId, data.country, data.fiscalType || "");
+}, {
+  message: "Identificativo fiscale non valido per il paese selezionato",
+  path: ["fiscalId"],
 });
 
 type LoginData = z.infer<typeof loginSchema>;
@@ -46,9 +98,15 @@ export default function AuthPage() {
       email: "", 
       password: "",
       passwordConfirm: "",
+      firstName: "",
+      lastName: "",
       companyName: "",
       phoneNumber: "",
-      businessType: "",
+      clientCategory: "merchant_territoriali",
+      country: "IT",
+      fiscalType: "",
+      fiscalId: "",
+      businessDescription: "",
       message: ""
     },
   });
@@ -160,109 +218,257 @@ export default function AuthPage() {
                   </Button>
                 </form>
               ) : (
-                <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="reg-username">Username</Label>
-                    <Input
-                      id="reg-username"
-                      type="text"
-                      {...registerForm.register("username")}
-                      data-testid="input-reg-username"
-                    />
-                    {registerForm.formState.errors.username && (
-                      <p className="text-sm text-destructive">
-                        {registerForm.formState.errors.username.message}
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="reg-email">Email</Label>
-                    <Input
-                      id="reg-email"
-                      type="email"
-                      {...registerForm.register("email")}
-                      data-testid="input-reg-email"
-                    />
-                    {registerForm.formState.errors.email && (
-                      <p className="text-sm text-destructive">
-                        {registerForm.formState.errors.email.message}
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="reg-password">Password</Label>
-                    <Input
-                      id="reg-password"
-                      type="password"
-                      {...registerForm.register("password")}
-                      data-testid="input-reg-password"
-                    />
-                    {registerForm.formState.errors.password && (
-                      <p className="text-sm text-destructive">
-                        {registerForm.formState.errors.password.message}
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="reg-password-confirm">Conferma Password *</Label>
-                    <Input
-                      id="reg-password-confirm"
-                      type="password"
-                      {...registerForm.register("passwordConfirm")}
-                      data-testid="input-password-confirm"
-                    />
-                    {registerForm.formState.errors.passwordConfirm && (
-                      <p className="text-sm text-destructive">
-                        {registerForm.formState.errors.passwordConfirm.message}
-                      </p>
-                    )}
-                  </div>
-                  
-                  {/* Extended Registration Fields */}
-                  <div className="space-y-4 pt-4 border-t">
-                    <h4 className="font-medium text-muted-foreground">🏢 Dati Aziendali (per approvazione)</h4>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="company-name">Nome Azienda</Label>
-                      <Input
-                        id="company-name"
-                        placeholder="Es. ABC Logistics SRL"
-                        {...registerForm.register("companyName")}
-                        data-testid="input-company"
+                <Form {...registerForm}>
+                  <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4">
+                    {/* Dati di accesso */}
+                    <div className="space-y-4">
+                      <h3 className="font-semibold text-lg">🔐 Dati di Accesso</h3>
+                      
+                      <FormField
+                        control={registerForm.control}
+                        name="username"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Username *</FormLabel>
+                            <FormControl>
+                              <Input {...field} data-testid="input-reg-username" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={registerForm.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Email *</FormLabel>
+                            <FormControl>
+                              <Input type="email" {...field} data-testid="input-reg-email" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={registerForm.control}
+                          name="password"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Password *</FormLabel>
+                              <FormControl>
+                                <Input type="password" {...field} data-testid="input-reg-password" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={registerForm.control}
+                          name="passwordConfirm"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Conferma Password *</FormLabel>
+                              <FormControl>
+                                <Input type="password" {...field} data-testid="input-password-confirm" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Dati anagrafici */}
+                    <div className="space-y-4 pt-4 border-t">
+                      <h3 className="font-semibold text-lg">👤 Dati Anagrafici</h3>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={registerForm.control}
+                          name="firstName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Nome *</FormLabel>
+                              <FormControl>
+                                <Input {...field} data-testid="input-first-name" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={registerForm.control}
+                          name="lastName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Cognome *</FormLabel>
+                              <FormControl>
+                                <Input {...field} data-testid="input-last-name" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      
+                      <FormField
+                        control={registerForm.control}
+                        name="companyName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Nome Azienda/Attività</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="Es. ABC Logistics SRL" data-testid="input-company" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={registerForm.control}
+                        name="phoneNumber"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Telefono *</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="+39 123 456 7890" data-testid="input-phone" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
                       />
                     </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">Telefono</Label>
-                      <Input
-                        id="phone"
-                        placeholder="+39 123 456 7890"
-                        {...registerForm.register("phoneNumber")}
-                        data-testid="input-phone"
+
+                    {/* Categoria cliente */}
+                    <div className="space-y-4 pt-4 border-t">
+                      <h3 className="font-semibold text-lg">🎯 Categoria Cliente YCore</h3>
+                      
+                      <FormField
+                        control={registerForm.control}
+                        name="clientCategory"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Seleziona la tua categoria *</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger data-testid="select-client-category">
+                                  <SelectValue placeholder="Seleziona categoria cliente" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="merchant_territoriali">🏪 Merchant Territoriali (negozi, SRL, professionisti locali)</SelectItem>
+                                <SelectItem value="marketplace_regionali">🛒 Marketplace Regionali (aggregatori, white-label)</SelectItem>
+                                <SelectItem value="logistiche">🚚 Logistiche (operatori locali e globali)</SelectItem>
+                                <SelectItem value="broker_doganali">📋 Broker Doganali (import/export, documentazione)</SelectItem>
+                                <SelectItem value="partner_asiatici">🌏 Partner Asiatici (Temu, Shein, Alibaba, AliExpress)</SelectItem>
+                                <SelectItem value="srl_territoriali">🏢 SRL Territoriali (conferimento YCore, white-label)</SelectItem>
+                                <SelectItem value="professionisti">👨‍💼 Professionisti (consulenti, freelance, artigiani)</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
                       />
                     </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="business-type">Settore/Tipo Business</Label>
-                      <Input
-                        id="business-type"
-                        placeholder="Es. E-commerce, Logistica, Import/Export"
-                        {...registerForm.register("businessType")}
-                        data-testid="input-business"
+
+                    {/* Flessibilità fiscale */}
+                    <div className="space-y-4 pt-4 border-t">
+                      <h3 className="font-semibold text-lg">🧾 Identificazione Fiscale</h3>
+                      
+                      <FormField
+                        control={registerForm.control}
+                        name="fiscalType"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Tipo di identificazione fiscale *</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger data-testid="select-fiscal-type">
+                                  <SelectValue />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="partita_iva">Partita IVA (modalità standard aziende)</SelectItem>
+                                <SelectItem value="codice_fiscale">Codice Fiscale (professionisti e freelance)</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      {registerForm.watch("fiscalType") === "partita_iva" && (
+                        <FormField
+                          control={registerForm.control}
+                          name="partitaIVA"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Partita IVA *</FormLabel>
+                              <FormControl>
+                                <Input {...field} placeholder="12345678901" maxLength={11} data-testid="input-partita-iva" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
+                      
+                      {registerForm.watch("fiscalType") === "codice_fiscale" && (
+                        <FormField
+                          control={registerForm.control}
+                          name="codiceFiscale"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Codice Fiscale *</FormLabel>
+                              <FormControl>
+                                <Input {...field} placeholder="RSSMRA85M01H501Z" maxLength={16} style={{textTransform: 'uppercase'}} data-testid="input-codice-fiscale" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
+                    </div>
+
+                    {/* Descrizione attività */}
+                    <div className="space-y-4 pt-4 border-t">
+                      <h3 className="font-semibold text-lg">📝 Descrizione Attività</h3>
+                      
+                      <FormField
+                        control={registerForm.control}
+                        name="businessDescription"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Descrivi la tua attività *</FormLabel>
+                            <FormControl>
+                              <Textarea {...field} placeholder="Descrivi dettagliatamente la tua attività, settore di riferimento, volume di spedizioni previsto, mercati di riferimento..." className="min-h-[100px]" data-testid="input-business-description" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={registerForm.control}
+                        name="message"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Messaggio per il CEO</FormLabel>
+                            <FormControl>
+                              <Textarea {...field} placeholder="Messaggio opzionale per Ylenia Sacco - CEO YCore..." className="min-h-[80px]" data-testid="input-message" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
                       />
                     </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="message">Messaggio per l'Amministratore</Label>
-                      <Textarea
-                        id="message"
-                        placeholder="Descrivi brevemente la tua attività e perché vuoi accedere a YCore..."
-                        {...registerForm.register("message")}
-                        data-testid="input-message"
-                        className="min-h-[80px]"
-                      />
-                    </div>
-                  </div>
                   <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
                     <div className="text-sm text-blue-700 dark:text-blue-300">
                       <span className="font-semibold">📋 Registrazione con Approvazione Manuale</span>
@@ -284,7 +490,8 @@ export default function AuthPage() {
                     )}
                     Invia Richiesta di Registrazione
                   </Button>
-                </form>
+                  </form>
+                </Form>
               )}
 
               <div className="text-center">
