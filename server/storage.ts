@@ -2,6 +2,7 @@ import {
   users, clients, tenants, courierModules, shipments, invoices, corrections, commissions, aiRoutingLogs,
   platformConnections, platformWebhooks, shipmentTracking, returns, storageItems, 
   csmTickets, csmKpi, tsmTickets, auditLogs, escalations, notifications,
+  fraudFlags, courierAssignments, deliveryStatus,
   ecommerceCustomers, products, ecommerceOrders, orderItems, marketplaceIntegrations,
   marketplaceCategories, marketplaceListings, marketplaceVisibility, marketplaceOrders, 
   marketplaceOrderItems, marketplaceReviews,
@@ -35,7 +36,10 @@ import {
   type ProjectBid, type InsertProjectBid, type MarketplaceContract, type InsertMarketplaceContract,
   type ProjectMilestone, type InsertProjectMilestone, type MarketplaceChatMessage, type InsertMarketplaceChatMessage,
   type MarketplaceDispute, type InsertMarketplaceDispute, type ProfessionalRating, type InsertProfessionalRating,
-  type MarketplaceCommission, type InsertMarketplaceCommission, type AntiDisintermediationLog, type InsertAntiDisintermediationLog
+  type MarketplaceCommission, type InsertMarketplaceCommission, type AntiDisintermediationLog, type InsertAntiDisintermediationLog,
+  // Shipments module types
+  type FraudFlag, type InsertFraudFlag, type CourierAssignment, type InsertCourierAssignment,
+  type DeliveryStatus, type InsertDeliveryStatus
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, not, desc, sql, isNull } from "drizzle-orm";
@@ -75,9 +79,22 @@ export interface IStorage {
   // Shipments
   getShipment(id: string): Promise<Shipment | undefined>;
   getShipmentsByClient(clientId: string): Promise<Shipment[]>;
+  getShipmentsByTenant(tenantId: string): Promise<Shipment[]>;
   getTodayShipments(tenantId: string): Promise<number>;
   createShipment(shipment: InsertShipment): Promise<Shipment>;
   updateShipment(id: string, updates: Partial<Shipment>): Promise<Shipment>;
+  
+  // Shipments Module - Core logistics operations
+  assignCourierToShipment(shipmentId: string, courierId: string, courierModuleId: string, tenantId: string): Promise<CourierAssignment>;
+  updateShipmentStatus(shipmentId: string, status: string, tenantId: string): Promise<Shipment>;
+  flagShipmentAnomaly(shipmentId: string, flagType: string, severity: string, description: string, evidence: any, tenantId: string): Promise<FraudFlag>;
+  getShipmentTimeline(shipmentId: string): Promise<{
+    shipment: Shipment;
+    tracking: ShipmentTracking[];
+    assignment?: CourierAssignment;
+    fraudFlags: FraudFlag[];
+  }>;
+  updateDeliveryStatus(shipmentId: string, status: string, notes?: string, tenantId?: string): Promise<DeliveryStatus>;
   
   // Invoices
   getInvoice(id: string): Promise<Invoice | undefined>;
@@ -3145,6 +3162,79 @@ export class DatabaseStorage implements IStorage {
     }
 
     return { action, applied, details };
+  }
+
+  // ========== SHIPMENTS MODULE - NEW LOGISTICS METHODS ==========
+
+  async getShipmentsByTenant(tenantId: string): Promise<Shipment[]> {
+    return db.select().from(shipments)
+      .where(eq(shipments.tenantId, tenantId))
+      .orderBy(desc(shipments.createdAt));
+  }
+
+  async assignCourierToShipment(shipmentId: string, courierId: string, courierModuleId: string, tenantId: string): Promise<CourierAssignment> {
+    const [assignment] = await db.insert(courierAssignments).values({
+      tenantId,
+      shipmentId,
+      courierId,
+      courierModuleId,
+      status: 'assigned',
+    }).returning();
+    return assignment;
+  }
+
+  async updateShipmentStatus(shipmentId: string, status: string, tenantId: string): Promise<Shipment> {
+    const [updated] = await db.update(shipments)
+      .set({ status, updatedAt: sql`now()` })
+      .where(and(eq(shipments.id, shipmentId), eq(shipments.tenantId, tenantId)))
+      .returning();
+    return updated;
+  }
+
+  async flagShipmentAnomaly(shipmentId: string, flagType: string, severity: string, description: string, evidence: any, tenantId: string): Promise<FraudFlag> {
+    const [flag] = await db.insert(fraudFlags).values({
+      tenantId,
+      shipmentId,
+      flagType,
+      severity: severity as 'low' | 'medium' | 'high' | 'critical',
+      description,
+      evidence,
+    }).returning();
+    return flag;
+  }
+
+  async getShipmentTimeline(shipmentId: string): Promise<{
+    shipment: Shipment;
+    tracking: ShipmentTracking[];
+    assignment?: CourierAssignment;
+    fraudFlags: FraudFlag[];
+  }> {
+    const [shipment] = await db.select().from(shipments).where(eq(shipments.id, shipmentId));
+    if (!shipment) throw new Error('Shipment not found');
+
+    const [tracking, assignments, flags] = await Promise.all([
+      db.select().from(shipmentTracking).where(eq(shipmentTracking.shipmentId, shipmentId)).orderBy(desc(shipmentTracking.timestamp)),
+      db.select().from(courierAssignments).where(eq(courierAssignments.shipmentId, shipmentId)).orderBy(desc(courierAssignments.assignedAt)),
+      db.select().from(fraudFlags).where(eq(fraudFlags.shipmentId, shipmentId)).orderBy(desc(fraudFlags.createdAt)),
+    ]);
+
+    return {
+      shipment,
+      tracking,
+      assignment: assignments[0],
+      fraudFlags: flags,
+    };
+  }
+
+  async updateDeliveryStatus(shipmentId: string, status: string, notes?: string, tenantId?: string): Promise<DeliveryStatus> {
+    const [deliveryStatusResult] = await db.insert(deliveryStatus).values({
+      tenantId,
+      shipmentId,
+      status: status as any, // Cast to proper enum
+      deliveryNotes: notes,
+      attemptedAt: sql`now()`,
+    }).returning();
+    return deliveryStatusResult;
   }
 }
 

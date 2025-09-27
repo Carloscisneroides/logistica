@@ -646,7 +646,10 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
         return res.status(400).json({ error: "Tenant not found" });
       }
 
-      const validatedData = insertShipmentSchema.parse(req.body);
+      const validatedData = insertShipmentSchema.parse({
+        ...req.body,
+        tenantId: user.tenantId // Add tenant isolation
+      });
       
       // Verify client belongs to user's tenant
       const client = await storage.getClient(validatedData.clientId);
@@ -685,6 +688,156 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
       res.status(201).json(shipment);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
+    }
+  });
+
+  // ========== SHIPMENTS MODULE - NEW ENDPOINTS ==========
+
+  // Get single shipment by ID
+  app.get("/api/shipments/:id", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const { id } = req.params;
+      
+      // Validate UUID format
+      if (!id || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+        return res.status(400).json({ error: "Invalid shipment ID format" });
+      }
+
+      const shipment = await storage.getShipment(id);
+      if (!shipment || shipment.tenantId !== user.tenantId) {
+        return res.status(404).json({ error: "Shipment not found" });
+      }
+
+      res.json(shipment);
+    } catch (error: any) {
+      console.error("Get shipment error:", error);
+      res.status(500).json({ error: error.message || "Failed to retrieve shipment" });
+    }
+  });
+
+  // Assign courier to shipment
+  app.post("/api/shipments/:id/assign-courier", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const { id } = req.params;
+      const { courierId, courierModuleId } = req.body;
+
+      // Validate required fields
+      if (!courierId || !courierModuleId) {
+        return res.status(400).json({ error: "Courier ID and courier module ID are required" });
+      }
+
+      // Validate UUID formats
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) ||
+          !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(courierId) ||
+          !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(courierModuleId)) {
+        return res.status(400).json({ error: "Invalid ID format" });
+      }
+
+      // Verify shipment belongs to tenant
+      const shipment = await storage.getShipment(id);
+      if (!shipment || shipment.tenantId !== user.tenantId) {
+        return res.status(404).json({ error: "Shipment not found" });
+      }
+
+      const assignment = await storage.assignCourierToShipment(id, courierId, courierModuleId, user.tenantId);
+      res.status(201).json(assignment);
+    } catch (error: any) {
+      console.error("Assign courier error:", error);
+      res.status(500).json({ error: error.message || "Failed to assign courier" });
+    }
+  });
+
+  // Get shipment tracking
+  app.get("/api/shipments/:id/track", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const { id } = req.params;
+      
+      // Validate UUID format
+      if (!id || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+        return res.status(400).json({ error: "Invalid shipment ID format" });
+      }
+
+      // Verify shipment belongs to tenant
+      const trackingData = await storage.getShipmentTimeline(id);
+      if (!trackingData.shipment || trackingData.shipment.tenantId !== user.tenantId) {
+        return res.status(404).json({ error: "Shipment not found" });
+      }
+
+      res.json(trackingData);
+    } catch (error: any) {
+      console.error("Get tracking error:", error);
+      res.status(500).json({ error: error.message || "Failed to retrieve tracking data" });
+    }
+  });
+
+  // Flag shipment anomaly (AI Antifraud integration)
+  app.post("/api/shipments/:id/flag-anomaly", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const { id } = req.params;
+      const { flagType, severity, description, evidence } = req.body;
+
+      // Validate required fields
+      if (!flagType || !severity || !description) {
+        return res.status(400).json({ error: "Flag type, severity, and description are required" });
+      }
+
+      // Validate severity enum
+      if (!['low', 'medium', 'high', 'critical'].includes(severity)) {
+        return res.status(400).json({ error: "Invalid severity. Must be: low, medium, high, or critical" });
+      }
+
+      // Validate UUID format
+      if (!id || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+        return res.status(400).json({ error: "Invalid shipment ID format" });
+      }
+
+      // Verify shipment belongs to tenant
+      const shipment = await storage.getShipment(id);
+      if (!shipment || shipment.tenantId !== user.tenantId) {
+        return res.status(404).json({ error: "Shipment not found" });
+      }
+
+      // Create fraud flag
+      const flag = await storage.flagShipmentAnomaly(id, flagType, severity, description, evidence, user.tenantId);
+
+      // If severity is high or critical, trigger AI antifraud escalation
+      if (['high', 'critical'].includes(severity)) {
+        try {
+          // Get client user for risk assessment
+          const client = await storage.getClient(shipment.clientId);
+          if (client?.commercialId) {
+            await storage.executeAutomatedResponse(client.commercialId, user.tenantId, severity as 'high' | 'critical');
+          }
+        } catch (escalationError) {
+          console.error("Escalation error:", escalationError);
+          // Don't fail the flag creation if escalation fails
+        }
+      }
+
+      res.status(201).json(flag);
+    } catch (error: any) {
+      console.error("Flag anomaly error:", error);
+      res.status(500).json({ error: error.message || "Failed to flag anomaly" });
     }
   });
 
