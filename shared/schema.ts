@@ -22,6 +22,10 @@ export const ticketPriorityEnum = pgEnum("ticket_priority", ["low", "medium", "h
 export const notificationTypeEnum = pgEnum("notification_type", ["email", "sms", "webhook", "push"]);
 export const auditActionEnum = pgEnum("audit_action", ["create", "update", "delete", "login", "logout", "access"]);
 export const escalationStatusEnum = pgEnum("escalation_status", ["pending", "assigned", "resolved", "cancelled"]);
+export const orderStatusEnum = pgEnum("order_status", ["pending", "processing", "shipped", "delivered", "cancelled", "returned"]);
+export const paymentStatusEnum = pgEnum("payment_status", ["pending", "paid", "failed", "refunded"]);
+export const productStatusEnum = pgEnum("product_status", ["active", "inactive", "discontinued", "out_of_stock"]);
+export const integrationStatusEnum = pgEnum("integration_status", ["active", "inactive", "error", "syncing"]);
 
 // Users table
 export const users = pgTable("users", {
@@ -377,6 +381,105 @@ export const notifications = pgTable("notifications", {
   typeIdx: index("notifications_type_idx").on(table.type),
 }));
 
+// ======== ECOMMERCE MODULE TABLES ========
+
+// eCommerce Customers (different from B2B clients)
+export const ecommerceCustomers = pgTable("ecommerce_customers", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: text("email").notNull(),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  phone: text("phone"),
+  birthday: text("birthday"),
+  tenantId: uuid("tenant_id").references(() => tenants.id),
+  externalCustomerId: text("external_customer_id"), // From marketplace
+  marketplaceType: text("marketplace_type"), // shopify, woocommerce, etc
+  totalOrders: integer("total_orders").default(0),
+  totalSpent: decimal("total_spent", { precision: 10, scale: 2 }).default("0.00"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Products catalog
+export const products = pgTable("products", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description"),
+  sku: text("sku").notNull(),
+  barcode: text("barcode"),
+  tenantId: uuid("tenant_id").references(() => tenants.id),
+  category: text("category"),
+  brand: text("brand"),
+  weight: decimal("weight", { precision: 8, scale: 2 }), // in kg
+  dimensions: text("dimensions"), // LxWxH in cm
+  fragility: text("fragility").default("normal"), // normal, fragile, very_fragile
+  status: productStatusEnum("status").notNull().default("active"),
+  basePrice: decimal("base_price", { precision: 10, scale: 2 }),
+  imageUrl: text("image_url"),
+  externalProductId: text("external_product_id"), // From marketplace
+  marketplaceType: text("marketplace_type"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// eCommerce Orders
+export const ecommerceOrders = pgTable("ecommerce_orders", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  orderNumber: text("order_number").notNull().unique(),
+  customerId: uuid("customer_id").references(() => ecommerceCustomers.id),
+  tenantId: uuid("tenant_id").references(() => tenants.id),
+  status: orderStatusEnum("status").notNull().default("pending"),
+  paymentStatus: paymentStatusEnum("payment_status").notNull().default("pending"),
+  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
+  shippingCost: decimal("shipping_cost", { precision: 10, scale: 2 }).default("0.00"),
+  taxAmount: decimal("tax_amount", { precision: 10, scale: 2 }).default("0.00"),
+  discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }).default("0.00"),
+  shippingAddress: text("shipping_address").notNull(),
+  billingAddress: text("billing_address"),
+  courierModuleId: uuid("courier_module_id").references(() => courierModules.id),
+  trackingNumber: text("tracking_number"),
+  externalOrderId: text("external_order_id"), // From marketplace
+  marketplaceType: text("marketplace_type"), // shopify, woocommerce, amazon, ebay
+  notes: text("notes"),
+  orderDate: timestamp("order_date").notNull().defaultNow(),
+  shippedAt: timestamp("shipped_at"),
+  deliveredAt: timestamp("delivered_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Order Items
+export const orderItems = pgTable("order_items", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  orderId: uuid("order_id").references(() => ecommerceOrders.id),
+  productId: uuid("product_id").references(() => products.id),
+  quantity: integer("quantity").notNull(),
+  unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
+  totalPrice: decimal("total_price", { precision: 10, scale: 2 }).notNull(),
+  variantId: text("variant_id"), // For product variants
+  variantName: text("variant_name"), // Size, Color, etc.
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Marketplace Integrations
+export const marketplaceIntegrations = pgTable("marketplace_integrations", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").references(() => tenants.id),
+  name: text("name").notNull(), // "Shopify Store", "Amazon Seller"
+  type: text("type").notNull(), // shopify, woocommerce, amazon, ebay
+  apiKey: text("api_key"), // Encrypted
+  apiSecret: text("api_secret"), // Encrypted  
+  storeUrl: text("store_url"),
+  webhookUrl: text("webhook_url"),
+  status: integrationStatusEnum("status").notNull().default("inactive"),
+  lastSyncAt: timestamp("last_sync_at"),
+  syncErrors: text("sync_errors"),
+  settings: text("settings"), // JSON configuration
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ one, many }) => ({
   tenant: one(tenants, {
@@ -603,6 +706,57 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
   }),
 }));
 
+// eCommerce Relations
+export const ecommerceCustomersRelations = relations(ecommerceCustomers, ({ one, many }) => ({
+  tenant: one(tenants, {
+    fields: [ecommerceCustomers.tenantId],
+    references: [tenants.id],
+  }),
+  orders: many(ecommerceOrders),
+}));
+
+export const productsRelations = relations(products, ({ one, many }) => ({
+  tenant: one(tenants, {
+    fields: [products.tenantId],
+    references: [tenants.id],
+  }),
+  orderItems: many(orderItems),
+}));
+
+export const ecommerceOrdersRelations = relations(ecommerceOrders, ({ one, many }) => ({
+  customer: one(ecommerceCustomers, {
+    fields: [ecommerceOrders.customerId],
+    references: [ecommerceCustomers.id],
+  }),
+  tenant: one(tenants, {
+    fields: [ecommerceOrders.tenantId],
+    references: [tenants.id],
+  }),
+  courierModule: one(courierModules, {
+    fields: [ecommerceOrders.courierModuleId],
+    references: [courierModules.id],
+  }),
+  items: many(orderItems),
+}));
+
+export const orderItemsRelations = relations(orderItems, ({ one }) => ({
+  order: one(ecommerceOrders, {
+    fields: [orderItems.orderId],
+    references: [ecommerceOrders.id],
+  }),
+  product: one(products, {
+    fields: [orderItems.productId],
+    references: [products.id],
+  }),
+}));
+
+export const marketplaceIntegrationsRelations = relations(marketplaceIntegrations, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [marketplaceIntegrations.tenantId],
+    references: [tenants.id],
+  }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -720,6 +874,36 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
   createdAt: true,
 });
 
+// eCommerce Insert Schemas
+export const insertEcommerceCustomerSchema = createInsertSchema(ecommerceCustomers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertProductSchema = createInsertSchema(products).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertEcommerceOrderSchema = createInsertSchema(ecommerceOrders).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertOrderItemSchema = createInsertSchema(orderItems).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertMarketplaceIntegrationSchema = createInsertSchema(marketplaceIntegrations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -763,3 +947,15 @@ export type Escalation = typeof escalations.$inferSelect;
 export type InsertEscalation = z.infer<typeof insertEscalationSchema>;
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+
+// eCommerce Types
+export type EcommerceCustomer = typeof ecommerceCustomers.$inferSelect;
+export type InsertEcommerceCustomer = z.infer<typeof insertEcommerceCustomerSchema>;
+export type Product = typeof products.$inferSelect;
+export type InsertProduct = z.infer<typeof insertProductSchema>;
+export type EcommerceOrder = typeof ecommerceOrders.$inferSelect;
+export type InsertEcommerceOrder = z.infer<typeof insertEcommerceOrderSchema>;
+export type OrderItem = typeof orderItems.$inferSelect;
+export type InsertOrderItem = z.infer<typeof insertOrderItemSchema>;
+export type MarketplaceIntegration = typeof marketplaceIntegrations.$inferSelect;
+export type InsertMarketplaceIntegration = z.infer<typeof insertMarketplaceIntegrationSchema>;

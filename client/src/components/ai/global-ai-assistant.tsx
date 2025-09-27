@@ -63,6 +63,12 @@ function getContextualPrompts(currentPath: string) {
       "Calcolo commissioni",
       "Target mensili",
       "Clienti prospect"
+    ],
+    "/ecommerce": [
+      "Aggiungi prodotto",
+      "Gestisci ordini",
+      "Analisi vendite",
+      "Integrazioni marketplace"
     ]
   };
 
@@ -76,7 +82,8 @@ function getContextualSystemPrompt(currentPath: string, userRole: string) {
     "/courier-modules": "Corrieri - configurazione, attivazione, integrazione API",
     "/billing": "Fatturazione - invoice, pagamenti, Stripe, crediti",
     "/support": "Assistenza - ticket, problemi spedizioni, supporto tecnico",
-    "/commercial": "Area commerciale - commissioni, performance, target"
+    "/commercial": "Area commerciale - commissioni, performance, target",
+    "/ecommerce": "Modulo eCommerce - prodotti, ordini, clienti, marketplace"
   };
 
   const contextDescription = contexts[currentPath as keyof typeof contexts] || "Sistema generale";
@@ -98,7 +105,8 @@ function getPageIcon(currentPath: string) {
     "/courier-modules": <Truck className="w-4 h-4" />,
     "/billing": <CreditCard className="w-4 w-4" />,
     "/support": <LifeBuoy className="w-4 h-4" />,
-    "/commercial": <FileText className="w-4 h-4" />
+    "/commercial": <FileText className="w-4 h-4" />,
+    "/ecommerce": <Package className="w-4 h-4" />
   };
 
   return icons[currentPath as keyof typeof icons] || <Settings className="w-4 h-4" />;

@@ -2,9 +2,9 @@
 
 ## Overview
 
-YCore is a comprehensive multi-tenant logistics management platform built for courier and shipping operations. The platform provides a full-stack solution for managing courier modules, client relationships, billing operations, and customer support through an intelligent ticketing system. The application features a modern React frontend with shadcn/ui components, Express.js backend, and PostgreSQL database with Drizzle ORM for type-safe database operations.
+YCore is a comprehensive multi-tenant logistics management platform built for courier and shipping operations. The platform provides a full-stack solution for managing courier modules, client relationships, billing operations, customer support through an intelligent ticketing system, and now includes a complete eCommerce module for online sales management. The application features a modern React frontend with shadcn/ui components, Express.js backend, and PostgreSQL database with Drizzle ORM for type-safe database operations.
 
-The system is designed to serve multiple user roles including merchants, sub-clients, and commercial representatives, with granular permission controls and tenant-specific customization capabilities. A key feature is the integrated AI-powered customer support module that provides intelligent ticket routing and automated assistance.
+The system is designed to serve multiple user roles including merchants, sub-clients, and commercial representatives, with granular permission controls and tenant-specific customization capabilities. Key features include the integrated AI-powered customer support module and the comprehensive eCommerce module for managing products, orders, customers, and marketplace integrations.
 
 ## User Preferences
 
@@ -72,6 +72,23 @@ Preferred communication style: Simple, everyday language.
 ### File Processing
 - **CSV Processing**: CSV parsing for bulk corrections and data imports
 - **File Upload**: Secure file handling for attachments and bulk operations
+
+## Recent Changes
+
+### September 27, 2025 - Task 12: eCommerce Module Implementation
+- **✅ Completed**: Full eCommerce module with comprehensive product, order, and customer management
+- **Data Model**: Added 5 new database tables (ecommerceCustomers, products, ecommerceOrders, orderItems, marketplaceIntegrations)
+- **Backend**: Implemented 27 storage methods and 8 API endpoints for complete eCommerce functionality
+- **Frontend**: Created comprehensive React page with tabbed interface (Overview, Products, Orders, Customers)  
+- **Features**: Product catalog management, order tracking, customer analytics, marketplace integrations (Shopify, WooCommerce, Amazon)
+- **Statistics**: Real-time dashboard with sales metrics, revenue tracking, and top products analysis
+- **Integration**: Full routing, sidebar navigation, and AI Assistant context for eCommerce operations
+- **Testing**: Successful end-to-end testing confirming all core functionality working correctly
+
+### Previous Sessions
+- **Task 8-9**: AI Assistant implementation with global header access and contextual support
+- **Database**: PostgreSQL schema with multi-tenant architecture and comprehensive support ticketing system
+- **Authentication**: Session-based authentication with protected routes and role-based access control
 
 ### Internationalization
 - **Multi-language Support**: Italian, English, Spanish, French, German, Portuguese, Dutch, Polish, Russian, Chinese, and Japanese

@@ -2,6 +2,7 @@ import {
   users, clients, tenants, courierModules, shipments, invoices, corrections, commissions, aiRoutingLogs,
   platformConnections, platformWebhooks, shipmentTracking, returns, storageItems, 
   csmTickets, csmKpi, tsmTickets, auditLogs, escalations, notifications,
+  ecommerceCustomers, products, ecommerceOrders, orderItems, marketplaceIntegrations,
   type User, type InsertUser, type Client, type InsertClient, type Tenant, type InsertTenant,
   type CourierModule, type InsertCourierModule, type Shipment, type InsertShipment,
   type Invoice, type InsertInvoice, type Correction, type InsertCorrection,
@@ -11,7 +12,9 @@ import {
   type StorageItem, type InsertStorageItem, type CsmTicket, type InsertCsmTicket,
   type CsmKpi, type InsertCsmKpi, type TsmTicket, type InsertTsmTicket,
   type AuditLog, type InsertAuditLog, type Escalation, type InsertEscalation,
-  type Notification, type InsertNotification
+  type Notification, type InsertNotification, type EcommerceCustomer, type InsertEcommerceCustomer,
+  type Product, type InsertProduct, type EcommerceOrder, type InsertEcommerceOrder,
+  type OrderItem, type InsertOrderItem, type MarketplaceIntegration, type InsertMarketplaceIntegration
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, isNull } from "drizzle-orm";
@@ -160,6 +163,54 @@ export interface IStorage {
   createNotification(notification: InsertNotification): Promise<Notification>;
   updateNotification(id: string, updates: Partial<Notification>): Promise<Notification>;
   markNotificationsAsRead(recipientId: string, notificationIds: string[]): Promise<void>;
+
+  // ======== ECOMMERCE MODULE METHODS ========
+  
+  // eCommerce Customers
+  getEcommerceCustomer(id: string): Promise<EcommerceCustomer | undefined>;
+  getEcommerceCustomerByEmail(email: string, tenantId: string): Promise<EcommerceCustomer | undefined>;
+  getEcommerceCustomersByTenant(tenantId: string): Promise<EcommerceCustomer[]>;
+  createEcommerceCustomer(customer: InsertEcommerceCustomer): Promise<EcommerceCustomer>;
+  updateEcommerceCustomer(id: string, updates: Partial<EcommerceCustomer>): Promise<EcommerceCustomer>;
+
+  // Products
+  getProduct(id: string): Promise<Product | undefined>;
+  getProductBySku(sku: string, tenantId: string): Promise<Product | undefined>;
+  getProductsByTenant(tenantId: string): Promise<Product[]>;
+  getProductsByCategory(category: string, tenantId: string): Promise<Product[]>;
+  createProduct(product: InsertProduct): Promise<Product>;
+  updateProduct(id: string, updates: Partial<Product>): Promise<Product>;
+
+  // eCommerce Orders
+  getEcommerceOrder(id: string): Promise<EcommerceOrder | undefined>;
+  getEcommerceOrdersByTenant(tenantId: string): Promise<EcommerceOrder[]>;
+  getEcommerceOrdersByCustomer(customerId: string): Promise<EcommerceOrder[]>;
+  getEcommerceOrdersByStatus(status: string, tenantId: string): Promise<EcommerceOrder[]>;
+  createEcommerceOrder(order: InsertEcommerceOrder): Promise<EcommerceOrder>;
+  updateEcommerceOrder(id: string, updates: Partial<EcommerceOrder>): Promise<EcommerceOrder>;
+
+  // Order Items
+  getOrderItem(id: string): Promise<OrderItem | undefined>;
+  getOrderItemsByOrder(orderId: string): Promise<OrderItem[]>;
+  createOrderItem(item: InsertOrderItem): Promise<OrderItem>;
+  updateOrderItem(id: string, updates: Partial<OrderItem>): Promise<OrderItem>;
+
+  // Marketplace Integrations
+  getMarketplaceIntegration(id: string): Promise<MarketplaceIntegration | undefined>;
+  getMarketplaceIntegrationsByTenant(tenantId: string): Promise<MarketplaceIntegration[]>;
+  getMarketplaceIntegrationsByType(type: string, tenantId: string): Promise<MarketplaceIntegration[]>;
+  createMarketplaceIntegration(integration: InsertMarketplaceIntegration): Promise<MarketplaceIntegration>;
+  updateMarketplaceIntegration(id: string, updates: Partial<MarketplaceIntegration>): Promise<MarketplaceIntegration>;
+
+  // eCommerce Dashboard Stats
+  getEcommerceDashboardStats(tenantId: string): Promise<{
+    totalOrders: number;
+    pendingOrders: number;
+    totalProducts: number;
+    totalCustomers: number;
+    monthlyRevenue: number;
+    topProducts: Array<{id: string; name: string; sales: number}>;
+  }>;
   
   sessionStore: session.Store;
 }
@@ -823,6 +874,207 @@ export class DatabaseStorage implements IStorage {
         eq(notifications.recipientId, recipientId),
         sql`${notifications.id} = ANY(${notificationIds})`
       ));
+  }
+
+  // ======== ECOMMERCE MODULE IMPLEMENTATION ========
+
+  // eCommerce Customers
+  async getEcommerceCustomer(id: string): Promise<EcommerceCustomer | undefined> {
+    const [customer] = await db.select().from(ecommerceCustomers).where(eq(ecommerceCustomers.id, id));
+    return customer || undefined;
+  }
+
+  async getEcommerceCustomerByEmail(email: string, tenantId: string): Promise<EcommerceCustomer | undefined> {
+    const [customer] = await db.select().from(ecommerceCustomers)
+      .where(and(eq(ecommerceCustomers.email, email), eq(ecommerceCustomers.tenantId, tenantId)));
+    return customer || undefined;
+  }
+
+  async getEcommerceCustomersByTenant(tenantId: string): Promise<EcommerceCustomer[]> {
+    return db.select().from(ecommerceCustomers).where(eq(ecommerceCustomers.tenantId, tenantId));
+  }
+
+  async createEcommerceCustomer(customer: InsertEcommerceCustomer): Promise<EcommerceCustomer> {
+    const [created] = await db.insert(ecommerceCustomers).values(customer).returning();
+    return created;
+  }
+
+  async updateEcommerceCustomer(id: string, updates: Partial<EcommerceCustomer>): Promise<EcommerceCustomer> {
+    const [updated] = await db.update(ecommerceCustomers).set(updates).where(eq(ecommerceCustomers.id, id)).returning();
+    return updated;
+  }
+
+  // Products  
+  async getProduct(id: string): Promise<Product | undefined> {
+    const [product] = await db.select().from(products).where(eq(products.id, id));
+    return product || undefined;
+  }
+
+  async getProductBySku(sku: string, tenantId: string): Promise<Product | undefined> {
+    const [product] = await db.select().from(products)
+      .where(and(eq(products.sku, sku), eq(products.tenantId, tenantId)));
+    return product || undefined;
+  }
+
+  async getProductsByTenant(tenantId: string): Promise<Product[]> {
+    return db.select().from(products).where(eq(products.tenantId, tenantId));
+  }
+
+  async getProductsByCategory(category: string, tenantId: string): Promise<Product[]> {
+    return db.select().from(products)
+      .where(and(eq(products.category, category), eq(products.tenantId, tenantId)));
+  }
+
+  async createProduct(product: InsertProduct): Promise<Product> {
+    const [created] = await db.insert(products).values(product).returning();
+    return created;
+  }
+
+  async updateProduct(id: string, updates: Partial<Product>): Promise<Product> {
+    const [updated] = await db.update(products).set(updates).where(eq(products.id, id)).returning();
+    return updated;
+  }
+
+  // eCommerce Orders
+  async getEcommerceOrder(id: string): Promise<EcommerceOrder | undefined> {
+    const [order] = await db.select().from(ecommerceOrders).where(eq(ecommerceOrders.id, id));
+    return order || undefined;
+  }
+
+  async getEcommerceOrdersByTenant(tenantId: string): Promise<EcommerceOrder[]> {
+    return db.select().from(ecommerceOrders).where(eq(ecommerceOrders.tenantId, tenantId));
+  }
+
+  async getEcommerceOrdersByCustomer(customerId: string): Promise<EcommerceOrder[]> {
+    return db.select().from(ecommerceOrders).where(eq(ecommerceOrders.customerId, customerId));
+  }
+
+  async getEcommerceOrdersByStatus(status: string, tenantId: string): Promise<EcommerceOrder[]> {
+    return db.select().from(ecommerceOrders)
+      .where(and(eq(ecommerceOrders.status, status as any), eq(ecommerceOrders.tenantId, tenantId)));
+  }
+
+  async createEcommerceOrder(order: InsertEcommerceOrder): Promise<EcommerceOrder> {
+    const [created] = await db.insert(ecommerceOrders).values(order).returning();
+    return created;
+  }
+
+  async updateEcommerceOrder(id: string, updates: Partial<EcommerceOrder>): Promise<EcommerceOrder> {
+    const [updated] = await db.update(ecommerceOrders).set(updates).where(eq(ecommerceOrders.id, id)).returning();
+    return updated;
+  }
+
+  // Order Items
+  async getOrderItem(id: string): Promise<OrderItem | undefined> {
+    const [item] = await db.select().from(orderItems).where(eq(orderItems.id, id));
+    return item || undefined;
+  }
+
+  async getOrderItemsByOrder(orderId: string): Promise<OrderItem[]> {
+    return db.select().from(orderItems).where(eq(orderItems.orderId, orderId));
+  }
+
+  async createOrderItem(item: InsertOrderItem): Promise<OrderItem> {
+    const [created] = await db.insert(orderItems).values(item).returning();
+    return created;
+  }
+
+  async updateOrderItem(id: string, updates: Partial<OrderItem>): Promise<OrderItem> {
+    const [updated] = await db.update(orderItems).set(updates).where(eq(orderItems.id, id)).returning();
+    return updated;
+  }
+
+  // Marketplace Integrations
+  async getMarketplaceIntegration(id: string): Promise<MarketplaceIntegration | undefined> {
+    const [integration] = await db.select().from(marketplaceIntegrations).where(eq(marketplaceIntegrations.id, id));
+    return integration || undefined;
+  }
+
+  async getMarketplaceIntegrationsByTenant(tenantId: string): Promise<MarketplaceIntegration[]> {
+    return db.select().from(marketplaceIntegrations).where(eq(marketplaceIntegrations.tenantId, tenantId));
+  }
+
+  async getMarketplaceIntegrationsByType(type: string, tenantId: string): Promise<MarketplaceIntegration[]> {
+    return db.select().from(marketplaceIntegrations)
+      .where(and(eq(marketplaceIntegrations.type, type), eq(marketplaceIntegrations.tenantId, tenantId)));
+  }
+
+  async createMarketplaceIntegration(integration: InsertMarketplaceIntegration): Promise<MarketplaceIntegration> {
+    const [created] = await db.insert(marketplaceIntegrations).values(integration).returning();
+    return created;
+  }
+
+  async updateMarketplaceIntegration(id: string, updates: Partial<MarketplaceIntegration>): Promise<MarketplaceIntegration> {
+    const [updated] = await db.update(marketplaceIntegrations).set(updates).where(eq(marketplaceIntegrations.id, id)).returning();
+    return updated;
+  }
+
+  // eCommerce Dashboard Stats
+  async getEcommerceDashboardStats(tenantId: string): Promise<{
+    totalOrders: number;
+    pendingOrders: number;
+    totalProducts: number;
+    totalCustomers: number;
+    monthlyRevenue: number;
+    topProducts: Array<{id: string; name: string; sales: number}>;
+  }> {
+    // Total orders
+    const [totalOrdersResult] = await db.select({ count: sql`count(*)` })
+      .from(ecommerceOrders)
+      .where(eq(ecommerceOrders.tenantId, tenantId));
+
+    // Pending orders
+    const [pendingOrdersResult] = await db.select({ count: sql`count(*)` })
+      .from(ecommerceOrders)
+      .where(and(eq(ecommerceOrders.tenantId, tenantId), eq(ecommerceOrders.status, "pending" as any)));
+
+    // Total products
+    const [totalProductsResult] = await db.select({ count: sql`count(*)` })
+      .from(products)
+      .where(eq(products.tenantId, tenantId));
+
+    // Total customers
+    const [totalCustomersResult] = await db.select({ count: sql`count(*)` })
+      .from(ecommerceCustomers)
+      .where(eq(ecommerceCustomers.tenantId, tenantId));
+
+    // Monthly revenue (current month)
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const [monthlyRevenueResult] = await db.select({ revenue: sql`COALESCE(sum(total_amount), 0)` })
+      .from(ecommerceOrders)
+      .where(and(
+        eq(ecommerceOrders.tenantId, tenantId),
+        sql`${ecommerceOrders.orderDate} >= ${startOfMonth}`
+      ));
+
+    // Top products by sales quantity
+    const topProductsResults = await db.select({
+      id: products.id,
+      name: products.name,
+      sales: sql`COALESCE(sum(${orderItems.quantity}), 0)`
+    })
+    .from(products)
+    .leftJoin(orderItems, eq(products.id, orderItems.productId))
+    .where(eq(products.tenantId, tenantId))
+    .groupBy(products.id, products.name)
+    .orderBy(desc(sql`COALESCE(sum(${orderItems.quantity}), 0)`))
+    .limit(5);
+
+    return {
+      totalOrders: parseInt(String(totalOrdersResult?.count || 0)),
+      pendingOrders: parseInt(String(pendingOrdersResult?.count || 0)),
+      totalProducts: parseInt(String(totalProductsResult?.count || 0)),
+      totalCustomers: parseInt(String(totalCustomersResult?.count || 0)),
+      monthlyRevenue: parseFloat(String(monthlyRevenueResult?.revenue || 0)),
+      topProducts: topProductsResults.map(p => ({
+        id: p.id,
+        name: p.name,
+        sales: parseInt(String(p.sales))
+      }))
+    };
   }
 }
 

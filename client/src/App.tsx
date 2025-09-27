@@ -18,6 +18,7 @@ import Billing from "@/pages/billing";
 import Corrections from "@/pages/corrections";
 import Commercial from "@/pages/commercial";
 import SupportPage from "@/pages/support-page";
+import { EcommercePage } from "@/pages/ecommerce-page";
 import NotFound from "@/pages/not-found";
 
 function MainLayout({ children }: { children: React.ReactNode }) {
@@ -76,6 +77,11 @@ function Router() {
       <ProtectedRoute path="/support" component={() => (
         <MainLayout>
           <SupportPage />
+        </MainLayout>
+      )} />
+      <ProtectedRoute path="/ecommerce" component={() => (
+        <MainLayout>
+          <EcommercePage />
         </MainLayout>
       )} />
       <Route component={NotFound} />

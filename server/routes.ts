@@ -2000,6 +2000,120 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
     res.json(languages);
   });
 
+  // ======== ECOMMERCE MODULE API ENDPOINTS ========
+
+  // eCommerce Products
+  app.get("/api/ecommerce/products", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const { category } = req.query;
+      let products;
+      
+      if (category) {
+        products = await storage.getProductsByCategory(category as string, user.tenantId);
+      } else {
+        products = await storage.getProductsByTenant(user.tenantId);
+      }
+      
+      res.json(products);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/ecommerce/products", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const productData = { ...req.body, tenantId: user.tenantId };
+      const product = await storage.createProduct(productData);
+      res.status(201).json(product);
+    } catch (error) {
+      console.error("Error creating product:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // eCommerce Orders  
+  app.get("/api/ecommerce/orders", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const { status } = req.query;
+      let orders;
+      
+      if (status) {
+        orders = await storage.getEcommerceOrdersByStatus(status as string, user.tenantId);
+      } else {
+        orders = await storage.getEcommerceOrdersByTenant(user.tenantId);
+      }
+      
+      res.json(orders);
+    } catch (error) {
+      console.error("Error fetching ecommerce orders:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/ecommerce/orders", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const orderData = { ...req.body, tenantId: user.tenantId };
+      const order = await storage.createEcommerceOrder(orderData);
+      res.status(201).json(order);
+    } catch (error) {
+      console.error("Error creating ecommerce order:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // eCommerce Customers
+  app.get("/api/ecommerce/customers", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const customers = await storage.getEcommerceCustomersByTenant(user.tenantId);
+      res.json(customers);
+    } catch (error) {
+      console.error("Error fetching ecommerce customers:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // eCommerce Dashboard Stats
+  app.get("/api/ecommerce/stats", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const stats = await storage.getEcommerceDashboardStats(user.tenantId);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching ecommerce stats:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
