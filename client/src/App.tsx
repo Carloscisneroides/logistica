@@ -34,6 +34,7 @@ import SupportPage from "@/pages/support-page";
 import { EcommercePage } from "@/pages/ecommerce-page";
 import { MarketplacePage } from "@/pages/marketplace-page";
 import FidelityPage from "@/pages/fidelity-page";
+import ShipmentsPage from "@/pages/shipments";
 import NotFound from "@/pages/not-found";
 
 function MainLayout({ children }: { children: React.ReactNode }) {
@@ -62,6 +63,11 @@ function Router() {
       <ProtectedRoute path="/" component={() => (
         <MainLayout>
           <Dashboard />
+        </MainLayout>
+      )} />
+      <ProtectedRoute path="/shipments" component={() => (
+        <MainLayout>
+          <ShipmentsPage />
         </MainLayout>
       )} />
       <ProtectedRoute path="/courier-modules" component={() => (

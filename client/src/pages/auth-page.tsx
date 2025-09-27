@@ -484,6 +484,36 @@ export default function AuthPage() {
                     <div className="space-y-4 pt-4 border-t">
                       <h3 className="font-semibold text-lg">🧾 Identificazione Fiscale</h3>
                       
+                      {/* Selezione paese per validazione fiscale internazionale */}
+                      <FormField
+                        control={registerForm.control}
+                        name="country"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Paese di residenza fiscale *</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger data-testid="select-country">
+                                  <SelectValue />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="IT">🇮🇹 Italia (P.IVA/CF - Mercato domestico)</SelectItem>
+                                <SelectItem value="CN">🇨🇳 Cina (USCI - Partner strategico)</SelectItem>
+                                <SelectItem value="GB">🇬🇧 UK (VAT - Brexit commerce)</SelectItem>
+                                <SelectItem value="DE">🇩🇪 Germania (USt-IdNr - Hub europeo)</SelectItem>
+                                <SelectItem value="FR">🇫🇷 Francia (TVA - Mercato francese)</SelectItem>
+                                <SelectItem value="US">🇺🇸 USA (EIN - Mercato americano)</SelectItem>
+                                <SelectItem value="DK">🇩🇰 Danimarca (CVR - Hub scandinavo)</SelectItem>
+                                <SelectItem value="SG">🇸🇬 Singapore (UEN - Hub logistico)</SelectItem>
+                                <SelectItem value="ES">🇪🇸 Spagna (CIF/NIF - Mercato europeo)</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
                       <FormField
                         control={registerForm.control}
                         name="fiscalType"
