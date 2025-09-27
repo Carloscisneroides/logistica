@@ -13,6 +13,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import crypto from "crypto";
 
 const app = express();
 app.use(express.json());
@@ -22,46 +23,33 @@ app.use(express.urlencoded({ extended: false }));
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
+  const requestId = crypto.randomUUID().slice(0, 8); // Short request ID
 
   // **SECURITY LOGGING**: Track all access attempts for IP protection
   const clientIP = req.ip || req.socket.remoteAddress || 'unknown';
   const userAgent = req.headers['user-agent'] || 'unknown';
   const isDemo = process.env.NODE_ENV === 'development';
   
-  // Log access attempts with IP tracking for security monitoring
-  const securityLog = `[IP_TRACKING] ${clientIP} | ${req.method} ${path} | ${userAgent}`;
+  // Log access attempts with IP tracking for security monitoring (NO response data)
+  const securityLog = `[IP_TRACKING] ${requestId} | ${clientIP} | ${req.method} ${path} | ${userAgent.slice(0, 50)}`;
   console.log(securityLog);
   
   // **DEMO PROTECTION**: Enhanced logging for demo sessions
   if (isDemo && (path.startsWith('/api/auth') || path.includes('login'))) {
-    console.log(`[DEMO_ACCESS] AUTHENTICATION ATTEMPT | IP: ${clientIP} | Path: ${path} | Time: ${new Date().toISOString()}`);
+    console.log(`[DEMO_ACCESS] ${requestId} | AUTHENTICATION ATTEMPT | IP: ${clientIP} | Path: ${path} | Time: ${new Date().toISOString()}`);
   }
-
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
 
   res.on("finish", () => {
     const duration = Date.now() - start;
     
-    // **UNAUTHORIZED ACCESS LOGGING**: Track failed authentication attempts
+    // **UNAUTHORIZED ACCESS LOGGING**: Track failed authentication attempts (NO response data)
     if (res.statusCode === 401 || res.statusCode === 403) {
-      console.log(`[SECURITY_ALERT] UNAUTHORIZED ACCESS | IP: ${clientIP} | Path: ${path} | Status: ${res.statusCode} | Time: ${new Date().toISOString()}`);
+      console.log(`[SECURITY_ALERT] ${requestId} | UNAUTHORIZED ACCESS | IP: ${clientIP} | Path: ${path} | Status: ${res.statusCode} | Time: ${new Date().toISOString()}`);
     }
     
+    // **SECURE API LOGGING**: Only metadata, NO response body to prevent PII leakage
     if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
+      const logLine = `[API] ${requestId} | ${req.method} ${path} | ${res.statusCode} | ${duration}ms`;
       log(logLine);
     }
   });
