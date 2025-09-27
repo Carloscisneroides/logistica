@@ -168,6 +168,7 @@ export const platformConnections = pgTable("platform_connections", {
   apiEndpoint: text("api_endpoint"),
   apiKey: text("api_key"), // TODO: Encrypt this field
   webhookUrl: text("webhook_url"),
+  webhookSecret: text("webhook_secret"), // Secret for HMAC verification
   configuration: text("configuration"), // JSON configuration
   lastSync: timestamp("last_sync"),
   isActive: boolean("is_active").notNull().default(true),
