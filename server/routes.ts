@@ -35,7 +35,7 @@ import OpenAI from "openai";
 
 // Stripe setup - will be configured when API keys are provided
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2025-08-27.basil",
+  apiVersion: "2022-11-15", // Valid stable API version
 }) : null;
 
 const upload = multer({ storage: multer.memoryStorage() });
@@ -541,6 +541,268 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Risk event logging error:", error);
       res.status(500).json({ error: error.message || "Risk event logging failed" });
+    }
+  });
+
+  // ========== ADMIN CRUD ENDPOINTS FOR RISK MANAGEMENT ==========
+
+  // Create risk cluster (admin only)
+  app.post("/api/ai/antifraud/risk-clusters", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+      
+      if (user.role !== 'admin') {
+        return res.status(403).json({ error: "Insufficient permissions for risk cluster management" });
+      }
+      
+      const validation = insertRiskClusterSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", details: validation.error.issues });
+      }
+      
+      const clusterData = { ...validation.data, tenantId: user.tenantId };
+      const cluster = await storage.createRiskCluster(clusterData);
+      res.json(cluster);
+    } catch (error: any) {
+      console.error("Create risk cluster error:", error);
+      res.status(500).json({ error: error.message || "Failed to create risk cluster" });
+    }
+  });
+
+  // Update risk cluster (admin only)
+  app.patch("/api/ai/antifraud/risk-clusters/:id", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+      
+      if (user.role !== 'admin') {
+        return res.status(403).json({ error: "Insufficient permissions for risk cluster management" });
+      }
+      
+      const { id } = req.params;
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+        return res.status(400).json({ error: "Invalid risk cluster ID format" });
+      }
+      
+      // **CRITICAL SECURITY FIX**: Verify cluster ownership before update
+      const existingClusters = await storage.getRiskClustersByTenant(user.tenantId);
+      const targetCluster = existingClusters.find(c => c.id === id);
+      
+      if (!targetCluster) {
+        return res.status(404).json({ error: "Risk cluster not found or access denied" });
+      }
+      
+      const validation = insertRiskClusterSchema.partial()
+        .omit({ tenantId: true, id: true }) // Prevent tenant/id modification
+        .safeParse(req.body);
+      
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", details: validation.error.issues });
+      }
+      
+      const updatedCluster = await storage.updateRiskCluster(id, validation.data);
+      res.json(updatedCluster);
+    } catch (error: any) {
+      console.error("Update risk cluster error:", error);
+      res.status(500).json({ error: error.message || "Failed to update risk cluster" });
+    }
+  });
+
+  // Create pattern flag (admin only)
+  app.post("/api/ai/antifraud/pattern-flags", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+      
+      if (user.role !== 'admin') {
+        return res.status(403).json({ error: "Insufficient permissions for pattern flag management" });
+      }
+      
+      const validation = insertPatternFlagSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", details: validation.error.issues });
+      }
+      
+      const flagData = { ...validation.data, tenantId: user.tenantId };
+      const flag = await storage.createPatternFlag(flagData);
+      res.json(flag);
+    } catch (error: any) {
+      console.error("Create pattern flag error:", error);
+      res.status(500).json({ error: error.message || "Failed to create pattern flag" });
+    }
+  });
+
+  // ========== ADMIN DASHBOARD FILTERING ENDPOINTS ==========
+
+  // Get all pattern flags with advanced filtering (admin only)
+  app.get("/api/ai/antifraud/pattern-flags/advanced", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+      
+      if (user.role !== 'admin') {
+        return res.status(403).json({ error: "Insufficient permissions for pattern flags dashboard" });
+      }
+      
+      const { 
+        userId, moduleSource, patternType, severity, 
+        dateFrom, dateTo, limit = "50", offset = "0" 
+      } = req.query;
+      
+      // Build filters with date range support
+      const filters: any = {};
+      if (userId && typeof userId === 'string') {
+        // Validate UUID
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) {
+          return res.status(400).json({ error: "Invalid userId format" });
+        }
+        filters.userId = userId;
+      }
+      if (moduleSource && typeof moduleSource === 'string') filters.moduleSource = moduleSource;
+      if (patternType && typeof patternType === 'string') filters.patternType = patternType;
+      if (severity && typeof severity === 'string') filters.severity = severity;
+      
+      let flags = await storage.getPatternFlagsByTenant(user.tenantId, filters);
+      
+      // Apply date range filtering
+      if (dateFrom || dateTo) {
+        flags = flags.filter(flag => {
+          const flagDate = flag.createdAt;
+          if (dateFrom && flagDate < new Date(dateFrom as string)) return false;
+          if (dateTo && flagDate > new Date(dateTo as string)) return false;
+          return true;
+        });
+      }
+      
+      // Apply pagination
+      const limitNum = Math.min(parseInt(limit as string) || 50, 200); // Max 200 items
+      const offsetNum = parseInt(offset as string) || 0;
+      const paginatedFlags = flags.slice(offsetNum, offsetNum + limitNum);
+      
+      res.json({
+        flags: paginatedFlags,
+        total: flags.length,
+        limit: limitNum,
+        offset: offsetNum,
+        hasMore: flags.length > offsetNum + limitNum
+      });
+    } catch (error: any) {
+      console.error("Advanced pattern flags error:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch pattern flags" });
+    }
+  });
+
+  // Get risk clusters dashboard with pagination (admin only)
+  app.get("/api/ai/antifraud/risk-clusters/dashboard", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+      
+      if (user.role !== 'admin') {
+        return res.status(403).json({ error: "Insufficient permissions for risk clusters dashboard" });
+      }
+      
+      const { limit = "20", offset = "0" } = req.query;
+      const limitNum = Math.min(parseInt(limit as string) || 20, 100); // Max 100 items
+      const offsetNum = parseInt(offset as string) || 0;
+      
+      const allClusters = await storage.getRiskClustersByTenant(user.tenantId);
+      const paginatedClusters = allClusters.slice(offsetNum, offsetNum + limitNum);
+      
+      // Calculate dashboard statistics
+      const stats = {
+        totalClusters: allClusters.length,
+        highRiskClusters: allClusters.filter(c => c.riskScore >= 70).length,
+        criticalClusters: allClusters.filter(c => c.riskScore >= 85).length,
+        activeClusters: allClusters.filter(c => c.isActive).length,
+        avgRiskScore: allClusters.length > 0 ? 
+          Math.round(allClusters.reduce((sum, c) => sum + c.riskScore, 0) / allClusters.length) : 0
+      };
+      
+      res.json({
+        clusters: paginatedClusters,
+        stats,
+        total: allClusters.length,
+        limit: limitNum,
+        offset: offsetNum,
+        hasMore: allClusters.length > offsetNum + limitNum
+      });
+    } catch (error: any) {
+      console.error("Risk clusters dashboard error:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch risk clusters dashboard" });
+    }
+  });
+
+  // Get user risk timeline for admin analysis
+  app.get("/api/ai/antifraud/user/:userId/timeline", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+      
+      if (user.role !== 'admin') {
+        return res.status(403).json({ error: "Insufficient permissions for user risk timeline" });
+      }
+      
+      const { userId } = req.params;
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) {
+        return res.status(400).json({ error: "Invalid userId format" });
+      }
+      
+      // Get user's pattern flags chronologically
+      const patternFlags = await storage.getPatternFlagsByTenant(user.tenantId, { userId });
+      
+      // Get user's escalations
+      const userEscalations = await storage.getEscalationsByUser(userId);
+      
+      // Calculate current risk score
+      const currentRisk = await storage.calculateUserRiskScore(userId, user.tenantId);
+      
+      // Build timeline combining patterns and escalations
+      const timeline = [
+        ...patternFlags.map(flag => ({
+          id: flag.id,
+          type: 'pattern_detection',
+          timestamp: flag.createdAt,
+          severity: flag.severity,
+          patternType: flag.patternType,
+          moduleSource: flag.moduleSource,
+          confidence: flag.confidence,
+          riskContribution: flag.riskContribution
+        })),
+        ...userEscalations.map(esc => ({
+          id: esc.id,
+          type: 'escalation',
+          timestamp: esc.createdAt,
+          escalationType: esc.type,
+          priority: esc.priority,
+          status: esc.status,
+          title: esc.title
+        }))
+      ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      
+      res.json({
+        userId,
+        currentRisk,
+        timeline,
+        totalEvents: timeline.length,
+        lastActivity: timeline[0]?.timestamp || null
+      });
+    } catch (error: any) {
+      console.error("User risk timeline error:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch user risk timeline" });
     }
   });
 

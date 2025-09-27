@@ -122,6 +122,16 @@ export interface IStorage {
     riskScore: number;
     recommendations: string[];
   }>;
+  calculateUserRiskScore(userId: string, tenantId: string): Promise<{
+    riskScore: number;
+    riskLevel: 'low' | 'medium' | 'high' | 'critical';
+    factors: string[];
+  }>;
+  executeAutomatedResponse(userId: string, tenantId: string, riskLevel: 'low' | 'medium' | 'high' | 'critical'): Promise<{
+    actionsTaken: string[];
+    escalationId?: string;
+    notificationsSent: number;
+  }>;
   
   // Invoices
   getInvoice(id: string): Promise<Invoice | undefined>;
@@ -3426,11 +3436,174 @@ export class DatabaseStorage implements IStorage {
       recommendations.push('Unusual time activity - verify user timezone and behavior');
     }
 
+    const finalRiskScore = Math.min(100, aggregatedRiskScore);
+    
+    // **AUTO-ESCALATION TRIGGER WITH IDEMPOTENCY** - Critical for production safety
+    if (finalRiskScore >= 70) {
+      try {
+        // **IDEMPOTENCY CHECK**: Prevent escalation spam
+        const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        const recentEscalations = await db.select().from(escalations)
+          .where(and(
+            eq(escalations.userId, userId),
+            eq(escalations.tenantId, tenantId),
+            eq(escalations.type, 'fraud_alert'),
+            sql`${escalations.createdAt} >= ${last24Hours}`
+          ));
+        
+        if (recentEscalations.length > 0) {
+          recommendations.push('HIGH RISK: Recent escalation exists, skipped duplicate escalation');
+        } else {
+          // Calculate comprehensive risk assessment
+          const riskAssessment = await this.calculateUserRiskScore(userId, tenantId);
+          
+          // Execute automated response based on risk level
+          const response = await this.executeAutomatedResponse(userId, tenantId, riskAssessment.riskLevel);
+          
+          recommendations.push(`AUTO-ESCALATED: ${response.actionsTaken.join(', ')}`);
+        }
+      } catch (escalationError) {
+        console.error('Auto-escalation failed:', escalationError);
+        // Log escalation failure but don't block pattern detection
+        recommendations.push('WARNING: Auto-escalation failed - manual review required');
+      }
+    }
+
     return {
       patterns: detectedPatterns,
-      riskScore: Math.min(100, aggregatedRiskScore),
+      riskScore: finalRiskScore,
       recommendations
     };
+  }
+
+  // Calculate comprehensive user risk score based on historical patterns
+  async calculateUserRiskScore(userId: string, tenantId: string): Promise<{
+    riskScore: number;
+    riskLevel: 'low' | 'medium' | 'high' | 'critical';
+    factors: string[];
+  }> {
+    // Get user's pattern flags from last 30 days
+    const recentFlags = await this.getPatternFlagsByTenant(tenantId, { userId });
+    const last30Days = recentFlags.filter(flag => 
+      flag.createdAt > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+    );
+
+    // Calculate weighted risk score
+    let totalRisk = 0;
+    const factors: string[] = [];
+
+    // High severity patterns contribute more to risk
+    const severityWeights = { low: 10, medium: 25, high: 50, critical: 75 };
+    for (const flag of last30Days) {
+      totalRisk += severityWeights[flag.severity as keyof typeof severityWeights] || 25;
+      factors.push(`${flag.patternType} (${flag.severity})`);
+    }
+
+    // Pattern frequency multiplier
+    if (last30Days.length > 5) {
+      totalRisk *= 1.5;
+      factors.push(`High pattern frequency (${last30Days.length} incidents)`);
+    }
+
+    // Cross-module activity increases risk
+    const modulesSources = new Set(last30Days.map(f => f.moduleSource));
+    if (modulesSources.size >= 3) {
+      totalRisk *= 1.3;
+      factors.push(`Multi-module activity (${modulesSources.size} modules)`);
+    }
+
+    const finalScore = Math.min(100, totalRisk);
+    
+    // Determine risk level
+    let riskLevel: 'low' | 'medium' | 'high' | 'critical';
+    if (finalScore >= 85) riskLevel = 'critical';
+    else if (finalScore >= 70) riskLevel = 'high';
+    else if (finalScore >= 40) riskLevel = 'medium';
+    else riskLevel = 'low';
+
+    return { riskScore: finalScore, riskLevel, factors };
+  }
+
+  // Execute automated response based on risk level
+  async executeAutomatedResponse(userId: string, tenantId: string, riskLevel: 'low' | 'medium' | 'high' | 'critical'): Promise<{
+    actionsTaken: string[];
+    escalationId?: string;
+    notificationsSent: number;
+  }> {
+    const actionsTaken: string[] = [];
+    let escalationId: string | undefined;
+    let notificationsSent = 0;
+
+    // Get user information for escalation
+    const user = await this.getUser(userId);
+    if (!user) throw new Error('User not found for automated response');
+
+    // Create escalation for high/critical risk
+    if (riskLevel === 'high' || riskLevel === 'critical') {
+      const escalation = await this.createEscalation({
+        tenantId,
+        userId,
+        type: 'fraud_alert',
+        priority: riskLevel === 'critical' ? 'high' : 'medium',
+        title: `Automated Fraud Alert - ${riskLevel.toUpperCase()} Risk Detected`,
+        description: `User ${user.username} (${user.email}) has been flagged for ${riskLevel} risk behavior. Automated response activated.`,
+        source: 'ai_antifraud_system',
+        assignedTo: null, // Will be auto-assigned to admin
+        status: 'open'
+      });
+      escalationId = escalation.id;
+      actionsTaken.push(`Created ${riskLevel} priority escalation`);
+    }
+
+    // Send notifications to admins
+    if (riskLevel === 'critical') {
+      // Critical: Immediate admin notification
+      await this.createNotification({
+        tenantId,
+        userId: userId, // Target admin users
+        title: 'CRITICAL: Fraud Alert',
+        message: `Critical fraud risk detected for user ${user.username}. Immediate review required.`,
+        type: 'security',
+        priority: 'high',
+        actionUrl: `/admin/antifraud/user/${userId}`,
+        isRead: false
+      });
+      notificationsSent = 1;
+      actionsTaken.push('Sent critical fraud alert to admins');
+    } else if (riskLevel === 'high') {
+      // High: Standard admin notification
+      await this.createNotification({
+        tenantId,
+        userId: userId,
+        title: 'High Risk User Activity',
+        message: `High fraud risk patterns detected for user ${user.username}. Review recommended.`,
+        type: 'security',
+        priority: 'medium',
+        actionUrl: `/admin/antifraud/user/${userId}`,
+        isRead: false
+      });
+      notificationsSent = 1;
+      actionsTaken.push('Sent high risk notification to admins');
+    }
+
+    // Log automated response in audit trail
+    await this.createAuditLog({
+      tenantId,
+      userId: 'system',
+      action: 'automated_fraud_response',
+      entity: 'user',
+      entityId: userId,
+      changes: {
+        riskLevel,
+        actionsTaken,
+        escalationId,
+        notificationsSent,
+        timestamp: new Date()
+      }
+    });
+    actionsTaken.push('Logged automated response in audit trail');
+
+    return { actionsTaken, escalationId, notificationsSent };
   }
 }
 
