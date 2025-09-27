@@ -1,0 +1,151 @@
+IMPLEMENTAZIONE MODULO MARKETPLACE – YCORE
+Mittente: Ylenia Sacco – Strategic Lead YS Logistics Destinatario: Team Reply / AI interlocutore tecnico
+
+🎯 Obiettivo
+Integrare in YCore un modulo Marketplace interno, che consenta a merchant, subclienti e partner di pubblicare, acquistare o scambiare prodotti e servizi logistici in modo controllato, segmentato e difendibile. Il Marketplace deve essere architettato per evitare concorrenza esplicita e non voluta, proteggere i listini e rafforzare la modularità della piattaforma.
+
+🛍️ Funzionalità principali
+1. Catalogo Marketplace
+
+Prodotti e servizi pubblicabili da merchant o partner
+
+Categorie: packaging, trasporti, software, consulenze, accessori
+
+Visualizzazione filtrata per ruolo, categoria e compatibilità
+
+2. Schede prodotto/servizio personalizzabili
+
+Descrizione, immagini, prezzo, disponibilità
+
+Condizioni commerciali, tempi di consegna, compatibilità corrieri
+
+Branding visibile (logo, nome merchant)
+
+Possibilità di collegare il proprio sito web esterno o eCommerce tramite link o API
+
+Ogni merchant può personalizzare la propria vetrina con contenuti, stile e flussi
+
+3. Ordini e transazioni
+
+Acquisto diretto o richiesta di preventivo
+
+Stato ordine, tracking, fatturazione
+
+Integrazione con Stripe Connect e modulo Fatturazione
+
+4. Listini e offerte dinamiche
+
+Prezzi variabili per cliente, volume, SLA
+
+Promozioni, bundle, sconti condizionati
+
+Collegamento con modulo Listini
+
+5. Gestione venditori e acquirenti
+
+Profilo merchant o partner
+
+Rating, storico transazioni, feedback
+
+Compatibilità multi-tenant
+
+6. AI Assistant integrato
+
+Suggerisce prodotti/servizi in base al contesto
+
+Supporta nella compilazione ordini e nella scelta del fornitore
+
+Protezione automatica contro sovrapposizioni concorrenziali
+
+🛡️ Regole di protezione concorrenza
+1. Segmentazione per Tenant e Categoria
+
+Ogni merchant visualizza solo offerte compatibili con il proprio contratto, settore, SLA o zona geografica
+
+I subclienti accedono solo a offerte approvate dal merchant principale
+
+I commerciali vedono solo le offerte collegate ai propri clienti
+
+Nessuna esposizione globale o incrociata tra tenant
+
+2. Offerte Private per Default
+
+Tutte le offerte sono private per impostazione predefinita
+
+Il merchant può renderle pubbliche solo verso profili selezionati
+
+Le offerte pubbliche sono limitate a prodotti neutri (es. packaging, accessori)
+
+3. AI Assistant come filtro difensivo
+
+Suggerisce solo prodotti compatibili con il profilo utente, contratto e flusso operativo
+
+Protegge listini, condizioni e visibilità
+
+Blocca suggerimenti incrociati tra merchant concorrenti
+
+4. Branding e riconoscibilità
+
+Ogni scheda prodotto mantiene logo, nome e identità del venditore
+
+Nessuna esposizione anonima o aggregata
+
+Il marketplace rafforza il brand, non lo confonde
+
+5. Ruoli e permessi granulari
+
+Merchant: pubblicazione e gestione offerte
+
+Subclienti: acquisto e richiesta preventivi
+
+Commerciali: visibilità limitata ai propri clienti
+
+Partner tecnici: pubblicazione solo in aree neutre
+
+Admin: controllo visibilità e logging
+
+6. Logging e audit visibilità
+
+Ogni accesso, visualizzazione e transazione è tracciata
+
+Possibilità di bloccare o limitare visibilità in tempo reale
+
+Protezione attiva contro comportamenti non autorizzati
+
+💰 Monetizzazione
+1. Commissione sulle transazioni Marketplace
+
+Percentuale variabile applicata agli ordini effettuati
+
+Split automatico via Stripe Connect
+
+Esclusione per transazioni interne tra merchant e subclienti dello stesso tenant (se configurato)
+
+2. Monetizzazione tramite YSpedizioni
+
+I merchant che non hanno un contratto diretto con corrieri possono acquistare il servizio di spedizione tramite l’account gemello YSpedizioni
+
+YSpedizioni è collegato al Marketplace e vende spedizioni a tariffa configurata
+
+Il sistema seleziona automaticamente il corriere più adatto tra quelli disponibili
+
+Il costo della spedizione viene aggiunto alla transazione Marketplace
+
+Tracciabilità e fatturazione gestite da YSpedizioni
+
+🔗 Collegamenti interni
+Magazzino & Inventario
+
+Spedizioni
+
+Fatturazione
+
+Listini
+
+AI Logistica
+
+Commerciali / CSM
+
+Configurazione Tenant
+
+📌 Posizionamento strategico Il Marketplace YCore non è uno spazio competitivo, ma un canale di distribuzione interno, controllato e difendibile, che rafforza la modularità e la scalabilità della piattaforma. Ogni merchant mantiene il controllo totale su ciò che pubblica, a chi lo mostra e come lo vende. La concorrenza non è solo evitata: è architettonicamente impossibile. Inoltre, YCore monetizza in modo trasparente sia sulle transazioni che sulle spedizioni, offrendo un servizio completo anche ai merchant sprovvisti di contratti diretti.

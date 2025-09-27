@@ -381,6 +381,254 @@ export const notifications = pgTable("notifications", {
   typeIdx: index("notifications_type_idx").on(table.type),
 }));
 
+// ======== MARKETPLACE MODULE TABLES ========
+
+// Marketplace Categories - Gestione categorie marketplace
+export const marketplaceCategories = pgTable("marketplace_categories", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 100 }).notNull(),
+  description: text("description"),
+  parentId: uuid("parent_id").references(() => marketplaceCategories.id),
+  isActive: boolean("is_active").default(true),
+  sortOrder: integer("sort_order").default(0),
+  tenantId: uuid("tenant_id").notNull().references(() => tenants.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Marketplace Listings - Prodotti/servizi pubblicati nel marketplace
+export const marketplaceListings = pgTable("marketplace_listings", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: varchar("title", { length: 200 }).notNull(),
+  description: text("description"),
+  shortDescription: varchar("short_description", { length: 500 }),
+  categoryId: uuid("category_id").notNull().references(() => marketplaceCategories.id),
+  sellerId: uuid("seller_id").notNull().references(() => users.id),
+  sellerTenantId: uuid("seller_tenant_id").notNull().references(() => tenants.id),
+  
+  // Pricing and availability
+  basePrice: decimal("base_price", { precision: 10, scale: 2 }),
+  currency: varchar("currency", { length: 3 }).default("EUR"),
+  priceType: varchar("price_type").notNull().default("fixed"), // fixed, variable, quote_only
+  minOrderQuantity: integer("min_order_quantity").default(1),
+  maxOrderQuantity: integer("max_order_quantity"),
+  isAvailable: boolean("is_available").default(true),
+  
+  // Logistics details
+  deliveryTime: varchar("delivery_time", { length: 100 }),
+  shippingIncluded: boolean("shipping_included").default(false),
+  courierCompatibility: text("courier_compatibility").array(),
+  serviceType: varchar("service_type").notNull(), // product, service, software, consultation, transport
+  
+  // Media and branding
+  imageUrls: text("image_urls").array(),
+  logoUrl: varchar("logo_url"),
+  brandName: varchar("brand_name", { length: 100 }),
+  externalWebsiteUrl: varchar("external_website_url"),
+  
+  // Visibility and protection rules
+  visibility: varchar("visibility").notNull().default("private"), // private, tenant_only, category_limited, public
+  allowedTenantIds: text("allowed_tenant_ids").array(),
+  allowedRoles: text("allowed_roles").array(),
+  blockedTenantIds: text("blocked_tenant_ids").array(),
+  
+  // Status and moderation
+  status: varchar("status").notNull().default("draft"), // draft, active, paused, rejected, expired
+  moderationNotes: text("moderation_notes"),
+  isPromoted: boolean("is_promoted").default(false),
+  
+  // Metrics
+  viewCount: integer("view_count").default(0),
+  orderCount: integer("order_count").default(0),
+  rating: decimal("rating", { precision: 3, scale: 2 }),
+  reviewCount: integer("review_count").default(0),
+  
+  // Timestamps
+  publishedAt: timestamp("published_at"),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Marketplace Visibility Controls - Controllo granulare visibilità
+export const marketplaceVisibility = pgTable("marketplace_visibility", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  listingId: uuid("listing_id").notNull().references(() => marketplaceListings.id, { onDelete: 'cascade' }),
+  targetTenantId: uuid("target_tenant_id").references(() => tenants.id),
+  targetUserId: uuid("target_user_id").references(() => users.id),
+  targetRole: varchar("target_role"),
+  accessType: varchar("access_type").notNull(), // view, purchase, quote_request
+  customPrice: decimal("custom_price", { precision: 10, scale: 2 }),
+  conditions: jsonb("conditions"), // Condizioni personalizzate come volume, SLA, ecc.
+  isActive: boolean("is_active").default(true),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Marketplace Orders - Ordini marketplace
+export const marketplaceOrders = pgTable("marketplace_orders", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  orderNumber: varchar("order_number", { length: 50 }).notNull().unique(),
+  buyerId: uuid("buyer_id").notNull().references(() => users.id),
+  buyerTenantId: uuid("buyer_tenant_id").notNull().references(() => tenants.id),
+  sellerId: uuid("seller_id").notNull().references(() => users.id),
+  sellerTenantId: uuid("seller_tenant_id").notNull().references(() => tenants.id),
+  
+  // Order details
+  status: varchar("status").notNull().default("pending"), // pending, confirmed, in_progress, shipped, delivered, cancelled, dispute
+  orderType: varchar("order_type").notNull(), // purchase, quote_request
+  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
+  platformFee: decimal("platform_fee", { precision: 10, scale: 2 }),
+  shippingCost: decimal("shipping_cost", { precision: 10, scale: 2 }),
+  taxAmount: decimal("tax_amount", { precision: 10, scale: 2 }),
+  currency: varchar("currency", { length: 3 }).default("EUR"),
+  
+  // Fulfillment
+  expectedDelivery: timestamp("expected_delivery"),
+  shippedAt: timestamp("shipped_at"),
+  deliveredAt: timestamp("delivered_at"),
+  trackingNumber: varchar("tracking_number"),
+  courierService: varchar("courier_service"),
+  
+  // Communication
+  buyerNotes: text("buyer_notes"),
+  sellerNotes: text("seller_notes"),
+  internalNotes: text("internal_notes"),
+  
+  // Payment
+  paymentStatus: varchar("payment_status").default("pending"), // pending, paid, refunded, disputed
+  stripePaymentIntentId: varchar("stripe_payment_intent_id"),
+  stripeTransferId: varchar("stripe_transfer_id"),
+  
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Marketplace Order Items - Items degli ordini marketplace
+export const marketplaceOrderItems = pgTable("marketplace_order_items", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  orderId: uuid("order_id").notNull().references(() => marketplaceOrders.id, { onDelete: 'cascade' }),
+  listingId: uuid("listing_id").notNull().references(() => marketplaceListings.id),
+  quantity: integer("quantity").notNull(),
+  unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
+  totalPrice: decimal("total_price", { precision: 10, scale: 2 }).notNull(),
+  customizations: jsonb("customizations"), // Personalizzazioni specifiche dell'item
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Marketplace Reviews - Recensioni e rating
+export const marketplaceReviews = pgTable("marketplace_reviews", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  orderId: uuid("order_id").notNull().references(() => marketplaceOrders.id),
+  listingId: uuid("listing_id").notNull().references(() => marketplaceListings.id),
+  reviewerId: uuid("reviewer_id").notNull().references(() => users.id),
+  reviewerTenantId: uuid("reviewer_tenant_id").notNull().references(() => tenants.id),
+  sellerId: uuid("seller_id").notNull().references(() => users.id),
+  
+  // Rating and review
+  rating: integer("rating").notNull(), // 1-5 stars
+  title: varchar("title", { length: 200 }),
+  comment: text("comment"),
+  pros: text("pros").array(),
+  cons: text("cons").array(),
+  
+  // Review metadata
+  isVerifiedPurchase: boolean("is_verified_purchase").default(true),
+  isPublic: boolean("is_public").default(true),
+  status: varchar("status").default("active"), // active, hidden, flagged
+  helpfulCount: integer("helpful_count").default(0),
+  
+  // Response from seller
+  sellerResponse: text("seller_response"),
+  sellerRespondedAt: timestamp("seller_responded_at"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// ======== MARKETPLACE MODULE TYPES & SCHEMAS ========
+
+// Marketplace Types
+export type MarketplaceCategory = typeof marketplaceCategories.$inferSelect;
+export type InsertMarketplaceCategory = typeof marketplaceCategories.$inferInsert;
+
+export type MarketplaceListing = typeof marketplaceListings.$inferSelect;
+export type InsertMarketplaceListing = typeof marketplaceListings.$inferInsert;
+
+export type MarketplaceVisibility = typeof marketplaceVisibility.$inferSelect;
+export type InsertMarketplaceVisibility = typeof marketplaceVisibility.$inferInsert;
+
+export type MarketplaceOrder = typeof marketplaceOrders.$inferSelect;
+export type InsertMarketplaceOrder = typeof marketplaceOrders.$inferInsert;
+
+export type MarketplaceOrderItem = typeof marketplaceOrderItems.$inferSelect;
+export type InsertMarketplaceOrderItem = typeof marketplaceOrderItems.$inferInsert;
+
+export type MarketplaceReview = typeof marketplaceReviews.$inferSelect;
+export type InsertMarketplaceReview = typeof marketplaceReviews.$inferInsert;
+
+// Marketplace Insert Schemas for Validation
+export const insertMarketplaceCategorySchema = createInsertSchema(marketplaceCategories).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertMarketplaceListingSchema = createInsertSchema(marketplaceListings).omit({
+  id: true,
+  viewCount: true,
+  orderCount: true,
+  rating: true,
+  reviewCount: true,
+  publishedAt: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  basePrice: z.string().optional().transform((val) => val ? parseFloat(val) : undefined),
+  minOrderQuantity: z.number().min(1).default(1),
+  maxOrderQuantity: z.number().optional(),
+});
+
+export const insertMarketplaceVisibilitySchema = createInsertSchema(marketplaceVisibility).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  customPrice: z.string().optional().transform((val) => val ? parseFloat(val) : undefined),
+});
+
+export const insertMarketplaceOrderSchema = createInsertSchema(marketplaceOrders).omit({
+  id: true,
+  orderNumber: true,
+  platformFee: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  totalAmount: z.string().transform((val) => parseFloat(val)),
+  shippingCost: z.string().optional().transform((val) => val ? parseFloat(val) : 0),
+  taxAmount: z.string().optional().transform((val) => val ? parseFloat(val) : 0),
+});
+
+export const insertMarketplaceOrderItemSchema = createInsertSchema(marketplaceOrderItems).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  quantity: z.number().min(1),
+  unitPrice: z.string().transform((val) => parseFloat(val)),
+  totalPrice: z.string().transform((val) => parseFloat(val)),
+});
+
+export const insertMarketplaceReviewSchema = createInsertSchema(marketplaceReviews).omit({
+  id: true,
+  isVerifiedPurchase: true,
+  helpfulCount: true,
+  sellerRespondedAt: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  rating: z.number().min(1).max(5),
+  title: z.string().min(1).max(200).optional(),
+  comment: z.string().min(10).max(2000).optional(),
+});
+
 // ======== ECOMMERCE MODULE TABLES ========
 
 // eCommerce Customers (different from B2B clients)
