@@ -87,32 +87,27 @@ export function setupAuth(app: Express) {
   });
 
   app.get("/api/user", (req, res) => {
-    // TEMPORARY: Accesso libero per demo con UUID validi
+    // **IP PROTECTION**: Secure user endpoint - NO hardcoded access
     if (!req.user) {
-      req.user = {
-        id: "550e8400-e29b-41d4-a716-446655440001",
-        username: "demo", 
-        email: "demo@ycore.it",
-        role: "admin",
-        tenantId: "550e8400-e29b-41d4-a716-446655440000",
-        isActive: true
-      };
+      const clientIP = req.ip || req.socket.remoteAddress || 'unknown';
+      console.log(`[SECURITY_ALERT] UNAUTHORIZED USER ENDPOINT ACCESS | IP: ${clientIP} | Time: ${new Date().toISOString()}`);
+      return res.status(401).json({ error: "Authentication required" });
     }
     res.json(req.user);
   });
 }
 
 export function isAuthenticated(req: any, res: any, next: any) {
-  // TEMPORARY: Accesso libero per demo con UUID validi
-  if (!req.user) {
-    req.user = {
-      id: "550e8400-e29b-41d4-a716-446655440001",
-      username: "demo", 
-      email: "demo@ycore.it",
-      role: "admin",
-      tenantId: "550e8400-e29b-41d4-a716-446655440000",
-      isActive: true
-    };
+  if (req.user) {
+    // **IP PROTECTION**: Enhanced logging for authenticated sessions
+    const clientIP = req.ip || req.socket.remoteAddress || 'unknown';
+    console.log(`[AUTH_SUCCESS] User ${req.user.id} | IP: ${clientIP} | Path: ${req.path} | Time: ${new Date().toISOString()}`);
+    next();
+  } else {
+    // **DEMO PROTECTION**: Log unauthorized access attempts with IP tracking  
+    const clientIP = req.ip || req.socket.remoteAddress || 'unknown';
+    const userAgent = req.headers['user-agent'] || 'unknown';
+    console.log(`[AUTH_FAILED] UNAUTHORIZED ACCESS ATTEMPT | IP: ${clientIP} | Path: ${req.path} | UserAgent: ${userAgent} | Time: ${new Date().toISOString()}`);
+    res.status(401).json({ error: "Authentication required - Contact Reply/AWS for access" });
   }
-  return next();
 }
