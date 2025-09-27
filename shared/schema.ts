@@ -61,6 +61,14 @@ export const courierAssignmentStatusEnum = pgEnum("courier_assignment_status", [
   "assigned", "accepted", "in_progress", "completed", "cancelled", "reassigned"
 ]);
 
+// AI Antifraud Pattern Detection Enums - Milestone 2
+export const riskPatternTypeEnum = pgEnum("risk_pattern_type", [
+  "velocity_anomaly", "behavioral_deviation", "temporal_suspicious", "cross_module_correlation", 
+  "location_inconsistency", "payment_anomaly", "communication_bypass", "bulk_operations"
+]);
+export const riskClusterStatusEnum = pgEnum("risk_cluster_status", ["active", "investigating", "resolved", "false_positive"]);
+export const patternConfidenceEnum = pgEnum("pattern_confidence", ["low", "medium", "high", "critical"]);
+
 // Ecommerce & Subscriptions Enums
 export const subscriptionPlanTypeEnum = pgEnum("subscription_plan_type", [
   "merchant_basic", "merchant_premium", "merchant_enterprise",
@@ -1331,6 +1339,115 @@ export const fraudFlags = pgTable("fraud_flags", {
   severityIdx: index("fraud_flags_severity_idx").on(table.severity),
   statusIdx: index("fraud_flags_status_idx").on(table.investigationStatus),
 }));
+
+// Risk Clusters table - AI Antifraud Milestone 2: Pattern Detection
+export const riskClusters = pgTable("risk_clusters", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  clusterName: text("cluster_name").notNull(),
+  description: text("description"),
+  patternType: riskPatternTypeEnum("pattern_type").notNull(),
+  riskScore: decimal("risk_score", { precision: 5, scale: 2 }).notNull(), // 0-100
+  confidence: patternConfidenceEnum("confidence").notNull(),
+  status: riskClusterStatusEnum("status").notNull().default("active"),
+  
+  // Pattern detection rules and thresholds
+  detectionRules: json("detection_rules").$type<{
+    velocityThreshold?: number;
+    timeWindow?: number; // minutes
+    actionCount?: number;
+    ipVariation?: boolean;
+    crossModuleFlags?: string[];
+    behavioralMetrics?: Record<string, any>;
+  }>().default({}),
+  
+  // Cluster statistics
+  affectedUsers: integer("affected_users").default(0),
+  totalIncidents: integer("total_incidents").default(0),
+  falsePositives: integer("false_positives").default(0),
+  
+  // Temporal analysis
+  firstDetected: timestamp("first_detected").notNull().defaultNow(),
+  lastOccurrence: timestamp("last_occurrence"),
+  averageInterval: integer("average_interval"), // minutes between occurrences
+  
+  // AI Enhancement
+  aiAnalysis: json("ai_analysis").$type<{
+    patterns?: string[];
+    correlations?: string[];
+    predictions?: string[];
+    recommendations?: string[];
+  }>().default({}),
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, table => ({
+  tenantIdIdx: index("risk_clusters_tenant_id_idx").on(table.tenantId),
+  patternTypeIdx: index("risk_clusters_pattern_type_idx").on(table.patternType),
+  statusIdx: index("risk_clusters_status_idx").on(table.status),
+  riskScoreIdx: index("risk_clusters_risk_score_idx").on(table.riskScore),
+  firstDetectedIdx: index("risk_clusters_first_detected_idx").on(table.firstDetected),
+}));
+
+// Pattern Flags table - Individual pattern instances
+export const patternFlags = pgTable("pattern_flags", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  clusterId: uuid("cluster_id").references(() => riskClusters.id),
+  userId: uuid("user_id").references(() => users.id),
+  
+  // Pattern identification
+  patternType: riskPatternTypeEnum("pattern_type").notNull(),
+  severity: fraudSeverityEnum("severity").notNull(),
+  confidence: patternConfidenceEnum("confidence").notNull(),
+  
+  // Context and evidence
+  moduleSource: text("module_source").notNull(), // marketplace, fidelity, shipments, services
+  eventType: text("event_type").notNull(), // order_created, cashback_claimed, shipment_flagged, etc.
+  entityId: uuid("entity_id"), // ID of the related entity (order, shipment, etc.)
+  
+  // Detection details
+  triggerData: json("trigger_data").$type<{
+    ipAddress?: string;
+    userAgent?: string;
+    actionVelocity?: number;
+    anomalyScore?: number;
+    correlatedEvents?: string[];
+    locationData?: Record<string, any>;
+    timingData?: Record<string, any>;
+  }>().notNull().default({}),
+  
+  // Pattern metrics
+  deviationScore: decimal("deviation_score", { precision: 5, scale: 2 }), // How much this deviates from normal
+  riskContribution: decimal("risk_contribution", { precision: 5, scale: 2 }), // Contribution to overall user risk
+  
+  // Investigation and resolution
+  investigationStatus: text("investigation_status").notNull().default("pending"), // pending, investigating, resolved, false_positive
+  investigatedBy: uuid("investigated_by").references(() => users.id),
+  resolutionNotes: text("resolution_notes"),
+  automatedAction: text("automated_action"), // action_taken by automated response
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  resolvedAt: timestamp("resolved_at"),
+}, table => ({
+  tenantIdIdx: index("pattern_flags_tenant_id_idx").on(table.tenantId),
+  userIdIdx: index("pattern_flags_user_id_idx").on(table.userId),
+  clusterIdIdx: index("pattern_flags_cluster_id_idx").on(table.clusterId),
+  patternTypeIdx: index("pattern_flags_pattern_type_idx").on(table.patternType),
+  moduleSourceIdx: index("pattern_flags_module_source_idx").on(table.moduleSource),
+  statusIdx: index("pattern_flags_status_idx").on(table.investigationStatus),
+  createdAtIdx: index("pattern_flags_created_at_idx").on(table.createdAt),
+}));
+
+// Risk Clusters & Pattern Flags Types and Insert Schemas - Milestone 2
+export type RiskCluster = typeof riskClusters.$inferSelect;
+export type InsertRiskCluster = typeof riskClusters.$inferInsert;
+
+export type PatternFlag = typeof patternFlags.$inferSelect;
+export type InsertPatternFlag = typeof patternFlags.$inferInsert;
+
+export const insertRiskClusterSchema = createInsertSchema(riskClusters);
+export const insertPatternFlagSchema = createInsertSchema(patternFlags);
 
 // Courier Assignments table - Enhanced courier management
 export const courierAssignments = pgTable("courier_assignments", {

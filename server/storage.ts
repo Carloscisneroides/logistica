@@ -8,6 +8,7 @@ import {
   marketplaceOrderItems, marketplaceReviews,
   fidelitySettings, fidelityCards, fidelityWallets, fidelityWalletTransactions, fidelityOffers,
   fidelityRedemptions, sponsors, promoterProfiles, promoterKpis, fidelityAiProfiles, fidelityAiLogs,
+  riskClusters, patternFlags,
   type User, type InsertUser, type Client, type InsertClient, type Tenant, type InsertTenant,
   type CourierModule, type InsertCourierModule, type Shipment, type InsertShipment,
   type Invoice, type InsertInvoice, type Correction, type InsertCorrection,
@@ -95,6 +96,30 @@ export interface IStorage {
     fraudFlags: FraudFlag[];
   }>;
   updateDeliveryStatus(shipmentId: string, status: string, notes?: string, tenantId?: string): Promise<DeliveryStatus>;
+
+  // AI Antifraud Pattern Detection - Milestone 2
+  getRiskClustersByTenant(tenantId: string): Promise<RiskCluster[]>;
+  createRiskCluster(cluster: InsertRiskCluster): Promise<RiskCluster>;
+  updateRiskCluster(id: string, updates: Partial<InsertRiskCluster>): Promise<RiskCluster>;
+  getPatternFlagsByTenant(tenantId: string, filters?: {
+    userId?: string;
+    moduleSource?: string;
+    patternType?: string;
+    severity?: string;
+  }): Promise<PatternFlag[]>;
+  createPatternFlag(flag: InsertPatternFlag): Promise<PatternFlag>;
+  detectPatterns(userId: string, tenantId: string, eventData: {
+    moduleSource: string;
+    eventType: string;
+    entityId?: string;
+    ipAddress?: string;
+    userAgent?: string;
+    additionalData?: Record<string, any>;
+  }): Promise<{
+    patterns: PatternFlag[];
+    riskScore: number;
+    recommendations: string[];
+  }>;
   
   // Invoices
   getInvoice(id: string): Promise<Invoice | undefined>;
@@ -3235,6 +3260,175 @@ export class DatabaseStorage implements IStorage {
       attemptedAt: sql`now()`,
     }).returning();
     return deliveryStatusResult;
+  }
+
+  // ========== AI ANTIFRAUD PATTERN DETECTION - MILESTONE 2 ==========
+
+  // Risk Clusters Management
+  async getRiskClustersByTenant(tenantId: string): Promise<RiskCluster[]> {
+    return db.select().from(riskClusters)
+      .where(eq(riskClusters.tenantId, tenantId))
+      .orderBy(desc(riskClusters.riskScore), desc(riskClusters.createdAt));
+  }
+
+  async createRiskCluster(cluster: InsertRiskCluster): Promise<RiskCluster> {
+    const [created] = await db.insert(riskClusters).values(cluster).returning();
+    return created;
+  }
+
+  async updateRiskCluster(id: string, updates: Partial<InsertRiskCluster>): Promise<RiskCluster> {
+    const [updated] = await db.update(riskClusters)
+      .set({ ...updates, updatedAt: sql`now()` })
+      .where(eq(riskClusters.id, id))
+      .returning();
+    return updated;
+  }
+
+  // Pattern Flags Management  
+  async getPatternFlagsByTenant(tenantId: string, filters?: {
+    userId?: string;
+    moduleSource?: string;
+    patternType?: string;
+    severity?: string;
+  }): Promise<PatternFlag[]> {
+    const conditions = [eq(patternFlags.tenantId, tenantId)];
+    
+    if (filters?.userId) conditions.push(eq(patternFlags.userId, filters.userId));
+    if (filters?.moduleSource) conditions.push(eq(patternFlags.moduleSource, filters.moduleSource));
+    if (filters?.patternType) conditions.push(eq(patternFlags.patternType, filters.patternType as any));
+    if (filters?.severity) conditions.push(eq(patternFlags.severity, filters.severity as any));
+    
+    return db.select().from(patternFlags)
+      .where(and(...conditions))
+      .orderBy(desc(patternFlags.createdAt));
+  }
+
+  async createPatternFlag(flag: InsertPatternFlag): Promise<PatternFlag> {
+    const [created] = await db.insert(patternFlags).values(flag).returning();
+    
+    // Update related risk cluster statistics
+    if (flag.clusterId) {
+      await db.update(riskClusters)
+        .set({ 
+          totalIncidents: sql`${riskClusters.totalIncidents} + 1`,
+          lastOccurrence: sql`now()`,
+          updatedAt: sql`now()`
+        })
+        .where(eq(riskClusters.id, flag.clusterId));
+    }
+    
+    return created;
+  }
+
+  // Advanced Pattern Detection Engine
+  async detectPatterns(userId: string, tenantId: string, eventData: {
+    moduleSource: string;
+    eventType: string;
+    entityId?: string;
+    ipAddress?: string;
+    userAgent?: string;
+    additionalData?: Record<string, any>;
+  }): Promise<{
+    patterns: PatternFlag[];
+    riskScore: number;
+    recommendations: string[];
+  }> {
+    const detectedPatterns: PatternFlag[] = [];
+    let aggregatedRiskScore = 0;
+    const recommendations: string[] = [];
+
+    // 1. Velocity Anomaly Detection
+    const recentActions = await db.select().from(auditLogs)
+      .where(and(
+        eq(auditLogs.userId, userId),
+        eq(auditLogs.tenantId, tenantId),
+        sql`${auditLogs.createdAt} >= NOW() - INTERVAL '1 hour'`
+      ));
+
+    if (recentActions.length >= 20) { // High velocity threshold
+      const velocityPattern = await this.createPatternFlag({
+        tenantId,
+        userId,
+        patternType: 'velocity_anomaly',
+        severity: 'high',
+        confidence: 'high',
+        moduleSource: eventData.moduleSource,
+        eventType: eventData.eventType,
+        entityId: eventData.entityId,
+        triggerData: {
+          ipAddress: eventData.ipAddress,
+          userAgent: eventData.userAgent,
+          actionVelocity: recentActions.length,
+          anomalyScore: Math.min(100, recentActions.length * 2)
+        },
+        deviationScore: 85.0,
+        riskContribution: 25.0
+      });
+      detectedPatterns.push(velocityPattern);
+      aggregatedRiskScore += 25;
+      recommendations.push('High velocity activity detected - consider rate limiting');
+    }
+
+    // 2. Cross-Module Correlation Analysis
+    const crossModuleEvents = await db.select().from(patternFlags)
+      .where(and(
+        eq(patternFlags.userId, userId),
+        eq(patternFlags.tenantId, tenantId),
+        sql`${patternFlags.createdAt} >= NOW() - INTERVAL '24 hours'`
+      ));
+
+    const modulesSources = new Set(crossModuleEvents.map(e => e.moduleSource));
+    if (modulesSources.size >= 3) { // Activity across multiple modules
+      const correlationPattern = await this.createPatternFlag({
+        tenantId,
+        userId,
+        patternType: 'cross_module_correlation',
+        severity: 'medium',
+        confidence: 'medium',
+        moduleSource: eventData.moduleSource,
+        eventType: eventData.eventType,
+        entityId: eventData.entityId,
+        triggerData: {
+          correlatedEvents: Array.from(modulesSources),
+          anomalyScore: modulesSources.size * 15
+        },
+        deviationScore: 60.0,
+        riskContribution: 15.0
+      });
+      detectedPatterns.push(correlationPattern);
+      aggregatedRiskScore += 15;
+      recommendations.push('Multi-module activity pattern - monitor for coordinated attacks');
+    }
+
+    // 3. Temporal Suspicious Patterns
+    const hourOfDay = new Date().getHours();
+    if (hourOfDay >= 2 && hourOfDay <= 5) { // Unusual hours activity
+      const temporalPattern = await this.createPatternFlag({
+        tenantId,
+        userId,
+        patternType: 'temporal_suspicious',
+        severity: 'low',
+        confidence: 'medium',
+        moduleSource: eventData.moduleSource,
+        eventType: eventData.eventType,
+        entityId: eventData.entityId,
+        triggerData: {
+          timingData: { hourOfDay, timezone: 'UTC' },
+          anomalyScore: 30
+        },
+        deviationScore: 40.0,
+        riskContribution: 10.0
+      });
+      detectedPatterns.push(temporalPattern);
+      aggregatedRiskScore += 10;
+      recommendations.push('Unusual time activity - verify user timezone and behavior');
+    }
+
+    return {
+      patterns: detectedPatterns,
+      riskScore: Math.min(100, aggregatedRiskScore),
+      recommendations
+    };
   }
 }
 

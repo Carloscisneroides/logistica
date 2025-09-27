@@ -1,0 +1,83 @@
+YCore – Foglio Tecnico
+Modulo Spedizioni – Milestone Logistica
+
+1. Obiettivo
+Implementare un sistema logistico nativo, antifrode e scalabile per la gestione delle spedizioni territoriali, con ambienti separati, tracciamento avanzato e compatibilità con operatori esterni.
+
+2. Funzionalità previste
+Elenco spedizioni Visualizzazione completa delle spedizioni attive, archiviate e in attesa
+
+Genera spedizione Creazione manuale o automatica con assegnazione territoriale (CAP/zona)
+
+Etichette Generazione etichette con QR, codice tracking e dati antifrode
+
+Corrieri privati + GPS Integrazione con operatori esterni e tracciamento in tempo reale
+
+Palmare mobile Interfaccia dedicata per corrieri, compatibile con dispositivi mobili
+
+Giacenze Gestione spedizioni non consegnate, con alert e regole di rientro
+
+Resi Flusso di restituzione merce con tracciamento e regole antifrode
+
+Rettifiche / Supplementi Modifica ordini, aggiunta costi, gestione supplementi e variazioni post-spedizione
+
+3. Architettura tecnica
+Database dedicato Tabelle: shipment_logs, delivery_status, fraud_flags
+
+API REST previste
+
+POST /api/shipment/create
+
+GET /api/shipment/:id
+
+POST /api/shipment/:id/assignCourier
+
+POST /api/shipment/:id/flagAnomaly
+
+GET /api/shipment/:id/track
+
+Frontend
+
+Dashboard merchant/admin
+
+Palmare corriere
+
+Interfaccia clienti tracking
+
+4. Integrazione antifrode
+Logging automatico su ogni evento critico
+
+Escalation automatica: anomalie → sospensione / monitoraggio
+
+Compatibilità con anti_disintermediation_logs, audit_logs
+
+Estensione scoring AI antifrode al modulo Spedizioni
+
+5. Ambienti separati
+Merchant
+
+Cliente
+
+Corriere
+
+Admin
+
+Ogni ruolo opera in ambiente dedicato con permessi e interfaccia specifica.
+
+6. Compatibilità esterna
+Integrazione con operatori logistici territoriali
+
+Compatibilità con GPS e sistemi di tracking
+
+API estendibili per Reply e AWS
+
+7. Stato attuale
+Milestone avviata
+
+Backend e API in sviluppo
+
+Frontend in fase di implementazione
+
+Logging antifrode già attivo
+
+Documentazione pronta per validazione

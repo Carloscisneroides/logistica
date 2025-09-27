@@ -389,6 +389,160 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ========== AI ANTIFRAUD PATTERN DETECTION API - MILESTONE 2 ==========
+
+  // Get risk clusters for tenant
+  app.get("/api/ai/antifraud/risk-clusters", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+      
+      if (user.role !== 'admin') {
+        return res.status(403).json({ error: "Insufficient permissions for risk clusters" });
+      }
+      
+      const clusters = await storage.getRiskClustersByTenant(user.tenantId);
+      res.json(clusters);
+    } catch (error: any) {
+      console.error("Risk clusters error:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch risk clusters" });
+    }
+  });
+
+  // Detect patterns for specific user
+  app.post("/api/ai/antifraud/detect-patterns", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+      
+      if (user.role !== 'admin') {
+        return res.status(403).json({ error: "Insufficient permissions for pattern detection" });
+      }
+      
+      const { userId, moduleSource, eventType, entityId, additionalData } = req.body;
+      
+      // Validation
+      if (!userId || !moduleSource || !eventType) {
+        return res.status(400).json({ error: "userId, moduleSource, and eventType are required" });
+      }
+      
+      // Validate UUID format for userId
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) {
+        return res.status(400).json({ error: "Invalid userId format" });
+      }
+      
+      // Verify target user belongs to same tenant
+      const targetUser = await storage.getUser(userId);
+      if (!targetUser || targetUser.tenantId !== user.tenantId) {
+        return res.status(404).json({ error: "User not found or access denied" });
+      }
+      
+      const eventData = {
+        moduleSource,
+        eventType,
+        entityId,
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        additionalData
+      };
+      
+      const detection = await storage.detectPatterns(userId, user.tenantId, eventData);
+      
+      // Auto-escalate if high risk detected
+      if (detection.riskScore >= 70) {
+        try {
+          await storage.executeAutomatedResponse(userId, user.tenantId, 'high');
+        } catch (escalationError) {
+          console.error("Auto-escalation error:", escalationError);
+        }
+      }
+      
+      res.json(detection);
+    } catch (error: any) {
+      console.error("Pattern detection error:", error);
+      res.status(500).json({ error: error.message || "Pattern detection failed" });
+    }
+  });
+
+  // Get pattern flags with filtering
+  app.get("/api/ai/antifraud/pattern-flags", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+      
+      if (user.role !== 'admin') {
+        return res.status(403).json({ error: "Insufficient permissions for pattern flags" });
+      }
+      
+      const { userId, moduleSource, patternType, severity } = req.query;
+      
+      const filters: any = {};
+      if (userId) filters.userId = userId as string;
+      if (moduleSource) filters.moduleSource = moduleSource as string;
+      if (patternType) filters.patternType = patternType as string;
+      if (severity) filters.severity = severity as string;
+      
+      const flags = await storage.getPatternFlagsByTenant(user.tenantId, filters);
+      res.json(flags);
+    } catch (error: any) {
+      console.error("Pattern flags error:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch pattern flags" });
+    }
+  });
+
+  // Trigger cross-module risk logging (middleware endpoint)
+  app.post("/api/ai/antifraud/log-risk-event", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+      
+      const { targetUserId, moduleSource, eventType, entityId, riskData } = req.body;
+      
+      // Validation
+      if (!targetUserId || !moduleSource || !eventType) {
+        return res.status(400).json({ error: "targetUserId, moduleSource, and eventType are required" });
+      }
+      
+      // Auto-detect patterns for the user
+      const detection = await storage.detectPatterns(targetUserId, user.tenantId, {
+        moduleSource,
+        eventType,
+        entityId,
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        additionalData: riskData
+      });
+      
+      // Update user risk score if significant patterns detected
+      if (detection.patterns.length > 0) {
+        const riskAssessment = await storage.calculateUserRiskScore(targetUserId, user.tenantId);
+        
+        // Auto-escalate based on updated risk
+        if (riskAssessment.riskLevel === 'critical' || riskAssessment.riskLevel === 'high') {
+          await storage.executeAutomatedResponse(targetUserId, user.tenantId, riskAssessment.riskLevel);
+        }
+      }
+      
+      res.json({
+        logged: true,
+        patternsDetected: detection.patterns.length,
+        riskScore: detection.riskScore,
+        recommendations: detection.recommendations
+      });
+    } catch (error: any) {
+      console.error("Risk event logging error:", error);
+      res.status(500).json({ error: error.message || "Risk event logging failed" });
+    }
+  });
+
   // AI Support Assistant endpoint
   app.post("/api/ai/support-assistant", isAuthenticated, async (req, res) => {
     try {
