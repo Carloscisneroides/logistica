@@ -1,0 +1,96 @@
+YCore – Scheda Tecnica Modulo “Listini & Corrieri”
+Versione: Settembre 2025 Autore: Ylenia Sacco – Founder & CEO Destinatario: Reply – Validazione modulo logistico
+
+🧩 Struttura Modulare
+Il modulo “Listini & Corrieri” è progettato per gestire in modo scalabile e multi-tenant:
+
+Tariffe di spedizione per fasce di peso e destinazioni
+
+Assegnazione corrieri attivi per merchant e subclienti
+
+Gestione dinamica di zone speciali (ZTL, isole, località disagiate)
+
+Compatibilità con palmare mobile, dashboard merchant e moduli antifrode
+
+📦 Componenti Principali
+1. Listino Corrieri
+Fasce di peso da 2 KG a 500 KG
+
+Prezzi differenziati per:
+
+Italia
+
+Località Disagiate
+
+SCS
+
+Livigno/Campione
+
+Località Periferiche
+
+Fattore peso/volume: 200 kg/m³ (coeff. 50000)
+
+Prezzi aggiornabili via dashboard admin
+
+Logging antifrode su ogni modifica
+
+2. Listino Clienti
+Prezzi personalizzati per merchant e subclienti
+
+Applicazione automatica in fase di ordine
+
+Compatibilità con condizioni commerciali (sconti, franchigie, priorità)
+
+Logging antifrode su assegnazioni e override
+
+3. Corrieri Attivi
+Integrazione API predisposta per:
+
+DHL, UPS, FedEx, Cainiao, Maersk, Poste, BRT, GLS
+
+Onboarding corrieri via dashboard
+
+Visualizzazione stato API, copertura, compatibilità palmare
+
+Logging su attivazione/disattivazione
+
+🧭 Gestione “One” – Zone Speciali
+La voce “One” è un componente dinamico che si collega ai listini e identifica automaticamente zone con sovrapprezzo o condizioni speciali.
+
+Zone gestite:
+Località Disagiate
+
+ZTL
+
+Isole minori
+
+Livigno/Campione
+
+Località Periferiche
+
+Funzionalità:
+Identificazione automatica via CAP, coordinate o API corriere
+
+Applicazione sovrapprezzo o condizione commerciale dedicata
+
+Logging antifrode su ogni applicazione
+
+Visualizzazione nel riepilogo ordine e dashboard merchant
+
+🏗️ Compatibilità Multi-Tenant
+Ogni tenant ha listino dedicato e corrieri attivi personalizzati
+
+La voce “One” si adatta dinamicamente alla zona del destinatario
+
+Logging antifrode e audit trail attivo
+
+Supporto per white-label e SRL territoriali
+
+📎 Allegati consigliati
+Listino corrieri completo (immagine o CSV)
+
+Flow logico “One” per zone speciali
+
+Documentazione API corrieri
+
+Schema condizioni commerciali merchant/subclienti
