@@ -2114,6 +2114,272 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
     }
   });
 
+  // ======== MARKETPLACE MODULE API ENDPOINTS ========
+
+  // Marketplace Categories
+  app.get("/api/marketplace/categories", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const categories = await storage.getMarketplaceCategories(user.tenantId);
+      res.json(categories);
+    } catch (error) {
+      console.error("Error fetching marketplace categories:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Marketplace Listings with Advanced Security Controls
+  app.get("/api/marketplace/listings", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const { category } = req.query;
+      
+      // Implement concurrency protection rules - only show listings that user can see
+      const listings = await storage.getMarketplaceListings(
+        user.tenantId, 
+        user.role, 
+        category as string
+      );
+      
+      res.json(listings);
+    } catch (error) {
+      console.error("Error fetching marketplace listings:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/marketplace/listings/:id", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      const { id } = req.params;
+
+      if (!user?.tenantId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const listing = await storage.getMarketplaceListing(id, user.tenantId);
+      if (!listing) {
+        return res.status(404).json({ error: "Listing not found or access denied" });
+      }
+
+      // Increment view count for analytics
+      await storage.incrementListingViews(id);
+
+      res.json(listing);
+    } catch (error) {
+      console.error("Error fetching marketplace listing:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // My Listings (Seller perspective)
+  app.get("/api/marketplace/my-listings", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId || !user?.id) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const listings = await storage.getMarketplaceListingsBySeller(user.id, user.tenantId);
+      res.json(listings);
+    } catch (error) {
+      console.error("Error fetching seller listings:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/marketplace/listings", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId || !user?.id) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      // Enforce security defaults: private visibility, draft status
+      const listingData = {
+        ...req.body,
+        sellerId: user.id,
+        sellerTenantId: user.tenantId,
+        visibility: "private", // Default to private for security
+        status: "draft" // Require explicit activation
+      };
+
+      const listing = await storage.createMarketplaceListing(listingData);
+      res.status(201).json(listing);
+    } catch (error) {
+      console.error("Error creating marketplace listing:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.put("/api/marketplace/listings/:id", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      const { id } = req.params;
+
+      if (!user?.tenantId || !user?.id) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      // Only seller can update their listing
+      const listing = await storage.updateMarketplaceListing(id, user.id, req.body);
+      res.json(listing);
+    } catch (error) {
+      console.error("Error updating marketplace listing:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Marketplace Orders with Role-Based Access
+  app.get("/api/marketplace/orders", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const orders = await storage.getMarketplaceOrders(user.tenantId, user.id, user.role);
+      res.json(orders);
+    } catch (error) {
+      console.error("Error fetching marketplace orders:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/marketplace/orders", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId || !user?.id) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      // Verify buyer can see the listing
+      const listing = await storage.getMarketplaceListing(req.body.listingId, user.tenantId);
+      if (!listing) {
+        return res.status(404).json({ error: "Listing not found or access denied" });
+      }
+
+      const orderData = {
+        ...req.body,
+        buyerId: user.id,
+        buyerTenantId: user.tenantId,
+        sellerId: listing.sellerId,
+        sellerTenantId: listing.sellerTenantId
+      };
+
+      const order = await storage.createMarketplaceOrder(orderData);
+      res.status(201).json(order);
+    } catch (error) {
+      console.error("Error creating marketplace order:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.put("/api/marketplace/orders/:id", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      const { id } = req.params;
+
+      if (!user?.tenantId || !user?.id) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      // Only buyer or seller can update order
+      const order = await storage.updateMarketplaceOrder(id, req.body, user.id);
+      res.json(order);
+    } catch (error) {
+      console.error("Error updating marketplace order:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Marketplace Reviews
+  app.get("/api/marketplace/listings/:id/reviews", isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const reviews = await storage.getMarketplaceReviewsByListing(id);
+      res.json(reviews);
+    } catch (error) {
+      console.error("Error fetching marketplace reviews:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/marketplace/reviews", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId || !user?.id) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const reviewData = {
+        ...req.body,
+        reviewerId: user.id,
+        reviewerTenantId: user.tenantId,
+        isVerifiedPurchase: true
+      };
+
+      const review = await storage.createMarketplaceReview(reviewData);
+      res.status(201).json(review);
+    } catch (error) {
+      console.error("Error creating marketplace review:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Marketplace Visibility Controls
+  app.post("/api/marketplace/listings/:id/visibility", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      const { id } = req.params;
+
+      if (!user?.tenantId || !user?.id) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      // Verify user owns the listing
+      const listing = await storage.getMarketplaceListing(id, user.tenantId);
+      if (!listing || listing.sellerId !== user.id) {
+        return res.status(404).json({ error: "Listing not found or access denied" });
+      }
+
+      const visibilityData = {
+        ...req.body,
+        listingId: id
+      };
+
+      const visibility = await storage.setMarketplaceVisibility(visibilityData);
+      res.status(201).json(visibility);
+    } catch (error) {
+      console.error("Error setting marketplace visibility:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Marketplace Dashboard Stats
+  app.get("/api/marketplace/stats", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const stats = await storage.getMarketplaceDashboardStats(user.tenantId);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching marketplace stats:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

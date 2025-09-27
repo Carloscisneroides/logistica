@@ -3,6 +3,8 @@ import {
   platformConnections, platformWebhooks, shipmentTracking, returns, storageItems, 
   csmTickets, csmKpi, tsmTickets, auditLogs, escalations, notifications,
   ecommerceCustomers, products, ecommerceOrders, orderItems, marketplaceIntegrations,
+  marketplaceCategories, marketplaceListings, marketplaceVisibility, marketplaceOrders, 
+  marketplaceOrderItems, marketplaceReviews,
   type User, type InsertUser, type Client, type InsertClient, type Tenant, type InsertTenant,
   type CourierModule, type InsertCourierModule, type Shipment, type InsertShipment,
   type Invoice, type InsertInvoice, type Correction, type InsertCorrection,
@@ -14,7 +16,10 @@ import {
   type AuditLog, type InsertAuditLog, type Escalation, type InsertEscalation,
   type Notification, type InsertNotification, type EcommerceCustomer, type InsertEcommerceCustomer,
   type Product, type InsertProduct, type EcommerceOrder, type InsertEcommerceOrder,
-  type OrderItem, type InsertOrderItem, type MarketplaceIntegration, type InsertMarketplaceIntegration
+  type OrderItem, type InsertOrderItem, type MarketplaceIntegration, type InsertMarketplaceIntegration,
+  type MarketplaceCategory, type InsertMarketplaceCategory, type MarketplaceListing, type InsertMarketplaceListing,
+  type MarketplaceVisibility, type InsertMarketplaceVisibility, type MarketplaceOrder, type InsertMarketplaceOrder,
+  type MarketplaceOrderItem, type InsertMarketplaceOrderItem, type MarketplaceReview, type InsertMarketplaceReview
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, isNull } from "drizzle-orm";
@@ -1073,6 +1078,320 @@ export class DatabaseStorage implements IStorage {
         id: p.id,
         name: p.name,
         sales: parseInt(String(p.sales))
+      }))
+    };
+  }
+
+  // ======== MARKETPLACE MODULE IMPLEMENTATION ========
+
+  // Marketplace Categories
+  async getMarketplaceCategories(tenantId?: string): Promise<MarketplaceCategory[]> {
+    if (tenantId) {
+      return db.select().from(marketplaceCategories).where(eq(marketplaceCategories.tenantId, tenantId));
+    }
+    return db.select().from(marketplaceCategories).where(eq(marketplaceCategories.isActive, true));
+  }
+
+  async getMarketplaceCategory(id: string): Promise<MarketplaceCategory | undefined> {
+    const [category] = await db.select().from(marketplaceCategories).where(eq(marketplaceCategories.id, id));
+    return category || undefined;
+  }
+
+  async createMarketplaceCategory(category: InsertMarketplaceCategory): Promise<MarketplaceCategory> {
+    const [created] = await db.insert(marketplaceCategories).values(category).returning();
+    return created;
+  }
+
+  async updateMarketplaceCategory(id: string, updates: Partial<MarketplaceCategory>): Promise<MarketplaceCategory> {
+    const [updated] = await db.update(marketplaceCategories).set(updates).where(eq(marketplaceCategories.id, id)).returning();
+    return updated;
+  }
+
+  // Marketplace Listings with Security Controls
+  async getMarketplaceListings(viewerTenantId: string, viewerRole: string, categoryId?: string): Promise<MarketplaceListing[]> {
+    let query = db.select().from(marketplaceListings)
+      .where(and(
+        eq(marketplaceListings.status, "active"),
+        or(
+          eq(marketplaceListings.visibility, "public"),
+          eq(marketplaceListings.sellerTenantId, viewerTenantId), // Own tenant listings
+          sql`${marketplaceListings.allowedTenantIds} @> ARRAY[${viewerTenantId}]`, // Explicitly allowed
+          sql`${marketplaceListings.allowedRoles} @> ARRAY[${viewerRole}]` // Role-based access
+        ),
+        not(sql`${marketplaceListings.blockedTenantIds} @> ARRAY[${viewerTenantId}]`) // Not blocked
+      ));
+
+    if (categoryId) {
+      query = query.where(eq(marketplaceListings.categoryId, categoryId));
+    }
+
+    return query.orderBy(desc(marketplaceListings.createdAt));
+  }
+
+  async getMarketplaceListing(id: string, viewerTenantId: string): Promise<MarketplaceListing | undefined> {
+    const [listing] = await db.select().from(marketplaceListings)
+      .where(and(
+        eq(marketplaceListings.id, id),
+        or(
+          eq(marketplaceListings.sellerTenantId, viewerTenantId), // Owner can always see
+          eq(marketplaceListings.visibility, "public"),
+          sql`${marketplaceListings.allowedTenantIds} @> ARRAY[${viewerTenantId}]`
+        )
+      ));
+    return listing || undefined;
+  }
+
+  async getMarketplaceListingsBySeller(sellerId: string, tenantId: string): Promise<MarketplaceListing[]> {
+    return db.select().from(marketplaceListings)
+      .where(and(
+        eq(marketplaceListings.sellerId, sellerId),
+        eq(marketplaceListings.sellerTenantId, tenantId)
+      ))
+      .orderBy(desc(marketplaceListings.createdAt));
+  }
+
+  async createMarketplaceListing(listing: InsertMarketplaceListing): Promise<MarketplaceListing> {
+    // Enforce private by default for security
+    const securedListing = { 
+      ...listing, 
+      visibility: listing.visibility || "private",
+      status: "draft" // Require explicit activation
+    };
+    const [created] = await db.insert(marketplaceListings).values(securedListing).returning();
+    return created;
+  }
+
+  async updateMarketplaceListing(id: string, sellerId: string, updates: Partial<MarketplaceListing>): Promise<MarketplaceListing> {
+    const [updated] = await db.update(marketplaceListings)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(and(
+        eq(marketplaceListings.id, id),
+        eq(marketplaceListings.sellerId, sellerId) // Only seller can update
+      ))
+      .returning();
+    return updated;
+  }
+
+  async incrementListingViews(id: string): Promise<void> {
+    await db.update(marketplaceListings)
+      .set({ viewCount: sql`${marketplaceListings.viewCount} + 1` })
+      .where(eq(marketplaceListings.id, id));
+  }
+
+  // Marketplace Visibility Controls
+  async setMarketplaceVisibility(visibility: InsertMarketplaceVisibility): Promise<MarketplaceVisibility> {
+    const [created] = await db.insert(marketplaceVisibility).values(visibility).returning();
+    return created;
+  }
+
+  async getMarketplaceVisibilityRules(listingId: string): Promise<MarketplaceVisibility[]> {
+    return db.select().from(marketplaceVisibility)
+      .where(and(
+        eq(marketplaceVisibility.listingId, listingId),
+        eq(marketplaceVisibility.isActive, true)
+      ));
+  }
+
+  // Marketplace Orders
+  async getMarketplaceOrders(tenantId: string, userId?: string, role?: string): Promise<MarketplaceOrder[]> {
+    if (role === "admin") {
+      // Admin sees all orders for their tenant
+      return db.select().from(marketplaceOrders)
+        .where(or(
+          eq(marketplaceOrders.buyerTenantId, tenantId),
+          eq(marketplaceOrders.sellerTenantId, tenantId)
+        ))
+        .orderBy(desc(marketplaceOrders.createdAt));
+    }
+    
+    // Users see only their orders
+    return db.select().from(marketplaceOrders)
+      .where(and(
+        or(
+          eq(marketplaceOrders.buyerId, userId!),
+          eq(marketplaceOrders.sellerId, userId!)
+        ),
+        or(
+          eq(marketplaceOrders.buyerTenantId, tenantId),
+          eq(marketplaceOrders.sellerTenantId, tenantId)
+        )
+      ))
+      .orderBy(desc(marketplaceOrders.createdAt));
+  }
+
+  async getMarketplaceOrder(id: string, tenantId: string, userId?: string): Promise<MarketplaceOrder | undefined> {
+    const [order] = await db.select().from(marketplaceOrders)
+      .where(and(
+        eq(marketplaceOrders.id, id),
+        or(
+          eq(marketplaceOrders.buyerTenantId, tenantId),
+          eq(marketplaceOrders.sellerTenantId, tenantId)
+        ),
+        userId ? or(
+          eq(marketplaceOrders.buyerId, userId),
+          eq(marketplaceOrders.sellerId, userId)
+        ) : undefined
+      ));
+    return order || undefined;
+  }
+
+  async createMarketplaceOrder(order: InsertMarketplaceOrder): Promise<MarketplaceOrder> {
+    const orderNumber = `MKT-${Date.now()}`;
+    const [created] = await db.insert(marketplaceOrders)
+      .values({ ...order, orderNumber })
+      .returning();
+    return created;
+  }
+
+  async updateMarketplaceOrder(id: string, updates: Partial<MarketplaceOrder>, userId?: string): Promise<MarketplaceOrder> {
+    let whereCondition = eq(marketplaceOrders.id, id);
+    
+    if (userId) {
+      whereCondition = and(
+        whereCondition,
+        or(
+          eq(marketplaceOrders.buyerId, userId),
+          eq(marketplaceOrders.sellerId, userId)
+        )
+      );
+    }
+
+    const [updated] = await db.update(marketplaceOrders)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(whereCondition)
+      .returning();
+    return updated;
+  }
+
+  // Marketplace Order Items
+  async getMarketplaceOrderItems(orderId: string): Promise<MarketplaceOrderItem[]> {
+    return db.select().from(marketplaceOrderItems)
+      .where(eq(marketplaceOrderItems.orderId, orderId));
+  }
+
+  async createMarketplaceOrderItem(item: InsertMarketplaceOrderItem): Promise<MarketplaceOrderItem> {
+    const [created] = await db.insert(marketplaceOrderItems).values(item).returning();
+    return created;
+  }
+
+  // Marketplace Reviews
+  async getMarketplaceReviewsByListing(listingId: string): Promise<MarketplaceReview[]> {
+    return db.select().from(marketplaceReviews)
+      .where(and(
+        eq(marketplaceReviews.listingId, listingId),
+        eq(marketplaceReviews.isPublic, true),
+        eq(marketplaceReviews.status, "active")
+      ))
+      .orderBy(desc(marketplaceReviews.createdAt));
+  }
+
+  async createMarketplaceReview(review: InsertMarketplaceReview): Promise<MarketplaceReview> {
+    const [created] = await db.insert(marketplaceReviews).values(review).returning();
+    
+    // Update listing rating
+    await this.updateListingRating(review.listingId);
+    
+    return created;
+  }
+
+  private async updateListingRating(listingId: string): Promise<void> {
+    const [result] = await db.select({
+      avgRating: sql<number>`AVG(${marketplaceReviews.rating})`,
+      reviewCount: sql<number>`COUNT(*)`
+    }).from(marketplaceReviews)
+    .where(and(
+      eq(marketplaceReviews.listingId, listingId),
+      eq(marketplaceReviews.isPublic, true),
+      eq(marketplaceReviews.status, "active")
+    ));
+
+    if (result) {
+      await db.update(marketplaceListings)
+        .set({
+          rating: result.avgRating ? parseFloat(result.avgRating.toFixed(2)) : null,
+          reviewCount: result.reviewCount
+        })
+        .where(eq(marketplaceListings.id, listingId));
+    }
+  }
+
+  // Marketplace Dashboard Stats
+  async getMarketplaceDashboardStats(tenantId: string): Promise<{
+    totalListings: number;
+    activeListings: number;
+    totalOrders: number;
+    pendingOrders: number;
+    monthlyRevenue: number;
+    topCategories: Array<{id: string; name: string; listingCount: number}>;
+  }> {
+    // Total listings for tenant
+    const [totalListingsResult] = await db.select({ count: sql`count(*)` })
+      .from(marketplaceListings)
+      .where(eq(marketplaceListings.sellerTenantId, tenantId));
+
+    // Active listings
+    const [activeListingsResult] = await db.select({ count: sql`count(*)` })
+      .from(marketplaceListings)
+      .where(and(
+        eq(marketplaceListings.sellerTenantId, tenantId),
+        eq(marketplaceListings.status, "active")
+      ));
+
+    // Total orders (as buyer or seller)
+    const [totalOrdersResult] = await db.select({ count: sql`count(*)` })
+      .from(marketplaceOrders)
+      .where(or(
+        eq(marketplaceOrders.buyerTenantId, tenantId),
+        eq(marketplaceOrders.sellerTenantId, tenantId)
+      ));
+
+    // Pending orders
+    const [pendingOrdersResult] = await db.select({ count: sql`count(*)` })
+      .from(marketplaceOrders)
+      .where(and(
+        or(
+          eq(marketplaceOrders.buyerTenantId, tenantId),
+          eq(marketplaceOrders.sellerTenantId, tenantId)
+        ),
+        eq(marketplaceOrders.status, "pending")
+      ));
+
+    // Monthly revenue (as seller)
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const [monthlyRevenueResult] = await db.select({ revenue: sql`COALESCE(sum(total_amount), 0)` })
+      .from(marketplaceOrders)
+      .where(and(
+        eq(marketplaceOrders.sellerTenantId, tenantId),
+        sql`${marketplaceOrders.createdAt} >= ${startOfMonth}`,
+        eq(marketplaceOrders.paymentStatus, "paid")
+      ));
+
+    // Top categories
+    const topCategoriesResults = await db.select({
+      id: marketplaceCategories.id,
+      name: marketplaceCategories.name,
+      listingCount: sql`count(${marketplaceListings.id})`
+    })
+    .from(marketplaceCategories)
+    .leftJoin(marketplaceListings, eq(marketplaceCategories.id, marketplaceListings.categoryId))
+    .where(eq(marketplaceListings.sellerTenantId, tenantId))
+    .groupBy(marketplaceCategories.id, marketplaceCategories.name)
+    .orderBy(desc(sql`count(${marketplaceListings.id})`))
+    .limit(5);
+
+    return {
+      totalListings: parseInt(String(totalListingsResult?.count || 0)),
+      activeListings: parseInt(String(activeListingsResult?.count || 0)),
+      totalOrders: parseInt(String(totalOrdersResult?.count || 0)),
+      pendingOrders: parseInt(String(pendingOrdersResult?.count || 0)),
+      monthlyRevenue: parseFloat(String(monthlyRevenueResult?.revenue || 0)),
+      topCategories: topCategoriesResults.map(c => ({
+        id: c.id,
+        name: c.name,
+        listingCount: parseInt(String(c.listingCount))
       }))
     };
   }
