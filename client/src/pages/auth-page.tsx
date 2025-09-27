@@ -56,11 +56,16 @@ export default function AuthPage() {
       {/* Left side - Forms */}
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md space-y-6">
-          <div className="flex items-center justify-center space-x-2 mb-8">
-            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-              <Truck className="w-6 h-6 text-primary-foreground" />
+          <div className="flex flex-col items-center justify-center mb-8">
+            <div className="flex items-center space-x-2 mb-2">
+              <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+                <Truck className="w-6 h-6 text-primary-foreground" />
+              </div>
+              <span className="text-2xl font-bold text-foreground">YCore</span>
             </div>
-            <span className="text-2xl font-bold text-foreground">YCore</span>
+            <div className="text-xs text-muted-foreground/60 text-center">
+              © 2025 YCore SRL Innovativa - Proprietà riservata
+            </div>
           </div>
 
           <Card>

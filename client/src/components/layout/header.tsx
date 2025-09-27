@@ -96,6 +96,11 @@ export function Header({ title, onMenuToggle }: HeaderProps) {
           </Button>
         </div>
       </div>
+      
+      {/* Copyright notice sempre visibile */}
+      <div className="text-xs text-muted-foreground/50 text-right pr-2 mt-1">
+        © 2025 YCore SRL Innovativa - Proprietà riservata
+      </div>
     </header>
   );
 }
