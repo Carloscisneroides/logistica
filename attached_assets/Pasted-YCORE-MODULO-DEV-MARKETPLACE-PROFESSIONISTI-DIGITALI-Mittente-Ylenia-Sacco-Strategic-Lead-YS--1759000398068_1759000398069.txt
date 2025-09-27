@@ -1,0 +1,67 @@
+YCORE – MODULO DEV MARKETPLACE & PROFESSIONISTI DIGITALI Mittente: Ylenia Sacco – Strategic Lead YS Logistics Destinatario: Team Reply – Tecnico & Strategico
+
+Obiettivo Estendere YCore con un modulo Marketplace dedicato a sviluppatori e professionisti digitali, dove clienti da tutto il mondo possono pubblicare progetti, confrontare competenze e prezzi, e ricevere servizi in modo sicuro e tracciato. Il sistema garantisce protezione pagamenti, trasparenza e monetizzazione multilivello.
+
+Categorie incluse
+
+Sviluppatori software e web
+
+Social media manager
+
+Commercialisti e consulenti fiscali
+
+Web designer, SEO, copywriter, grafici
+
+Altri professionisti digitali e consulenziali
+
+Funzionalità principali
+
+Profilo professionista con competenze, portfolio, rating
+
+Profilo cliente con progetto, budget, scadenze
+
+Matching AI tra cliente e professionista
+
+Sistema di pagamento vincolato: acconto + saldo a milestone
+
+Chat interna con logging e protezione dati
+
+Contratto digitale YCore con clausola anti-disintermediazione
+
+Dashboard KPI per performance, guadagni e spese
+
+Commissioni YCore (modulari)
+
+30% su progetti sviluppatori e web designer
+
+15–20% per social media manager, copywriter, consulenti
+
+10–15% su progetti ricorrenti o abbonamenti
+
+Fee mensile opzionale per visibilità nel Marketplace
+
+Commissione minima garantita per progetti brevi
+
+Protezione disintermediazione
+
+Pagamenti vincolati via Stripe Connect
+
+Chat interna obbligatoria, nessun contatto esterno
+
+Contratto digitale con clausole di permanenza
+
+Penalità e declassamento per chi tenta di vendere fuori
+
+Valore reputazionale e protezione AI come leva di fidelizzazione
+
+Algoritmi attivi
+
+Matching cliente–professionista per skill, rating, lingua, budget
+
+Analisi predittiva su tempi di consegna e affidabilità
+
+Suggerimento prezzo medio per progetto simile
+
+Segmentazione per zona, tecnologia, settore
+
+Posizionamento strategico YCore diventa il primo Marketplace modulare per servizi professionali e sviluppo, con protezione nativa, AI integrata e monetizzazione multilivello. Ogni progetto passa da YCore, ogni professionista cresce nel sistema, ogni cliente è tutelato.

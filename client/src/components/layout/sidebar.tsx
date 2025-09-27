@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import {
   Truck,
@@ -15,6 +15,7 @@ import {
   Headphones,
   ShoppingCart,
   Store,
+  CreditCard,
 } from "lucide-react";
 
 const menuItems = [
@@ -73,6 +74,12 @@ const menuItems = [
     roles: ["admin", "merchant"],
   },
   {
+    title: "Fidelity Card",
+    href: "/fidelity",
+    icon: CreditCard,
+    roles: ["admin", "merchant"],
+  },
+  {
     title: "Analytics",
     href: "/analytics",
     icon: BarChart3,
@@ -118,9 +125,9 @@ export function Sidebar({ className }: SidebarProps) {
               const isActive = location === item.href;
               
               return (
-                <a
+                <Link
                   key={item.href}
-                  href={item.href}
+                  to={item.href}
                   className={cn(
                     "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
                     isActive
@@ -131,7 +138,7 @@ export function Sidebar({ className }: SidebarProps) {
                 >
                   <Icon className="mr-3 w-4 h-4" />
                   {item.title}
-                </a>
+                </Link>
               );
             })}
           </div>

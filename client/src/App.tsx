@@ -20,6 +20,7 @@ import Commercial from "@/pages/commercial";
 import SupportPage from "@/pages/support-page";
 import { EcommercePage } from "@/pages/ecommerce-page";
 import { MarketplacePage } from "@/pages/marketplace-page";
+import FidelityPage from "@/pages/fidelity-page";
 import NotFound from "@/pages/not-found";
 
 function MainLayout({ children }: { children: React.ReactNode }) {
@@ -88,6 +89,11 @@ function Router() {
       <ProtectedRoute path="/marketplace" component={() => (
         <MainLayout>
           <MarketplacePage />
+        </MainLayout>
+      )} />
+      <ProtectedRoute path="/fidelity" component={() => (
+        <MainLayout>
+          <FidelityPage />
         </MainLayout>
       )} />
       <Route component={NotFound} />

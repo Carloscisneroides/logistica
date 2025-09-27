@@ -36,6 +36,22 @@ export const fidelityRedemptionStatusEnum = pgEnum("fidelity_redemption_status",
 export const fidelityChannelEnum = pgEnum("fidelity_channel", ["pos", "online", "mobile", "qr_scan"]);
 export const sponsorFundingModelEnum = pgEnum("sponsor_funding_model", ["performance", "fixed", "hybrid", "revenue_share"]);
 
+// Marketplace Professionisti Digitali Enums
+export const professionalCategoryEnum = pgEnum("professional_category", [
+  "developer", "web_designer", "social_media_manager", "accountant", 
+  "seo_specialist", "copywriter", "graphic_designer", "consultant", "other"
+]);
+export const projectStatusEnum = pgEnum("project_status", [
+  "draft", "published", "bidding", "awarded", "in_progress", 
+  "milestone_review", "completed", "disputed", "cancelled"
+]);
+export const bidStatusEnum = pgEnum("bid_status", ["submitted", "accepted", "rejected", "withdrawn"]);
+export const milestoneStatusEnum = pgEnum("milestone_status", ["pending", "submitted", "approved", "rejected", "paid"]);
+export const contractStatusEnum = pgEnum("contract_status", ["draft", "active", "completed", "breached", "disputed"]);
+export const disputeStatusEnum = pgEnum("dispute_status", ["open", "investigating", "mediated", "resolved", "escalated"]);
+export const chatMessageTypeEnum = pgEnum("chat_message_type", ["text", "file", "milestone", "contract", "system"]);
+export const commissionTierEnum = pgEnum("commission_tier", ["tier_30", "tier_20", "tier_15", "tier_10", "custom"]);
+
 // Users table
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -554,6 +570,308 @@ export const marketplaceReviews = pgTable("marketplace_reviews", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+// ======== MARKETPLACE PROFESSIONISTI DIGITALI MODULE ========
+
+// Professional Profiles table
+export const professionalProfiles = pgTable("professional_profiles", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").references(() => users.id).notNull(),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  category: professionalCategoryEnum("category").notNull(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  hourlyRate: decimal("hourly_rate", { precision: 8, scale: 2 }),
+  fixedRateMin: decimal("fixed_rate_min", { precision: 10, scale: 2 }),
+  fixedRateMax: decimal("fixed_rate_max", { precision: 10, scale: 2 }),
+  skills: json("skills").$type<string[]>().default([]),
+  portfolioItems: json("portfolio_items").$type<Array<{
+    title: string;
+    description: string;
+    imageUrl?: string;
+    projectUrl?: string;
+    technologies?: string[];
+  }>>().default([]),
+  languages: json("languages").$type<Array<{language: string; level: string}>>().default([]),
+  certifications: json("certifications").$type<Array<{
+    name: string;
+    issuer: string;
+    year: number;
+    url?: string;
+  }>>().default([]),
+  rating: decimal("rating", { precision: 3, scale: 2 }).default("0.00"),
+  reviewCount: integer("review_count").default(0),
+  completedProjects: integer("completed_projects").default(0),
+  commissionTier: commissionTierEnum("commission_tier").default("tier_30"),
+  customCommissionRate: decimal("custom_commission_rate", { precision: 4, scale: 2 }),
+  isAvailable: boolean("is_available").default(true),
+  isVerified: boolean("is_verified").default(false),
+  profileCompleteness: integer("profile_completeness").default(0),
+  lastActiveAt: timestamp("last_active_at").defaultNow(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  tenantUserIdx: index("professional_profiles_tenant_user_idx").on(table.tenantId, table.userId),
+  categoryIdx: index("professional_profiles_category_idx").on(table.category),
+  availableIdx: index("professional_profiles_available_idx").on(table.isAvailable),
+}));
+
+// Client Projects table
+export const clientProjects = pgTable("client_projects", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  clientId: uuid("client_id").references(() => clients.id).notNull(),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  category: professionalCategoryEnum("category").notNull(),
+  requiredSkills: json("required_skills").$type<string[]>().default([]),
+  budget: decimal("budget", { precision: 10, scale: 2 }).notNull(),
+  budgetType: text("budget_type").notNull().default("fixed"), // "fixed", "hourly", "negotiable"
+  estimatedHours: integer("estimated_hours"),
+  deadline: timestamp("deadline"),
+  status: projectStatusEnum("status").default("draft"),
+  priority: text("priority").default("medium"), // "low", "medium", "high", "urgent"
+  requirements: text("requirements"),
+  deliverables: json("deliverables").$type<string[]>().default([]),
+  attachments: json("attachments").$type<Array<{
+    filename: string;
+    url: string;
+    size: number;
+  }>>().default([]),
+  bidsCount: integer("bids_count").default(0),
+  viewsCount: integer("views_count").default(0),
+  publishedAt: timestamp("published_at"),
+  awardedAt: timestamp("awarded_at"),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  tenantClientIdx: index("client_projects_tenant_client_idx").on(table.tenantId, table.clientId),
+  categoryIdx: index("client_projects_category_idx").on(table.category),
+  statusIdx: index("client_projects_status_idx").on(table.status),
+  publishedIdx: index("client_projects_published_idx").on(table.publishedAt),
+}));
+
+// Project Bids table
+export const projectBids = pgTable("project_bids", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  projectId: uuid("project_id").references(() => clientProjects.id).notNull(),
+  professionalId: uuid("professional_id").references(() => professionalProfiles.id).notNull(),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  proposedAmount: decimal("proposed_amount", { precision: 10, scale: 2 }).notNull(),
+  estimatedHours: integer("estimated_hours"),
+  proposedDeadline: timestamp("proposed_deadline"),
+  coverLetter: text("cover_letter").notNull(),
+  milestones: json("milestones").$type<Array<{
+    title: string;
+    description: string;
+    amount: number;
+    estimatedDays: number;
+  }>>().default([]),
+  status: bidStatusEnum("status").default("submitted"),
+  submittedAt: timestamp("submitted_at").notNull().defaultNow(),
+  respondedAt: timestamp("responded_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  projectProfessionalIdx: index("project_bids_project_professional_idx").on(table.projectId, table.professionalId),
+  tenantIdx: index("project_bids_tenant_idx").on(table.tenantId),
+  statusIdx: index("project_bids_status_idx").on(table.status),
+  uniqueBid: unique("unique_project_professional_bid").on(table.projectId, table.professionalId),
+}));
+
+// Marketplace Contracts table
+export const marketplaceContracts = pgTable("marketplace_contracts", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  projectId: uuid("project_id").references(() => clientProjects.id).notNull(),
+  bidId: uuid("bid_id").references(() => projectBids.id).notNull(),
+  clientId: uuid("client_id").references(() => clients.id).notNull(),
+  professionalId: uuid("professional_id").references(() => professionalProfiles.id).notNull(),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  contractNumber: text("contract_number").notNull().unique(),
+  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
+  commissionAmount: decimal("commission_amount", { precision: 10, scale: 2 }).notNull(),
+  commissionRate: decimal("commission_rate", { precision: 4, scale: 2 }).notNull(),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  status: contractStatusEnum("status").default("draft"),
+  terms: text("terms").notNull(),
+  deliverables: json("deliverables").$type<string[]>().default([]),
+  antiDisintermediationClause: text("anti_disintermediation_clause").notNull(),
+  stripePaymentIntentId: text("stripe_payment_intent_id"),
+  stripeConnectAccountId: text("stripe_connect_account_id"),
+  signedByClient: boolean("signed_by_client").default(false),
+  signedByProfessional: boolean("signed_by_professional").default(false),
+  clientSignedAt: timestamp("client_signed_at"),
+  professionalSignedAt: timestamp("professional_signed_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  tenantIdx: index("marketplace_contracts_tenant_idx").on(table.tenantId),
+  clientIdx: index("marketplace_contracts_client_idx").on(table.clientId),
+  professionalIdx: index("marketplace_contracts_professional_idx").on(table.professionalId),
+  statusIdx: index("marketplace_contracts_status_idx").on(table.status),
+}));
+
+// Project Milestones table
+export const projectMilestones = pgTable("project_milestones", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  contractId: uuid("contract_id").references(() => marketplaceContracts.id).notNull(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  dueDate: timestamp("due_date").notNull(),
+  status: milestoneStatusEnum("status").default("pending"),
+  deliverables: json("deliverables").$type<string[]>().default([]),
+  attachments: json("attachments").$type<Array<{
+    filename: string;
+    url: string;
+    size: number;
+  }>>().default([]),
+  submittedAt: timestamp("submitted_at"),
+  reviewedAt: timestamp("reviewed_at"),
+  paidAt: timestamp("paid_at"),
+  stripePaymentIntentId: text("stripe_payment_intent_id"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  contractIdx: index("project_milestones_contract_idx").on(table.contractId),
+  statusIdx: index("project_milestones_status_idx").on(table.status),
+  dueDateIdx: index("project_milestones_due_date_idx").on(table.dueDate),
+}));
+
+// Marketplace Chat Messages table
+export const marketplaceChatMessages = pgTable("marketplace_chat_messages", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  contractId: uuid("contract_id").references(() => marketplaceContracts.id).notNull(),
+  senderId: uuid("sender_id").references(() => users.id).notNull(),
+  messageType: chatMessageTypeEnum("message_type").default("text"),
+  content: text("content").notNull(),
+  attachments: json("attachments").$type<Array<{
+    filename: string;
+    url: string;
+    size: number;
+    mimeType: string;
+  }>>().default([]),
+  isRead: boolean("is_read").default(false),
+  isSystem: boolean("is_system").default(false),
+  metadata: json("metadata").$type<Record<string, any>>().default({}),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  contractSenderIdx: index("marketplace_chat_contract_sender_idx").on(table.contractId, table.senderId),
+  createdAtIdx: index("marketplace_chat_created_at_idx").on(table.createdAt),
+  unreadIdx: index("marketplace_chat_unread_idx").on(table.isRead),
+}));
+
+// Marketplace Disputes table  
+export const marketplaceDisputes = pgTable("marketplace_disputes", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  contractId: uuid("contract_id").references(() => marketplaceContracts.id).notNull(),
+  initiatorId: uuid("initiator_id").references(() => users.id).notNull(),
+  respondentId: uuid("respondent_id").references(() => users.id).notNull(),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  category: text("category").notNull(), // "payment", "quality", "deadline", "communication", "breach_of_contract"
+  status: disputeStatusEnum("status").default("open"),
+  priority: text("priority").default("medium"),
+  evidence: json("evidence").$type<Array<{
+    type: string;
+    description: string;
+    url?: string;
+    attachments?: Array<{filename: string; url: string}>;
+  }>>().default([]),
+  resolution: text("resolution"),
+  mediatorId: uuid("mediator_id").references(() => users.id),
+  resolutionAmount: decimal("resolution_amount", { precision: 10, scale: 2 }),
+  resolvedAt: timestamp("resolved_at"),
+  escalatedAt: timestamp("escalated_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  contractIdx: index("marketplace_disputes_contract_idx").on(table.contractId),
+  tenantIdx: index("marketplace_disputes_tenant_idx").on(table.tenantId),
+  statusIdx: index("marketplace_disputes_status_idx").on(table.status),
+}));
+
+// Professional Ratings table
+export const professionalRatings = pgTable("professional_ratings", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  contractId: uuid("contract_id").references(() => marketplaceContracts.id).notNull(),
+  professionalId: uuid("professional_id").references(() => professionalProfiles.id).notNull(),
+  clientId: uuid("client_id").references(() => clients.id).notNull(),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  rating: integer("rating").notNull(), // 1-5 stars
+  reviewTitle: text("review_title"),
+  reviewText: text("review_text"),
+  skillsRating: integer("skills_rating").notNull(),
+  communicationRating: integer("communication_rating").notNull(),
+  qualityRating: integer("quality_rating").notNull(),
+  timelinessRating: integer("timeliness_rating").notNull(),
+  isPublic: boolean("is_public").default(true),
+  isVerified: boolean("is_verified").default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  professionalIdx: index("professional_ratings_professional_idx").on(table.professionalId),
+  tenantIdx: index("professional_ratings_tenant_idx").on(table.tenantId),
+  ratingIdx: index("professional_ratings_rating_idx").on(table.rating),
+  uniqueRating: unique("unique_contract_rating").on(table.contractId),
+}));
+
+// Marketplace Commissions table
+export const marketplaceCommissions = pgTable("marketplace_commissions", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  contractId: uuid("contract_id").references(() => marketplaceContracts.id).notNull(),
+  professionalId: uuid("professional_id").references(() => professionalProfiles.id).notNull(),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  projectAmount: decimal("project_amount", { precision: 10, scale: 2 }).notNull(),
+  commissionRate: decimal("commission_rate", { precision: 4, scale: 2 }).notNull(),
+  commissionAmount: decimal("commission_amount", { precision: 10, scale: 2 }).notNull(),
+  commissionTier: commissionTierEnum("commission_tier").notNull(),
+  paymentStatus: paymentStatusEnum("payment_status").default("pending"),
+  paidAt: timestamp("paid_at"),
+  stripeTransferId: text("stripe_transfer_id"),
+  metadata: json("metadata").$type<{
+    category: string;
+    isRecurring?: boolean;
+    originalRate?: number;
+    discountApplied?: number;
+  }>().default({}),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  professionalIdx: index("marketplace_commissions_professional_idx").on(table.professionalId),
+  tenantIdx: index("marketplace_commissions_tenant_idx").on(table.tenantId),
+  statusIdx: index("marketplace_commissions_status_idx").on(table.paymentStatus),
+  tierIdx: index("marketplace_commissions_tier_idx").on(table.commissionTier),
+}));
+
+// Anti-Disintermediation Logs table
+export const antiDisintermediationLogs = pgTable("anti_disintermediation_logs", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  contractId: uuid("contract_id").references(() => marketplaceContracts.id),
+  professionalId: uuid("professional_id").references(() => professionalProfiles.id),
+  clientId: uuid("client_id").references(() => clients.id),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  eventType: text("event_type").notNull(), // "external_contact_attempt", "payment_bypass", "contract_breach", "suspicious_activity"
+  severity: text("severity").notNull().default("medium"), // "low", "medium", "high", "critical"
+  details: text("details").notNull(),
+  evidence: json("evidence").$type<{
+    ipAddress?: string;
+    userAgent?: string;
+    chatLogs?: string[];
+    emailContent?: string;
+    phoneNumbers?: string[];
+    externalUrls?: string[];
+  }>().default({}),
+  actionTaken: text("action_taken"), // "warning_sent", "account_suspended", "contract_terminated", "legal_notice"
+  isResolved: boolean("is_resolved").default(false),
+  resolvedAt: timestamp("resolved_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  tenantIdx: index("anti_disintermediation_logs_tenant_idx").on(table.tenantId),
+  eventTypeIdx: index("anti_disintermediation_logs_event_type_idx").on(table.eventType),
+  severityIdx: index("anti_disintermediation_logs_severity_idx").on(table.severity),
+  createdAtIdx: index("anti_disintermediation_logs_created_at_idx").on(table.createdAt),
+}));
 
 // ======== MARKETPLACE MODULE TYPES & SCHEMAS ========
 
@@ -1412,6 +1730,63 @@ export const insertMarketplaceIntegrationSchema = createInsertSchema(marketplace
   updatedAt: true,
 });
 
+// Marketplace Professionisti Digitali Insert Schemas
+export const insertProfessionalProfileSchema = createInsertSchema(professionalProfiles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertClientProjectSchema = createInsertSchema(clientProjects).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertProjectBidSchema = createInsertSchema(projectBids).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertMarketplaceContractSchema = createInsertSchema(marketplaceContracts).omit({
+  id: true,
+  contractNumber: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertProjectMilestoneSchema = createInsertSchema(projectMilestones).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertMarketplaceChatMessageSchema = createInsertSchema(marketplaceChatMessages).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertMarketplaceDisputeSchema = createInsertSchema(marketplaceDisputes).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertProfessionalRatingSchema = createInsertSchema(professionalRatings).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertMarketplaceCommissionSchema = createInsertSchema(marketplaceCommissions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertAntiDisintermediationLogSchema = createInsertSchema(antiDisintermediationLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Fidelity Card Insert Schemas
 export const insertFidelitySettingsSchema = createInsertSchema(fidelitySettings).omit({
   id: true,
@@ -1559,3 +1934,25 @@ export type FidelityAiProfile = typeof fidelityAiProfiles.$inferSelect;
 export type InsertFidelityAiProfile = z.infer<typeof insertFidelityAiProfileSchema>;
 export type FidelityAiLog = typeof fidelityAiLogs.$inferSelect;
 export type InsertFidelityAiLog = z.infer<typeof insertFidelityAiLogSchema>;
+
+// Marketplace Professionisti Digitali Types
+export type ProfessionalProfile = typeof professionalProfiles.$inferSelect;
+export type InsertProfessionalProfile = z.infer<typeof insertProfessionalProfileSchema>;
+export type ClientProject = typeof clientProjects.$inferSelect;
+export type InsertClientProject = z.infer<typeof insertClientProjectSchema>;
+export type ProjectBid = typeof projectBids.$inferSelect;
+export type InsertProjectBid = z.infer<typeof insertProjectBidSchema>;
+export type MarketplaceContract = typeof marketplaceContracts.$inferSelect;
+export type InsertMarketplaceContract = z.infer<typeof insertMarketplaceContractSchema>;
+export type ProjectMilestone = typeof projectMilestones.$inferSelect;
+export type InsertProjectMilestone = z.infer<typeof insertProjectMilestoneSchema>;
+export type MarketplaceChatMessage = typeof marketplaceChatMessages.$inferSelect;
+export type InsertMarketplaceChatMessage = z.infer<typeof insertMarketplaceChatMessageSchema>;
+export type MarketplaceDispute = typeof marketplaceDisputes.$inferSelect;
+export type InsertMarketplaceDispute = z.infer<typeof insertMarketplaceDisputeSchema>;
+export type ProfessionalRating = typeof professionalRatings.$inferSelect;
+export type InsertProfessionalRating = z.infer<typeof insertProfessionalRatingSchema>;
+export type MarketplaceCommission = typeof marketplaceCommissions.$inferSelect;
+export type InsertMarketplaceCommission = z.infer<typeof insertMarketplaceCommissionSchema>;
+export type AntiDisintermediationLog = typeof antiDisintermediationLogs.$inferSelect;
+export type InsertAntiDisintermediationLog = z.infer<typeof insertAntiDisintermediationLogSchema>;
