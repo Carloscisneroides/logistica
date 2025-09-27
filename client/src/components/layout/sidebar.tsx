@@ -56,12 +56,6 @@ const menuItems = [
     icon: Bus,
   },
   {
-    title: "Listini & Corrieri",
-    href: "/rates-carriers",
-    icon: Package,
-    roles: ["admin", "merchant"],
-  },
-  {
     title: "AI Routing",
     href: "/ai-routing",
     icon: Bot,

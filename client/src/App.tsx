@@ -35,6 +35,8 @@ import { EcommercePage } from "@/pages/ecommerce-page";
 import { MarketplacePage } from "@/pages/marketplace-page";
 import FidelityPage from "@/pages/fidelity-page";
 import ShipmentsPage from "@/pages/shipments";
+import RatesCarriersPage from "@/pages/rates-carriers-page";
+import GlobalLogisticsPage from "@/pages/global-logistics-page";
 import NotFound from "@/pages/not-found";
 
 function MainLayout({ children }: { children: React.ReactNode }) {
@@ -113,6 +115,16 @@ function Router() {
       <ProtectedRoute path="/fidelity" component={() => (
         <MainLayout>
           <FidelityPage />
+        </MainLayout>
+      )} />
+      <ProtectedRoute path="/rates-carriers" component={() => (
+        <MainLayout>
+          <RatesCarriersPage />
+        </MainLayout>
+      )} />
+      <ProtectedRoute path="/global-logistics" component={() => (
+        <MainLayout>
+          <GlobalLogisticsPage />
         </MainLayout>
       )} />
       <Route component={NotFound} />
