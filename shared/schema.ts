@@ -82,6 +82,28 @@ export const subscriptionFeatureEnum = pgEnum("subscription_feature", [
 ]);
 export const orderTypeEnum = pgEnum("order_type", ["physical_product", "digital_service", "subscription_renewal"]);
 
+// Registration requests - Sistema approvazione manuale
+export const registrationRequests = pgTable("registration_requests", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  username: text("username").notNull(),
+  email: text("email").notNull(),
+  password: text("password").notNull(), // Hashed password
+  role: userRoleEnum("role").notNull().default("merchant"),
+  tenantId: uuid("tenant_id").references(() => tenants.id),
+  companyName: text("company_name"),
+  phoneNumber: text("phone_number"),
+  businessType: text("business_type"),
+  message: text("message"), // Messaggio del richiedente
+  status: text("status").notNull().default("pending"), // pending, approved, rejected
+  reviewedBy: uuid("reviewed_by").references(() => users.id),
+  reviewedAt: timestamp("reviewed_at"),
+  rejectionReason: text("rejection_reason"),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 // Users table
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -1957,6 +1979,23 @@ export const deliveryStatusRelations = relations(deliveryStatus, ({ one }) => ({
 }));
 
 // Insert schemas
+export const insertRegistrationRequestSchema = createInsertSchema(registrationRequests).omit({
+  id: true,
+  status: true,
+  reviewedBy: true,
+  reviewedAt: true,
+  rejectionReason: true,
+  ipAddress: true,
+  userAgent: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  passwordConfirm: z.string().min(6)
+}).refine(data => data.password === data.passwordConfirm, {
+  message: "Passwords must match",
+  path: ["passwordConfirm"]
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
@@ -2383,6 +2422,10 @@ export type CommissionTier = typeof commissionTiers.$inferSelect;
 export type InsertCommissionTier = z.infer<typeof insertCommissionTierSchema>;
 export type OrderCommission = typeof orderCommissions.$inferSelect;
 export type InsertOrderCommission = z.infer<typeof insertOrderCommissionSchema>;
+
+// Registration request types
+export type RegistrationRequest = typeof registrationRequests.$inferSelect;
+export type InsertRegistrationRequest = z.infer<typeof insertRegistrationRequestSchema>;
 
 // Shipments module types
 export type FraudFlag = typeof fraudFlags.$inferSelect;

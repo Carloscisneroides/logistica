@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useForm } from "react-hook-form";
@@ -12,7 +13,19 @@ import { Redirect } from "wouter";
 import { Loader2, Truck, Shield, Users, Zap } from "lucide-react";
 
 const loginSchema = insertUserSchema.pick({ username: true, password: true });
-const registerSchema = insertUserSchema.pick({ username: true, email: true, password: true });
+const registerSchema = z.object({
+  username: z.string().min(3, "Username deve avere almeno 3 caratteri"),
+  email: z.string().email("Email non valida"),
+  password: z.string().min(6, "Password deve avere almeno 6 caratteri"),
+  passwordConfirm: z.string(),
+  companyName: z.string().optional(),
+  phoneNumber: z.string().optional(),
+  businessType: z.string().optional(),
+  message: z.string().optional(),
+}).refine((data) => data.password === data.passwordConfirm, {
+  message: "Le password non coincidono",
+  path: ["passwordConfirm"],
+});
 
 type LoginData = z.infer<typeof loginSchema>;
 type RegisterData = z.infer<typeof registerSchema>;
@@ -28,7 +41,16 @@ export default function AuthPage() {
 
   const registerForm = useForm<RegisterData>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { username: "", email: "", password: "" },
+    defaultValues: { 
+      username: "", 
+      email: "", 
+      password: "",
+      passwordConfirm: "",
+      companyName: "",
+      phoneNumber: "",
+      businessType: "",
+      message: ""
+    },
   });
 
   if (isLoading) {
@@ -181,6 +203,76 @@ export default function AuthPage() {
                       </p>
                     )}
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="reg-password-confirm">Conferma Password *</Label>
+                    <Input
+                      id="reg-password-confirm"
+                      type="password"
+                      {...registerForm.register("passwordConfirm")}
+                      data-testid="input-password-confirm"
+                    />
+                    {registerForm.formState.errors.passwordConfirm && (
+                      <p className="text-sm text-destructive">
+                        {registerForm.formState.errors.passwordConfirm.message}
+                      </p>
+                    )}
+                  </div>
+                  
+                  {/* Extended Registration Fields */}
+                  <div className="space-y-4 pt-4 border-t">
+                    <h4 className="font-medium text-muted-foreground">🏢 Dati Aziendali (per approvazione)</h4>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="company-name">Nome Azienda</Label>
+                      <Input
+                        id="company-name"
+                        placeholder="Es. ABC Logistics SRL"
+                        {...registerForm.register("companyName")}
+                        data-testid="input-company"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Telefono</Label>
+                      <Input
+                        id="phone"
+                        placeholder="+39 123 456 7890"
+                        {...registerForm.register("phoneNumber")}
+                        data-testid="input-phone"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="business-type">Settore/Tipo Business</Label>
+                      <Input
+                        id="business-type"
+                        placeholder="Es. E-commerce, Logistica, Import/Export"
+                        {...registerForm.register("businessType")}
+                        data-testid="input-business"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="message">Messaggio per l'Amministratore</Label>
+                      <Textarea
+                        id="message"
+                        placeholder="Descrivi brevemente la tua attività e perché vuoi accedere a YCore..."
+                        {...registerForm.register("message")}
+                        data-testid="input-message"
+                        className="min-h-[80px]"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <div className="text-sm text-blue-700 dark:text-blue-300">
+                      <span className="font-semibold">📋 Registrazione con Approvazione Manuale</span>
+                      <div className="mt-1">
+                        La tua richiesta sarà inviata all'amministratore YCore per l'approvazione. 
+                        Riceverai una email di conferma dopo la valutazione.
+                      </div>
+                    </div>
+                  </div>
+                  
                   <Button 
                     type="submit" 
                     className="w-full"
@@ -190,7 +282,7 @@ export default function AuthPage() {
                     {registerMutation.isPending && (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     )}
-                    Registrati
+                    Invia Richiesta di Registrazione
                   </Button>
                 </form>
               )}

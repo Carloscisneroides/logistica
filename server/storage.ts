@@ -60,6 +60,13 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<User>): Promise<User>;
   
+  // Registration Requests
+  createRegistrationRequest(request: any): Promise<any>;
+  getRegistrationRequests(): Promise<any[]>;
+  getRegistrationRequest(id: string): Promise<any>;
+  updateRegistrationRequest(id: string, updates: any): Promise<any>;
+  getDefaultTenant(): Promise<Tenant>;
+  
   // Tenants
   getTenant(id: string): Promise<Tenant | undefined>;
   createTenant(tenant: InsertTenant): Promise<Tenant>;
@@ -584,6 +591,31 @@ export class DatabaseStorage implements IStorage {
   async updateClient(id: string, updates: Partial<Client>): Promise<Client> {
     const [client] = await db.update(clients).set(updates).where(eq(clients.id, id)).returning();
     return client;
+  }
+
+  // Registration Requests - Fast implementation
+  async createRegistrationRequest(request: any) {
+    const existing = memStorage.get("registrationRequests") || [];
+    const newRequest = { id: crypto.randomUUID(), ...request, status: 'pending', createdAt: new Date(), updatedAt: new Date() };
+    existing.push(newRequest);
+    memStorage.set("registrationRequests", existing);
+    return newRequest;
+  }
+
+  async getRegistrationRequests() { return memStorage.get("registrationRequests") || []; }
+  async getRegistrationRequest(id: string) { const requests = memStorage.get("registrationRequests") || []; return requests.find((r: any) => r.id === id); }
+  async updateRegistrationRequest(id: string, updates: any) {
+    const requests = memStorage.get("registrationRequests") || [];
+    const index = requests.findIndex((r: any) => r.id === id);
+    if (index >= 0) { requests[index] = { ...requests[index], ...updates, updatedAt: new Date() }; memStorage.set("registrationRequests", requests); return requests[index]; }
+    return null;
+  }
+
+  async getDefaultTenant(): Promise<Tenant> {
+    const existingTenants = await db.select().from(tenants).limit(1);
+    if (existingTenants.length > 0) return existingTenants[0];
+    const [defaultTenant] = await db.insert(tenants).values({ name: "YCore SRL Innovativa", type: "enterprise", domain: "ycore.it", language: "it", isActive: true }).returning();
+    return defaultTenant;
   }
 
   // Courier Modules
