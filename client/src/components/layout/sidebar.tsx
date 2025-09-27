@@ -10,6 +10,7 @@
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
 import { useLocation, Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -31,6 +32,9 @@ import {
   Package,
   Globe,
   FileCheck,
+  Calculator,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 
 const menuItems = [
@@ -54,6 +58,13 @@ const menuItems = [
     title: "Moduli Corrieri",
     href: "/courier-modules",
     icon: Bus,
+    submenu: [
+      {
+        title: "Listini & Corrieri",
+        href: "/rates-carriers",
+        icon: Calculator,
+      }
+    ]
   },
   {
     title: "AI Routing",
@@ -123,6 +134,7 @@ interface SidebarProps {
 
 export function Sidebar({ className }: SidebarProps) {
   const [location] = useLocation();
+  const [expandedMenu, setExpandedMenu] = useState<string | null>(null);
   const { user, logoutMutation } = useAuth();
 
   const filteredMenuItems = menuItems.filter(item => {
@@ -149,22 +161,73 @@ export function Sidebar({ className }: SidebarProps) {
             {filteredMenuItems.map((item) => {
               const Icon = item.icon;
               const isActive = location === item.href;
+              const hasSubmenu = item.submenu && item.submenu.length > 0;
+              const isExpanded = expandedMenu === item.title;
               
               return (
-                <Link
-                  key={item.href}
-                  to={item.href}
-                  className={cn(
-                    "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
-                    isActive
-                      ? "text-primary-foreground bg-primary"
-                      : "text-gray-300 hover:text-secondary-foreground hover:bg-gray-700"
+                <div key={item.href}>
+                  {hasSubmenu ? (
+                    <>
+                      <button
+                        onClick={() => setExpandedMenu(isExpanded ? null : item.title)}
+                        className={cn(
+                          "flex items-center justify-between w-full px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                          "text-gray-300 hover:text-secondary-foreground hover:bg-gray-700"
+                        )}
+                        data-testid={`nav-toggle-${item.href.replace("/", "") || "dashboard"}`}
+                      >
+                        <div className="flex items-center">
+                          <Icon className="mr-3 w-4 h-4" />
+                          {item.title}
+                        </div>
+                        {isExpanded ? (
+                          <ChevronDown className="w-4 h-4" />
+                        ) : (
+                          <ChevronRight className="w-4 h-4" />
+                        )}
+                      </button>
+                      {isExpanded && (
+                        <div className="ml-6 space-y-1 mt-1">
+                          {item.submenu.map((subItem) => {
+                            const isSubActive = location === subItem.href;
+                            const SubIcon = subItem.icon;
+                            
+                            return (
+                              <Link
+                                key={subItem.href}
+                                to={subItem.href}
+                                className={cn(
+                                  "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                                  isSubActive
+                                    ? "text-primary-foreground bg-primary"
+                                    : "text-gray-400 hover:text-secondary-foreground hover:bg-gray-700"
+                                )}
+                                data-testid={`nav-sub-${subItem.href.replace("/", "")}`}
+                              >
+                                <SubIcon className="mr-3 w-4 h-4" />
+                                {subItem.title}
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <Link
+                      to={item.href}
+                      className={cn(
+                        "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                        isActive
+                          ? "text-primary-foreground bg-primary"
+                          : "text-gray-300 hover:text-secondary-foreground hover:bg-gray-700"
+                      )}
+                      data-testid={`nav-link-${item.href.replace("/", "") || "dashboard"}`}
+                    >
+                      <Icon className="mr-3 w-4 h-4" />
+                      {item.title}
+                    </Link>
                   )}
-                  data-testid={`nav-link-${item.href.replace("/", "") || "dashboard"}`}
-                >
-                  <Icon className="mr-3 w-4 h-4" />
-                  {item.title}
-                </Link>
+                </div>
               );
             })}
           </div>
