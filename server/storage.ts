@@ -57,7 +57,16 @@ import {
   type Carrier, type InsertCarrier, type Zone, type InsertZone,
   type ZoneOverlay, type InsertZoneOverlay, type WeightBracket, type InsertWeightBracket,
   type TonneBracket, type InsertTonneBracket, type CarrierRateCard, type InsertCarrierRateCard,
-  type ClientRateCard, type InsertClientRateCard, type ShippingQuote, type InsertShippingQuote
+  type ClientRateCard, type InsertClientRateCard, type ShippingQuote, type InsertShippingQuote,
+  
+  // 4 MODULI types
+  warehouses, warehouseZones, inventory, inventoryMovements, suppliers, supplierOrders,
+  partnerFacilities, logisticsMarketplace,
+  type Warehouse, type InsertWarehouse, type WarehouseZone, type InsertWarehouseZone,
+  type Inventory, type InsertInventory, type InventoryMovement, type InsertInventoryMovement,
+  type Supplier, type InsertSupplier, type SupplierOrder, type InsertSupplierOrder,
+  type LogisticsPartner, type InsertLogisticsPartner, type PartnerFacility, type InsertPartnerFacility,
+  type LogisticsMarketplace, type InsertLogisticsMarketplace
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, not, desc, sql, isNull } from "drizzle-orm";
@@ -589,6 +598,57 @@ export interface IStorage {
   getLogisticsPartnerByCode(code: string): Promise<LogisticsPartner | undefined>;
   createLogisticsPartner(partner: InsertLogisticsPartner): Promise<LogisticsPartner>;
   updateLogisticsPartner(id: string, updates: Partial<LogisticsPartner>): Promise<LogisticsPartner>;
+
+  // ======== 4 MODULI AGGIUNTIVI ========
+  
+  // MODULO 2: MAGAZZINO & INVENTARIO
+  getWarehouse(id: string): Promise<Warehouse | undefined>;
+  getWarehousesByTenant(tenantId: string): Promise<Warehouse[]>;
+  createWarehouse(warehouse: InsertWarehouse): Promise<Warehouse>;
+  updateWarehouse(id: string, updates: Partial<Warehouse>): Promise<Warehouse>;
+  deleteWarehouse(id: string): Promise<void>;
+  
+  getWarehouseZone(id: string): Promise<WarehouseZone | undefined>;
+  getWarehouseZonesByWarehouse(warehouseId: string): Promise<WarehouseZone[]>;
+  createWarehouseZone(zone: InsertWarehouseZone): Promise<WarehouseZone>;
+  updateWarehouseZone(id: string, updates: Partial<WarehouseZone>): Promise<WarehouseZone>;
+  deleteWarehouseZone(id: string): Promise<void>;
+  
+  getInventoryItem(id: string): Promise<Inventory | undefined>;
+  getInventoryByWarehouse(warehouseId: string): Promise<Inventory[]>;
+  getInventoryBySku(sku: string, tenantId: string): Promise<Inventory[]>;
+  createInventoryItem(item: InsertInventory): Promise<Inventory>;
+  updateInventoryItem(id: string, updates: Partial<Inventory>): Promise<Inventory>;
+  deleteInventoryItem(id: string): Promise<void>;
+  
+  getInventoryMovement(id: string): Promise<InventoryMovement | undefined>;
+  getInventoryMovementsByItem(inventoryId: string): Promise<InventoryMovement[]>;
+  createInventoryMovement(movement: InsertInventoryMovement): Promise<InventoryMovement>;
+  
+  // MODULO 3: FORNITORI
+  getSupplier(id: string): Promise<Supplier | undefined>;
+  getSuppliersByTenant(tenantId: string): Promise<Supplier[]>;
+  createSupplier(supplier: InsertSupplier): Promise<Supplier>;
+  updateSupplier(id: string, updates: Partial<Supplier>): Promise<Supplier>;
+  deleteSupplier(id: string): Promise<void>;
+  
+  getSupplierOrder(id: string): Promise<SupplierOrder | undefined>;
+  getSupplierOrdersBySupplier(supplierId: string): Promise<SupplierOrder[]>;
+  createSupplierOrder(order: InsertSupplierOrder): Promise<SupplierOrder>;
+  updateSupplierOrder(id: string, updates: Partial<SupplierOrder>): Promise<SupplierOrder>;
+  deleteSupplierOrder(id: string): Promise<void>;
+  
+  // MODULO 4: MAGAZZINI PARTNER & RETE LOGISTICA (aggiuntivi)
+  getPartnerFacility(id: string): Promise<PartnerFacility | undefined>;
+  getPartnerFacilitiesByPartner(partnerId: string): Promise<PartnerFacility[]>;
+  createPartnerFacility(facility: InsertPartnerFacility): Promise<PartnerFacility>;
+  updatePartnerFacility(id: string, updates: Partial<PartnerFacility>): Promise<PartnerFacility>;
+  deletePartnerFacility(id: string): Promise<void>;
+  
+  getLogisticsMarketplaceRequest(id: string): Promise<LogisticsMarketplace | undefined>;
+  getLogisticsMarketplaceRequests(tenantId: string): Promise<LogisticsMarketplace[]>;
+  createLogisticsMarketplaceRequest(request: InsertLogisticsMarketplace): Promise<LogisticsMarketplace>;
+  updateLogisticsMarketplaceRequest(id: string, updates: Partial<LogisticsMarketplace>): Promise<LogisticsMarketplace>;
 
   // Global Logistics Dashboard Stats
   getGlobalLogisticsDashboardStats(tenantId: string): Promise<{
@@ -4216,6 +4276,186 @@ export class DatabaseStorage implements IStorage {
 
   async deleteShippingQuote(id: string): Promise<void> {
     await db.delete(shippingQuotes).where(eq(shippingQuotes.id, id));
+  }
+
+  // ======== IMPLEMENTAZIONE 4 MODULI ========
+  
+  // MODULO 2: MAGAZZINO & INVENTARIO
+  async getWarehouse(id: string): Promise<Warehouse | undefined> {
+    const [warehouse] = await db.select().from(warehouses).where(eq(warehouses.id, id));
+    return warehouse;
+  }
+
+  async getWarehousesByTenant(tenantId: string): Promise<Warehouse[]> {
+    return await db.select().from(warehouses).where(eq(warehouses.tenantId, tenantId));
+  }
+
+  async createWarehouse(warehouse: InsertWarehouse): Promise<Warehouse> {
+    const [created] = await db.insert(warehouses).values(warehouse).returning();
+    return created;
+  }
+
+  async updateWarehouse(id: string, updates: Partial<Warehouse>): Promise<Warehouse> {
+    const [updated] = await db.update(warehouses).set(updates).where(eq(warehouses.id, id)).returning();
+    return updated;
+  }
+
+  async deleteWarehouse(id: string): Promise<void> {
+    await db.delete(warehouses).where(eq(warehouses.id, id));
+  }
+
+  async getWarehouseZone(id: string): Promise<WarehouseZone | undefined> {
+    const [zone] = await db.select().from(warehouseZones).where(eq(warehouseZones.id, id));
+    return zone;
+  }
+
+  async getWarehouseZonesByWarehouse(warehouseId: string): Promise<WarehouseZone[]> {
+    return await db.select().from(warehouseZones).where(eq(warehouseZones.warehouseId, warehouseId));
+  }
+
+  async createWarehouseZone(zone: InsertWarehouseZone): Promise<WarehouseZone> {
+    const [created] = await db.insert(warehouseZones).values(zone).returning();
+    return created;
+  }
+
+  async updateWarehouseZone(id: string, updates: Partial<WarehouseZone>): Promise<WarehouseZone> {
+    const [updated] = await db.update(warehouseZones).set(updates).where(eq(warehouseZones.id, id)).returning();
+    return updated;
+  }
+
+  async deleteWarehouseZone(id: string): Promise<void> {
+    await db.delete(warehouseZones).where(eq(warehouseZones.id, id));
+  }
+
+  async getInventoryItem(id: string): Promise<Inventory | undefined> {
+    const [item] = await db.select().from(inventory).where(eq(inventory.id, id));
+    return item;
+  }
+
+  async getInventoryByWarehouse(warehouseId: string): Promise<Inventory[]> {
+    return await db.select().from(inventory).where(eq(inventory.warehouseId, warehouseId));
+  }
+
+  async getInventoryBySku(sku: string, tenantId: string): Promise<Inventory[]> {
+    return await db.select().from(inventory).where(and(eq(inventory.sku, sku), eq(inventory.tenantId, tenantId)));
+  }
+
+  async createInventoryItem(item: InsertInventory): Promise<Inventory> {
+    const [created] = await db.insert(inventory).values(item).returning();
+    return created;
+  }
+
+  async updateInventoryItem(id: string, updates: Partial<Inventory>): Promise<Inventory> {
+    const [updated] = await db.update(inventory).set(updates).where(eq(inventory.id, id)).returning();
+    return updated;
+  }
+
+  async deleteInventoryItem(id: string): Promise<void> {
+    await db.delete(inventory).where(eq(inventory.id, id));
+  }
+
+  async getInventoryMovement(id: string): Promise<InventoryMovement | undefined> {
+    const [movement] = await db.select().from(inventoryMovements).where(eq(inventoryMovements.id, id));
+    return movement;
+  }
+
+  async getInventoryMovementsByItem(inventoryId: string): Promise<InventoryMovement[]> {
+    return await db.select().from(inventoryMovements).where(eq(inventoryMovements.inventoryId, inventoryId));
+  }
+
+  async createInventoryMovement(movement: InsertInventoryMovement): Promise<InventoryMovement> {
+    const [created] = await db.insert(inventoryMovements).values(movement).returning();
+    return created;
+  }
+
+  // MODULO 3: FORNITORI
+  async getSupplier(id: string): Promise<Supplier | undefined> {
+    const [supplier] = await db.select().from(suppliers).where(eq(suppliers.id, id));
+    return supplier;
+  }
+
+  async getSuppliersByTenant(tenantId: string): Promise<Supplier[]> {
+    return await db.select().from(suppliers).where(eq(suppliers.tenantId, tenantId));
+  }
+
+  async createSupplier(supplier: InsertSupplier): Promise<Supplier> {
+    const [created] = await db.insert(suppliers).values(supplier).returning();
+    return created;
+  }
+
+  async updateSupplier(id: string, updates: Partial<Supplier>): Promise<Supplier> {
+    const [updated] = await db.update(suppliers).set(updates).where(eq(suppliers.id, id)).returning();
+    return updated;
+  }
+
+  async deleteSupplier(id: string): Promise<void> {
+    await db.delete(suppliers).where(eq(suppliers.id, id));
+  }
+
+  async getSupplierOrder(id: string): Promise<SupplierOrder | undefined> {
+    const [order] = await db.select().from(supplierOrders).where(eq(supplierOrders.id, id));
+    return order;
+  }
+
+  async getSupplierOrdersBySupplier(supplierId: string): Promise<SupplierOrder[]> {
+    return await db.select().from(supplierOrders).where(eq(supplierOrders.supplierId, supplierId));
+  }
+
+  async createSupplierOrder(order: InsertSupplierOrder): Promise<SupplierOrder> {
+    const [created] = await db.insert(supplierOrders).values(order).returning();
+    return created;
+  }
+
+  async updateSupplierOrder(id: string, updates: Partial<SupplierOrder>): Promise<SupplierOrder> {
+    const [updated] = await db.update(supplierOrders).set(updates).where(eq(supplierOrders.id, id)).returning();
+    return updated;
+  }
+
+  async deleteSupplierOrder(id: string): Promise<void> {
+    await db.delete(supplierOrders).where(eq(supplierOrders.id, id));
+  }
+
+  // MODULO 4: MAGAZZINI PARTNER & RETE LOGISTICA (aggiuntivi)
+  async getPartnerFacility(id: string): Promise<PartnerFacility | undefined> {
+    const [facility] = await db.select().from(partnerFacilities).where(eq(partnerFacilities.id, id));
+    return facility;
+  }
+
+  async getPartnerFacilitiesByPartner(partnerId: string): Promise<PartnerFacility[]> {
+    return await db.select().from(partnerFacilities).where(eq(partnerFacilities.partnerId, partnerId));
+  }
+
+  async createPartnerFacility(facility: InsertPartnerFacility): Promise<PartnerFacility> {
+    const [created] = await db.insert(partnerFacilities).values(facility).returning();
+    return created;
+  }
+
+  async updatePartnerFacility(id: string, updates: Partial<PartnerFacility>): Promise<PartnerFacility> {
+    const [updated] = await db.update(partnerFacilities).set(updates).where(eq(partnerFacilities.id, id)).returning();
+    return updated;
+  }
+
+  async deletePartnerFacility(id: string): Promise<void> {
+    await db.delete(partnerFacilities).where(eq(partnerFacilities.id, id));
+  }
+
+  async getLogisticsMarketplaceRequest(id: string): Promise<LogisticsMarketplace | undefined> {
+    const [request] = await db.select().from(logisticsMarketplace).where(eq(logisticsMarketplace.id, id));
+    return request;
+  }
+
+  async getLogisticsMarketplaceRequests(tenantId: string): Promise<LogisticsMarketplace[]> {
+    return await db.select().from(logisticsMarketplace).where(eq(logisticsMarketplace.tenantId, tenantId));
+  }
+
+  async createLogisticsMarketplaceRequest(request: InsertLogisticsMarketplace): Promise<LogisticsMarketplace> {
+    const [created] = await db.insert(logisticsMarketplace).values(request).returning();
+    return created;
+  }
+
+  async updateLogisticsMarketplaceRequest(id: string, updates: Partial<LogisticsMarketplace>): Promise<LogisticsMarketplace> {
+    const [updated] = await db.update(logisticsMarketplace).set(updates).where(eq(logisticsMarketplace.id, id)).returning();
+    return updated;
   }
 
   // Dashboard Stats Implementation for Rates & Carriers

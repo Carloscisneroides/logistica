@@ -3422,3 +3422,496 @@ export type ClientSubscription = typeof clientSubscriptions.$inferSelect;
 export type InsertClientSubscription = z.infer<typeof insertClientSubscriptionSchema>;
 export type RegistrationLink = typeof registrationLinks.$inferSelect;
 export type InsertRegistrationLink = z.infer<typeof insertRegistrationLinkSchema>;
+
+// ========================
+// MODULO 2: MAGAZZINO & INVENTARIO
+// ========================
+
+// Enums per Magazzino
+export const warehouseTypeEnum = pgEnum("warehouse_type", ["main", "partner", "temporary", "cold_storage", "hazmat"]);
+export const inventoryStatusEnum = pgEnum("inventory_status", ["available", "reserved", "damaged", "expired", "quarantine"]);
+export const movementTypeEnum = pgEnum("movement_type", ["inbound", "outbound", "transfer", "adjustment", "damaged", "returned"]);
+
+// Magazzini
+export const warehouses = pgTable("warehouses", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  code: text("code").notNull().unique(),
+  name: text("name").notNull(),
+  type: warehouseTypeEnum("type").notNull(),
+  
+  // Indirizzo e ubicazione
+  address: text("address").notNull(),
+  city: text("city").notNull(),
+  country: text("country").notNull(),
+  postalCode: text("postal_code"),
+  coordinates: json("coordinates").$type<{lat: number; lng: number}>(),
+  
+  // Capacità e caratteristiche
+  totalCapacity: decimal("total_capacity", { precision: 12, scale: 2 }), // m³
+  usedCapacity: decimal("used_capacity", { precision: 12, scale: 2 }).default("0.00"),
+  maxWeight: decimal("max_weight", { precision: 12, scale: 2 }), // kg
+  
+  // Tecnologie
+  hasRFID: boolean("has_rfid").default(false),
+  hasQR: boolean("has_qr").default(true),
+  hasColdStorage: boolean("has_cold_storage").default(false),
+  hasHazmatStorage: boolean("has_hazmat_storage").default(false),
+  
+  // Gestione
+  managerId: uuid("manager_id").references(() => users.id),
+  isActive: boolean("is_active").default(true),
+  operatingHours: json("operating_hours").$type<{open: string; close: string; timezone: string}>(),
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  tenantIdx: index("warehouses_tenant_idx").on(table.tenantId),
+  typeIdx: index("warehouses_type_idx").on(table.type),
+  activeIdx: index("warehouses_active_idx").on(table.isActive),
+  codeIdx: unique("warehouses_code_idx").on(table.code),
+}));
+
+// Zone/Scaffali Magazzino
+export const warehouseZones = pgTable("warehouse_zones", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  warehouseId: uuid("warehouse_id").references(() => warehouses.id).notNull(),
+  code: text("code").notNull(), // A1, B2, C3-SHELF-5
+  name: text("name").notNull(),
+  type: text("type").notNull(), // shelf, rack, floor, cold, hazmat
+  
+  // Posizione fisica
+  level: integer("level").default(0), // Piano
+  row: text("row"),
+  column: text("column"),
+  
+  // Capacità zona
+  maxWeight: decimal("max_weight", { precision: 10, scale: 2 }),
+  maxVolume: decimal("max_volume", { precision: 10, scale: 2 }),
+  currentWeight: decimal("current_weight", { precision: 10, scale: 2 }).default("0.00"),
+  currentVolume: decimal("current_volume", { precision: 10, scale: 2 }).default("0.00"),
+  
+  // Tecnologie
+  qrCode: text("qr_code").unique(),
+  rfidTag: text("rfid_tag").unique(),
+  
+  // Caratteristiche ambientali
+  temperature: decimal("temperature", { precision: 5, scale: 2 }), // °C
+  humidity: decimal("humidity", { precision: 5, scale: 2 }), // %
+  isClimateControlled: boolean("is_climate_controlled").default(false),
+  
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  warehouseIdx: index("warehouse_zones_warehouse_idx").on(table.warehouseId),
+  codeIdx: index("warehouse_zones_code_idx").on(table.warehouseId, table.code),
+  qrIdx: unique("warehouse_zones_qr_idx").on(table.qrCode),
+  rfidIdx: unique("warehouse_zones_rfid_idx").on(table.rfidTag),
+}));
+
+// Inventario
+export const inventory = pgTable("inventory", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  warehouseId: uuid("warehouse_id").references(() => warehouses.id).notNull(),
+  zoneId: uuid("zone_id").references(() => warehouseZones.id),
+  
+  // Prodotto
+  sku: text("sku").notNull(),
+  productName: text("product_name").notNull(),
+  description: text("description"),
+  category: text("category"),
+  
+  // Quantità e misure
+  quantity: integer("quantity").notNull(),
+  reservedQuantity: integer("reserved_quantity").default(0),
+  availableQuantity: integer("available_quantity").notNull(),
+  unitWeight: decimal("unit_weight", { precision: 8, scale: 2 }), // kg per unità
+  unitVolume: decimal("unit_volume", { precision: 8, scale: 2 }), // m³ per unità
+  
+  // Status e qualità
+  status: inventoryStatusEnum("status").notNull().default("available"),
+  batchNumber: text("batch_number"),
+  expiryDate: timestamp("expiry_date"),
+  manufacturingDate: timestamp("manufacturing_date"),
+  
+  // Costi e prezzi
+  unitCost: decimal("unit_cost", { precision: 10, scale: 2 }),
+  totalValue: decimal("total_value", { precision: 12, scale: 2 }),
+  
+  // Tracking e identificazione
+  barcodes: json("barcodes").$type<string[]>().default([]),
+  rfidTags: json("rfid_tags").$type<string[]>().default([]),
+  
+  // Soglie automatiche
+  minStockLevel: integer("min_stock_level").default(0),
+  maxStockLevel: integer("max_stock_level"),
+  reorderPoint: integer("reorder_point").default(0),
+  reorderQuantity: integer("reorder_quantity").default(0),
+  
+  // Fornitori e gestione
+  supplierId: uuid("supplier_id"), // Link al modulo fornitori
+  lastStockUpdate: timestamp("last_stock_update").defaultNow(),
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  tenantIdx: index("inventory_tenant_idx").on(table.tenantId),
+  warehouseIdx: index("inventory_warehouse_idx").on(table.warehouseId),
+  skuIdx: index("inventory_sku_idx").on(table.sku),
+  statusIdx: index("inventory_status_idx").on(table.status),
+  warehouseSkuIdx: unique("inventory_warehouse_sku_idx").on(table.warehouseId, table.sku),
+  expiryIdx: index("inventory_expiry_idx").on(table.expiryDate),
+  reorderIdx: index("inventory_reorder_idx").on(table.reorderPoint, table.availableQuantity),
+}));
+
+// Movimenti Inventario
+export const inventoryMovements = pgTable("inventory_movements", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  inventoryId: uuid("inventory_id").references(() => inventory.id).notNull(),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  
+  // Tipo movimento
+  type: movementTypeEnum("type").notNull(),
+  direction: text("direction").notNull(), // in, out
+  
+  // Quantità
+  quantityBefore: integer("quantity_before").notNull(),
+  quantityChanged: integer("quantity_changed").notNull(),
+  quantityAfter: integer("quantity_after").notNull(),
+  
+  // Riferimenti
+  referenceType: text("reference_type"), // shipment, order, transfer, adjustment
+  referenceId: uuid("reference_id"), // ID del documento di riferimento
+  
+  // Ubicazione
+  fromWarehouseId: uuid("from_warehouse_id").references(() => warehouses.id),
+  fromZoneId: uuid("from_zone_id").references(() => warehouseZones.id),
+  toWarehouseId: uuid("to_warehouse_id").references(() => warehouses.id),
+  toZoneId: uuid("to_zone_id").references(() => warehouseZones.id),
+  
+  // Dettagli movimento
+  reason: text("reason").notNull(),
+  notes: text("notes"),
+  cost: decimal("cost", { precision: 10, scale: 2 }),
+  
+  // Tracciabilità
+  performedBy: uuid("performed_by").references(() => users.id).notNull(),
+  documentNumber: text("document_number"),
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  inventoryIdx: index("movements_inventory_idx").on(table.inventoryId),
+  tenantIdx: index("movements_tenant_idx").on(table.tenantId),
+  typeIdx: index("movements_type_idx").on(table.type),
+  dateIdx: index("movements_date_idx").on(table.createdAt),
+  referenceIdx: index("movements_reference_idx").on(table.referenceType, table.referenceId),
+  performedByIdx: index("movements_performed_by_idx").on(table.performedBy),
+}));
+
+// ========================
+// MODULO 3: FORNITORI
+// ========================
+
+export const supplierCategoryEnum = pgEnum("supplier_category", ["manufacturer", "distributor", "carrier", "service", "raw_materials", "packaging"]);
+export const supplierStatusEnum = pgEnum("supplier_status", ["active", "inactive", "suspended", "evaluation", "blacklisted"]);
+export const supplierOrderStatusEnum = pgEnum("supplier_order_status", ["draft", "sent", "confirmed", "partial", "completed", "cancelled", "disputed"]);
+
+// Fornitori
+export const suppliers = pgTable("suppliers", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  
+  // Informazioni base
+  code: text("code").notNull().unique(),
+  name: text("name").notNull(),
+  category: supplierCategoryEnum("category").notNull(),
+  status: supplierStatusEnum("status").notNull().default("evaluation"),
+  
+  // Contatti
+  email: text("email"),
+  phone: text("phone"),
+  website: text("website"),
+  
+  // Indirizzo
+  address: text("address"),
+  city: text("city"),
+  country: text("country"),
+  postalCode: text("postal_code"),
+  taxId: text("tax_id"),
+  vatNumber: text("vat_number"),
+  
+  // Dettagli commerciali
+  paymentTerms: text("payment_terms"), // NET30, NET60, COD
+  currency: text("currency").default("EUR"),
+  creditLimit: decimal("credit_limit", { precision: 12, scale: 2 }),
+  
+  // KPI e Scoring
+  reliabilityScore: decimal("reliability_score", { precision: 3, scale: 2 }).default("0.00"), // 0-100
+  qualityScore: decimal("quality_score", { precision: 3, scale: 2 }).default("0.00"), // 0-100
+  deliveryScore: decimal("delivery_score", { precision: 3, scale: 2 }).default("0.00"), // 0-100
+  overallRating: decimal("overall_rating", { precision: 3, scale: 2 }).default("0.00"), // 0-100
+  
+  // Statistiche
+  totalOrders: integer("total_orders").default(0),
+  completedOrders: integer("completed_orders").default(0),
+  onTimeDeliveries: integer("on_time_deliveries").default(0),
+  qualityIssues: integer("quality_issues").default(0),
+  
+  // Capacità e servizi
+  productCategories: json("product_categories").$type<string[]>().default([]),
+  services: json("services").$type<string[]>().default([]),
+  certifications: json("certifications").$type<string[]>().default([]),
+  
+  // Gestione account
+  accountManagerId: uuid("account_manager_id").references(() => users.id),
+  notes: text("notes"),
+  
+  // Antifrode
+  fraudFlags: json("fraud_flags").$type<string[]>().default([]),
+  lastAudit: timestamp("last_audit"),
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  tenantIdx: index("suppliers_tenant_idx").on(table.tenantId),
+  categoryIdx: index("suppliers_category_idx").on(table.category),
+  statusIdx: index("suppliers_status_idx").on(table.status),
+  codeIdx: unique("suppliers_code_idx").on(table.code),
+  ratingIdx: index("suppliers_rating_idx").on(table.overallRating),
+}));
+
+// Ordini Fornitori
+export const supplierOrders = pgTable("supplier_orders", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  supplierId: uuid("supplier_id").references(() => suppliers.id).notNull(),
+  
+  // Identificazione ordine
+  orderNumber: text("order_number").notNull().unique(),
+  externalOrderNumber: text("external_order_number"), // Numero ordine del fornitore
+  
+  // Status e date
+  status: supplierOrderStatusEnum("status").notNull().default("draft"),
+  orderDate: timestamp("order_date").notNull().defaultNow(),
+  requestedDeliveryDate: timestamp("requested_delivery_date"),
+  confirmedDeliveryDate: timestamp("confirmed_delivery_date"),
+  actualDeliveryDate: timestamp("actual_delivery_date"),
+  
+  // Importi
+  subtotal: decimal("subtotal", { precision: 12, scale: 2 }).notNull(),
+  taxAmount: decimal("tax_amount", { precision: 12, scale: 2 }).default("0.00"),
+  shippingCost: decimal("shipping_cost", { precision: 12, scale: 2 }).default("0.00"),
+  totalAmount: decimal("total_amount", { precision: 12, scale: 2 }).notNull(),
+  currency: text("currency").default("EUR"),
+  
+  // Consegna
+  warehouseId: uuid("warehouse_id").references(() => warehouses.id),
+  deliveryAddress: text("delivery_address"),
+  shippingMethod: text("shipping_method"),
+  trackingNumbers: json("tracking_numbers").$type<string[]>().default([]),
+  
+  // Gestione
+  createdBy: uuid("created_by").references(() => users.id).notNull(),
+  approvedBy: uuid("approved_by").references(() => users.id),
+  receivedBy: uuid("received_by").references(() => users.id),
+  
+  // Note e documenti
+  notes: text("notes"),
+  terms: text("terms"),
+  attachments: json("attachments").$type<string[]>().default([]), // File paths
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  tenantIdx: index("supplier_orders_tenant_idx").on(table.tenantId),
+  supplierIdx: index("supplier_orders_supplier_idx").on(table.supplierId),
+  statusIdx: index("supplier_orders_status_idx").on(table.status),
+  orderNumberIdx: unique("supplier_orders_number_idx").on(table.orderNumber),
+  dateIdx: index("supplier_orders_date_idx").on(table.orderDate),
+  deliveryIdx: index("supplier_orders_delivery_idx").on(table.requestedDeliveryDate),
+}));
+
+// NOTA: Partner Logistici già definito sopra nel file
+
+// Strutture Partner (Magazzini affiliati)
+export const partnerFacilities = pgTable("partner_facilities", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  partnerId: uuid("partner_id").references(() => logisticsPartners.id).notNull(),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  
+  // Identificazione struttura
+  code: text("code").notNull(),
+  name: text("name").notNull(),
+  type: text("type").notNull(), // warehouse, fulfillment_center, sorting_hub, cross_dock
+  
+  // Ubicazione
+  address: text("address").notNull(),
+  city: text("city").notNull(),
+  country: text("country").notNull(),
+  postalCode: text("postal_code"),
+  coordinates: json("coordinates").$type<{lat: number; lng: number}>(),
+  timezone: text("timezone"),
+  
+  // Capacità fisica
+  totalArea: decimal("total_area", { precision: 10, scale: 2 }), // m²
+  storageCapacity: decimal("storage_capacity", { precision: 12, scale: 2 }), // m³
+  maxWeight: decimal("max_weight", { precision: 12, scale: 2 }), // kg
+  loadingDocks: integer("loading_docks"),
+  
+  // Caratteristiche operative
+  operatingHours: json("operating_hours").$type<{
+    monday: {open: string; close: string};
+    tuesday: {open: string; close: string};
+    wednesday: {open: string; close: string};
+    thursday: {open: string; close: string};
+    friday: {open: string; close: string};
+    saturday: {open: string; close: string};
+    sunday: {open: string; close: string};
+  }>(),
+  
+  // Tecnologie disponibili
+  hasWMS: boolean("has_wms").default(false),
+  hasRFID: boolean("has_rfid").default(false),
+  hasQR: boolean("has_qr").default(true),
+  hasColdStorage: boolean("has_cold_storage").default(false),
+  hasHazmatStorage: boolean("has_hazmat_storage").default(false),
+  hasCustomsClearance: boolean("has_customs_clearance").default(false),
+  
+  // Costi operativi
+  storageCostPerM3: decimal("storage_cost_per_m3", { precision: 8, scale: 2 }),
+  handlingCostPerUnit: decimal("handling_cost_per_unit", { precision: 8, scale: 2 }),
+  
+  // Performance
+  utilizationRate: decimal("utilization_rate", { precision: 5, scale: 2 }).default("0.00"), // %
+  throughputDaily: integer("throughput_daily"), // packages/day
+  
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  partnerIdx: index("partner_facilities_partner_idx").on(table.partnerId),
+  tenantIdx: index("partner_facilities_tenant_idx").on(table.tenantId),
+  locationIdx: index("partner_facilities_location_idx").on(table.country, table.city),
+  typeIdx: index("partner_facilities_type_idx").on(table.type),
+  activeIdx: index("partner_facilities_active_idx").on(table.isActive),
+  partnerCodeIdx: unique("partner_facilities_partner_code_idx").on(table.partnerId, table.code),
+}));
+
+// Marketplace Interno Logistica
+export const logisticsMarketplace = pgTable("logistics_marketplace", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  
+  // Richiesta logistica
+  requestId: text("request_id").notNull().unique(),
+  serviceType: text("service_type").notNull(), // transportation, warehousing, fulfillment, last_mile
+  
+  // Origine e destinazione
+  originAddress: text("origin_address").notNull(),
+  originCoordinates: json("origin_coordinates").$type<{lat: number; lng: number}>(),
+  destinationAddress: text("destination_address").notNull(),
+  destinationCoordinates: json("destination_coordinates").$type<{lat: number; lng: number}>(),
+  
+  // Dettagli spedizione
+  packages: json("packages").$type<Array<{
+    weight: number;
+    dimensions: {length: number; width: number; height: number};
+    value: number;
+    fragile: boolean;
+    hazmat: boolean;
+    temperature_controlled: boolean;
+  }>>(),
+  
+  totalWeight: decimal("total_weight", { precision: 10, scale: 2 }).notNull(),
+  totalVolume: decimal("total_volume", { precision: 10, scale: 2 }).notNull(),
+  declaredValue: decimal("declared_value", { precision: 12, scale: 2 }),
+  
+  // Requisiti temporali
+  pickupDate: timestamp("pickup_date"),
+  deliveryDate: timestamp("delivery_date"),
+  isUrgent: boolean("is_urgent").default(false),
+  
+  // Offerte partner
+  bids: json("bids").$type<Array<{
+    partnerId: string;
+    price: number;
+    estimatedTime: number; // hours
+    score: number;
+    terms: string;
+    validUntil: string;
+  }>>().default([]),
+  
+  // Selezione
+  selectedPartnerId: uuid("selected_partner_id").references(() => logisticsPartners.id),
+  selectedBid: json("selected_bid").$type<{
+    partnerId: string;
+    price: number;
+    estimatedTime: number;
+    score: number;
+    terms: string;
+  }>(),
+  
+  // Status
+  status: text("status").notNull().default("open"), // open, bidding, awarded, completed, cancelled
+  
+  // Creazione richiesta
+  requestedBy: uuid("requested_by").references(() => users.id).notNull(),
+  clientId: uuid("client_id").references(() => clients.id),
+  
+  // AI Scoring
+  aiRecommendation: json("ai_recommendation").$type<{
+    recommendedPartnerId: string;
+    confidence: number;
+    factors: string[];
+    explanation: string;
+  }>(),
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  tenantIdx: index("logistics_marketplace_tenant_idx").on(table.tenantId),
+  requestIdIdx: unique("logistics_marketplace_request_idx").on(table.requestId),
+  statusIdx: index("logistics_marketplace_status_idx").on(table.status),
+  serviceTypeIdx: index("logistics_marketplace_service_idx").on(table.serviceType),
+  dateIdx: index("logistics_marketplace_date_idx").on(table.pickupDate, table.deliveryDate),
+  partnerIdx: index("logistics_marketplace_partner_idx").on(table.selectedPartnerId),
+}));
+
+// ========================
+// INSERT SCHEMAS & TYPES per tutti i 4 MODULI
+// ========================
+
+// MODULO 2: MAGAZZINO & INVENTARIO
+export const insertWarehouseSchema = createInsertSchema(warehouses);
+export const insertWarehouseZoneSchema = createInsertSchema(warehouseZones);
+export const insertInventorySchema = createInsertSchema(inventory);
+export const insertInventoryMovementSchema = createInsertSchema(inventoryMovements);
+
+export type Warehouse = typeof warehouses.$inferSelect;
+export type InsertWarehouse = z.infer<typeof insertWarehouseSchema>;
+export type WarehouseZone = typeof warehouseZones.$inferSelect;
+export type InsertWarehouseZone = z.infer<typeof insertWarehouseZoneSchema>;
+export type Inventory = typeof inventory.$inferSelect;
+export type InsertInventory = z.infer<typeof insertInventorySchema>;
+export type InventoryMovement = typeof inventoryMovements.$inferSelect;
+export type InsertInventoryMovement = z.infer<typeof insertInventoryMovementSchema>;
+
+// MODULO 3: FORNITORI  
+export const insertSupplierSchema = createInsertSchema(suppliers);
+export const insertSupplierOrderSchema = createInsertSchema(supplierOrders);
+
+export type Supplier = typeof suppliers.$inferSelect;
+export type InsertSupplier = z.infer<typeof insertSupplierSchema>;
+export type SupplierOrder = typeof supplierOrders.$inferSelect;
+export type InsertSupplierOrder = z.infer<typeof insertSupplierOrderSchema>;
+
+// MODULO 4: MAGAZZINI PARTNER & RETE LOGISTICA  
+export const insertPartnerFacilitySchemaNew = createInsertSchema(partnerFacilities);
+export const insertLogisticsMarketplaceSchemaNew = createInsertSchema(logisticsMarketplace);
+
+export type PartnerFacility = typeof partnerFacilities.$inferSelect;
+export type InsertPartnerFacility = z.infer<typeof insertPartnerFacilitySchemaNew>;
+export type LogisticsMarketplace = typeof logisticsMarketplace.$inferSelect;
+export type InsertLogisticsMarketplace = z.infer<typeof insertLogisticsMarketplaceSchemaNew>;
