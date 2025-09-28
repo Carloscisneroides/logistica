@@ -1,9 +1,141 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Package, MapPin, Clock, Check, AlertCircle, Truck, RotateCcw } from "lucide-react";
+import { Package, MapPin, Clock, Check, AlertCircle, Truck, RotateCcw, Plus, Search, ChevronRight, User, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { useDeviceInterface } from "@/hooks/use-device-interface";
+import { useState } from "react";
 
 export default function ShipmentsPage() {
+  const { isApp } = useDeviceInterface();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  // Mock data per demo
+  const mockShipments = [
+    { id: "SP001", trackingCode: "YC001234567", status: "in_transit", destinationAddress: "Milano, Via Roma 123", recipientName: "Mario Rossi", createdAt: "2025-01-15" },
+    { id: "SP002", trackingCode: "YC001234568", status: "delivered", destinationAddress: "Roma, Via del Corso 456", recipientName: "Laura Bianchi", createdAt: "2025-01-14" },
+    { id: "SP003", trackingCode: "YC001234569", status: "pending", destinationAddress: "Napoli, Via Caracciolo 789", recipientName: "Giuseppe Verdi", createdAt: "2025-01-13" }
+  ];
+
+  const filteredShipments = mockShipments.filter(shipment => {
+    const matchesSearch = shipment.trackingCode.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                         shipment.recipientName.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === "all" || shipment.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  if (isApp) {
+    // MOBILE SHIPMENTS
+    return (
+      <div className="content-app space-y-4">
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-bold">Spedizioni</h1>
+          <Button size="sm" className="bg-primary text-primary-foreground">
+            <Plus className="w-4 h-4" />
+          </Button>
+        </div>
+        
+        {/* Search - Mobile */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+          <Input
+            placeholder="Cerca spedizioni..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 h-12 rounded-xl"
+            data-testid="search-shipments"
+          />
+        </div>
+        
+        {/* Filter Chips - Mobile */}
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          <Button 
+            variant={statusFilter === "all" ? "default" : "outline"} 
+            size="sm" 
+            onClick={() => setStatusFilter("all")}
+            className="min-w-fit"
+          >
+            Tutte
+          </Button>
+          <Button 
+            variant={statusFilter === "in_transit" ? "default" : "outline"} 
+            size="sm" 
+            onClick={() => setStatusFilter("in_transit")}
+            className="min-w-fit"
+          >
+            In Transito
+          </Button>
+          <Button 
+            variant={statusFilter === "delivered" ? "default" : "outline"} 
+            size="sm" 
+            onClick={() => setStatusFilter("delivered")}
+            className="min-w-fit"
+          >
+            Consegnate
+          </Button>
+          <Button 
+            variant={statusFilter === "pending" ? "default" : "outline"} 
+            size="sm" 
+            onClick={() => setStatusFilter("pending")}
+            className="min-w-fit"
+          >
+            In Attesa
+          </Button>
+        </div>
+        
+        {/* Shipments List - Mobile */}
+        <div className="space-y-2">
+          {filteredShipments.length > 0 ? (
+            filteredShipments.map((shipment) => (
+              <div key={shipment.id} className="list-item" data-testid={`shipment-card-${shipment.id}`}>
+                <div className="flex items-center space-x-3 flex-1">
+                  <div className={`w-3 h-3 rounded-full ${
+                    shipment.status === "delivered" ? "bg-green-500" :
+                    shipment.status === "in_transit" ? "bg-blue-500" :
+                    shipment.status === "pending" ? "bg-yellow-500" :
+                    "bg-gray-500"
+                  }`}></div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-medium text-sm">{shipment.trackingCode}</h3>
+                      <Badge 
+                        variant={shipment.status === "delivered" ? "default" : "secondary"}
+                        className="text-xs px-2 py-1"
+                      >
+                        {shipment.status === "delivered" ? "Consegnata" :
+                         shipment.status === "in_transit" ? "In Transito" :
+                         shipment.status === "pending" ? "In Attesa" : "Sconosciuto"}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{shipment.destinationAddress}</p>
+                    <div className="flex items-center space-x-4 mt-1">
+                      <span className="text-xs text-muted-foreground flex items-center">
+                        <User className="w-3 h-3 mr-1" />
+                        {shipment.recipientName}
+                      </span>
+                      <span className="text-xs text-muted-foreground flex items-center">
+                        <Calendar className="w-3 h-3 mr-1" />
+                        {new Date(shipment.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight className="chevron" />
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-8">
+              <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground">Nessuna spedizione trovata</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // DESKTOP SHIPMENTS
   return (
     <div className="space-y-6" data-testid="shipments-page">
       <div>
