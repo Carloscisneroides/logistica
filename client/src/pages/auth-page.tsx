@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { useDeviceInterface } from "@/hooks/use-device-interface";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,7 +14,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { insertUserSchema } from "@shared/schema";
 import { z } from "zod";
 import { Redirect } from "wouter";
-import { Loader2, Truck, Shield, Users, Zap } from "lucide-react";
+import { Loader2, Truck, Shield, Users, Zap, Download, Smartphone } from "lucide-react";
 import ycoreLogo from "@assets/Copilot_20250928_191905_1759079989814.png";
 
 const loginSchema = insertUserSchema.pick({ username: true, password: true });
@@ -187,9 +188,11 @@ type RegisterData = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
   const { user, isLoading, loginMutation, registerMutation } = useAuth();
+  const { interfaceMode, isApp, isPC } = useDeviceInterface();
   // **PRIVATE DEMO MODE** - Disabilita registrazione pubblica
   const [isLogin, setIsLogin] = useState(true);
   const isPrivateDemo = true; // Modalità demo privata attiva
+  const [showPWAInstall, setShowPWAInstall] = useState(false);
 
   const loginForm = useForm<LoginData>({
     resolver: zodResolver(loginSchema),
@@ -742,85 +745,93 @@ export default function AuthPage() {
               )}
             </div>
         </div>
-      </div>
 
-
-      {/* Right side - YCORE Brand Hero Section */}
-      <div className="hidden lg:flex lg:flex-1 relative overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-800">
-        {/* Animated Background Elements */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-white/10 rounded-full blur-xl animate-pulse"></div>
-          <div className="absolute bottom-1/3 right-1/3 w-24 h-24 bg-yellow-300/20 rounded-full blur-lg animate-pulse delay-1000"></div>
-          <div className="absolute top-1/2 right-1/4 w-16 h-16 bg-cyan-300/30 rounded-full blur-md animate-ping delay-500"></div>
-        </div>
-        
-        {/* Main Content - TUTTO IN ORIZZONTALE */}
-        <div className="relative flex items-center justify-center p-8 z-10">
-          <div className="w-full space-y-6">
-            {/* Prima riga: Logo + YCORE + Sottotitolo */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="w-16 h-16 bg-white/20 backdrop-blur-xl rounded-2xl border border-white/30 shadow-2xl flex items-center justify-center">
-                  <img 
-                    src={ycoreLogo} 
-                    alt="YCORE Logo" 
-                    className="w-10 h-10 object-contain"
-                  />
+        {/* SEZIONE PWA APP SOTTO IL FORM */}
+        <div className="w-full max-w-md mt-8">
+          <div className="bg-white/60 dark:bg-black/30 backdrop-blur-xl rounded-2xl border border-white/40 dark:border-white/10 shadow-xl p-6">
+            <div className="text-center space-y-4">
+              <div className="flex items-center justify-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
+                  <Smartphone className="w-5 h-5 text-white" />
                 </div>
-                <h1 className="text-4xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-blue-100 to-cyan-200">
-                  YCORE
-                </h1>
-              </div>
-              <h2 className="text-xl font-bold text-white/90">
-                Il Motore Digitale del Business Moderno
-              </h2>
-            </div>
-            
-            {/* Seconda riga: Value Proposition + Features */}
-            <div className="flex items-center justify-between space-x-6">
-              {/* Descrizione principale */}
-              <div className="flex-1">
-                <p className="text-lg text-white/80 leading-relaxed font-medium">
-                  Un ecosistema <span className="text-yellow-300 font-bold">modulare</span>, <span className="text-yellow-300 font-bold">intelligente</span> e <span className="text-yellow-300 font-bold">sicuro</span> che trasforma il modo in cui le aziende operano, vendono e crescono.
-                </p>
+                <h3 className="text-lg font-bold text-foreground">
+                  YCORE {interfaceMode.toUpperCase()}
+                </h3>
               </div>
               
-              {/* Features in orizzontale */}
-              <div className="flex items-center space-x-4">
-                <div className="text-center">
-                  <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-2">
-                    <span className="text-lg">🚀</span>
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {isApp ? (
+                    "Stai utilizzando l'interfaccia ottimizzata per dispositivi mobili e app"
+                  ) : (
+                    "Stai utilizzando l'interfaccia enterprise per desktop e PC"
+                  )}
+                </p>
+                
+                {!window.matchMedia('(display-mode: standalone)').matches && (
+                  <div className="pt-3 border-t border-border/50">
+                    <p className="text-xs text-muted-foreground mb-3">
+                      📱 Installa YCORE come app sul tuo dispositivo per un'esperienza migliorata
+                    </p>
+                    
+                    <button
+                      onClick={() => {
+                        // Trigger PWA install prompt
+                        const event = new CustomEvent('show-pwa-install');
+                        window.dispatchEvent(event);
+                      }}
+                      className="pwa-install-button w-full justify-center"
+                      data-testid="button-install-pwa"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>Installa App</span>
+                    </button>
+                    
+                    <div className="mt-3 flex items-center justify-center space-x-4 text-xs text-muted-foreground/70">
+                      <span>✨ Offline Ready</span>
+                      <span>🔔 Notifiche</span>
+                      <span>🚀 Performance</span>
+                    </div>
                   </div>
-                  <p className="text-white text-xs font-semibold">Innovazione</p>
-                </div>
-                <div className="text-center">
-                  <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-2">
-                    <span className="text-lg">🔒</span>
+                )}
+                
+                {window.matchMedia('(display-mode: standalone)').matches && (
+                  <div className="pt-3 border-t border-border/50">
+                    <div className="flex items-center justify-center space-x-2 text-sm text-green-600 dark:text-green-400">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      <span className="font-medium">App Installata</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Stai utilizzando YCORE come app nativa
+                    </p>
                   </div>
-                  <p className="text-white text-xs font-semibold">Sicurezza</p>
-                </div>
-                <div className="text-center">
-                  <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-2">
-                    <span className="text-lg">⚡</span>
-                  </div>
-                  <p className="text-white text-xs font-semibold">Velocità</p>
-                </div>
+                )}
               </div>
-            </div>
-            
-            {/* Terza riga: Citazione centrale */}
-            <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/20 shadow-2xl text-center">
-              <p className="text-white text-lg font-semibold leading-relaxed">
-                YCORE non è solo una piattaforma: è il <span className="text-yellow-300">cuore operativo</span> che connette persone, processi e opportunità in <span className="text-cyan-300">tempo reale</span>.
-              </p>
+              
+              {/* Caratteristiche distintive */}
+              <div className="pt-4 border-t border-border/50">
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div className="text-center">
+                    <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-green-600 rounded-lg flex items-center justify-center mx-auto mb-1">
+                      <span className="text-white font-bold">PC</span>
+                    </div>
+                    <p className="text-muted-foreground">Desktop Pro</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-purple-600 rounded-lg flex items-center justify-center mx-auto mb-1">
+                      <span className="text-white font-bold">APP</span>
+                    </div>
+                    <p className="text-muted-foreground">Mobile First</p>
+                  </div>
+                </div>
+                
+                <p className="text-xs text-muted-foreground/70 mt-3 text-center">
+                  Due esperienze grafiche ottimizzate per ogni dispositivo
+                </p>
+              </div>
             </div>
           </div>
         </div>
-        
-        {/* Decorative Elements */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-white/10 to-transparent rounded-full -translate-y-16 translate-x-16"></div>
-        <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-cyan-400/20 to-transparent rounded-full translate-y-12 -translate-x-12"></div>
-        <div className="absolute top-1/2 left-0 w-2 h-48 bg-gradient-to-b from-transparent via-white/20 to-transparent -translate-x-1"></div>
       </div>
     </div>
   );

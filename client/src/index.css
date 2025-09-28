@@ -132,3 +132,132 @@
     color: hsl(45 35% 58%);
   }
 }
+
+/* YCORE INTERFACE SYSTEM - PC vs APP */
+@layer utilities {
+  /* === INTERFACE PC - Enterprise Desktop === */
+  .interface-pc {
+    --interface-spacing: 1.5rem;
+    --interface-font-size: 14px;
+    --interface-header-height: 4rem;
+    --interface-sidebar-width: 280px;
+    --interface-content-padding: 2rem;
+    --interface-card-spacing: 1.5rem;
+    --interface-border-radius: 8px;
+    --interface-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .interface-pc .header-pc {
+    height: var(--interface-header-height);
+    padding: 0 2rem;
+    background: linear-gradient(135deg, hsl(210 100% 20%), hsl(210 100% 25%));
+    border-bottom: 1px solid hsl(210 15% 18%);
+    backdrop-filter: blur(8px);
+  }
+
+  .interface-pc .logo-pc {
+    font-size: 1.75rem;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+  }
+
+  /* === INTERFACE APP - Mobile Touch-First === */
+  .interface-app {
+    --interface-spacing: 1rem;
+    --interface-font-size: 16px;
+    --interface-header-height: 3.5rem;
+    --interface-content-padding: 1rem;
+    --interface-card-spacing: 1rem;
+    --interface-border-radius: 12px;
+    --interface-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --safe-area-top: env(safe-area-inset-top, 0px);
+    --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .interface-app .header-app {
+    height: calc(var(--interface-header-height) + var(--safe-area-top));
+    padding: var(--safe-area-top) 1rem 0 1rem;
+    background: linear-gradient(135deg, hsl(210 100% 25%), hsl(210 100% 30%));
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .interface-app .logo-app {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .interface-app .content-app {
+    padding: var(--interface-content-padding);
+    padding-bottom: calc(80px + var(--safe-area-bottom));
+    min-height: calc(100vh - var(--interface-header-height) - var(--safe-area-top));
+  }
+
+  .interface-app .card-app {
+    border-radius: var(--interface-border-radius);
+    box-shadow: var(--interface-shadow);
+    padding: 1rem;
+    margin-bottom: var(--interface-card-spacing);
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+  }
+
+  .interface-app .button-app {
+    padding: 1rem 1.5rem;
+    font-size: 16px;
+    border-radius: 12px;
+    font-weight: 600;
+    min-height: 48px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .interface-app .input-app {
+    padding: 1rem;
+    font-size: 16px;
+    border-radius: 12px;
+    min-height: 48px;
+    touch-action: manipulation;
+    -webkit-appearance: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* PWA Install Button */
+  .pwa-install-button {
+    background: linear-gradient(135deg, #1e40af, #3b82f6);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
+  }
+
+  .pwa-install-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(30, 64, 175, 0.4);
+  }
+
+  .pwa-install-button:active {
+    transform: translateY(0);
+  }
+
+  /* Hide desktop elements in APP mode */
+  .interface-app .desktop-only {
+    display: none !important;
+  }
+
+  /* Hide mobile elements in PC mode */
+  .interface-pc .mobile-only {
+    display: none !important;
+  }
+}
