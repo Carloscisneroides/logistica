@@ -1,7 +1,7 @@
-// YCORE Progressive Web App Service Worker
-const CACHE_NAME = 'ycore-v2.0.0';
-const STATIC_CACHE_NAME = 'ycore-static-v2.0.0';
-const DYNAMIC_CACHE_NAME = 'ycore-dynamic-v2.0.0';
+// YCORE Progressive Web App Service Worker - AGGIORNAMENTO FORZATO
+const CACHE_NAME = 'ycore-v2.1.0';
+const STATIC_CACHE_NAME = 'ycore-static-v2.1.0';
+const DYNAMIC_CACHE_NAME = 'ycore-dynamic-v2.1.0';
 
 // Resources to cache immediately
 const STATIC_ASSETS = [
@@ -31,7 +31,7 @@ self.addEventListener('install', event => {
         return cache.addAll(STATIC_ASSETS);
       })
       .then(() => {
-        console.log('✅ YCORE SW: Static assets cached v2.0.0 - FORCE REFRESH');
+        console.log('✅ YCORE SW: Static assets cached v2.1.0 - FORCE REFRESH PWA UPDATE');
         return self.skipWaiting(); // Activate immediately
       })
   );
@@ -58,7 +58,7 @@ self.addEventListener('activate', event => {
         );
       })
       .then(() => {
-        console.log('✅ YCORE SW v2.0.0: Activated and ready - FORCE REFRESH');
+        console.log('✅ YCORE SW v2.1.0: Activated and ready - PWA AGGIORNATA!');
         // Force refresh all clients
         self.clients.matchAll().then(clients => {
           clients.forEach(client => client.postMessage({type: 'FORCE_REFRESH'}));
