@@ -238,7 +238,7 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen bg-background flex">
       {/* Left side - Forms */}
-      <div className="flex-1 flex items-center justify-center p-8">
+      <div className="flex-1 flex items-center justify-center p-8 lg:w-1/2">
         <div className="w-full max-w-md space-y-6">
           <div className="flex flex-col items-center justify-center mb-8">
             <div className="flex items-center space-x-2 mb-2">
@@ -703,6 +703,102 @@ export default function AuthPage() {
           </div>
           
         </div>
+      </div>
+
+      {/* Right side - YCORE Brand Hero Section */}
+      <div className="hidden lg:flex lg:flex-1 relative overflow-hidden bg-gradient-to-br from-primary via-primary/90 to-accent">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_40%,rgba(255,255,255,0.1),transparent_50%)]"></div>
+        <div className="relative flex items-center justify-center p-12">
+          <div className="max-w-2xl text-center space-y-8">
+            {/* Main Brand Title */}
+            <div className="space-y-4">
+              <h1 className="text-5xl lg:text-6xl font-black tracking-tight text-white">
+                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-white to-blue-100">
+                  YCORE
+                </span>
+              </h1>
+              <h2 className="text-2xl lg:text-3xl font-bold text-blue-100">
+                Il Motore Digitale del Business Moderno
+              </h2>
+            </div>
+            
+            {/* Core Value Proposition */}
+            <div className="space-y-6">
+              <p className="text-lg text-blue-50/90 leading-relaxed font-medium">
+                Un ecosistema <span className="text-yellow-300 font-bold">modulare</span>, <span className="text-yellow-300 font-bold">intelligente</span> e <span className="text-yellow-300 font-bold">sicuro</span> che trasforma il modo in cui le aziende operano, vendono e crescono.
+              </p>
+              
+              <div className="bg-black/20 backdrop-blur-sm rounded-xl p-6 border border-white/20">
+                <p className="text-white text-lg font-semibold leading-relaxed">
+                  YCORE non è solo una piattaforma: è il <span className="text-yellow-300">cuore operativo</span> che connette persone, processi e opportunità in <span className="text-cyan-300">tempo reale</span>.
+                </p>
+              </div>
+            </div>
+            
+            {/* Key Features Badges */}
+            <div className="flex flex-wrap justify-center gap-3">
+              <div className="bg-white/10 backdrop-blur-sm rounded-full px-5 py-2 border border-white/20">
+                <span className="text-white font-bold text-sm">SCALABILE</span>
+              </div>
+              <div className="bg-white/10 backdrop-blur-sm rounded-full px-5 py-2 border border-white/20">
+                <span className="text-white font-bold text-sm">PERSONALIZZABILE</span>
+              </div>
+              <div className="bg-white/10 backdrop-blur-sm rounded-full px-5 py-2 border border-white/20">
+                <span className="text-white font-bold text-sm">INIMITABILE</span>
+              </div>
+            </div>
+            
+            {/* Call to Action */}
+            <div className="space-y-3 pt-4">
+              <p className="text-2xl font-black text-white tracking-wide">
+                <span className="text-yellow-300">Il futuro</span> della gestione aziendale è già qui.
+              </p>
+              <p className="text-xl font-bold text-cyan-300">
+                E parla <span className="text-white bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">YCORE</span>.
+              </p>
+            </div>
+
+            {/* Elegant Features Grid */}
+            <div className="pt-8 grid grid-cols-2 gap-4 text-left">
+              <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10">
+                <div className="flex items-center space-x-2 mb-2">
+                  <Shield className="w-5 h-5 text-cyan-300" />
+                  <span className="text-white font-semibold text-sm">Sicurezza Enterprise</span>
+                </div>
+                <p className="text-blue-100/80 text-xs">Protezione avanzata con AI antifrode integrata</p>
+              </div>
+              
+              <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10">
+                <div className="flex items-center space-x-2 mb-2">
+                  <Zap className="w-5 h-5 text-yellow-300" />
+                  <span className="text-white font-semibold text-sm">AI Integrata</span>
+                </div>
+                <p className="text-blue-100/80 text-xs">Automazione intelligente per ogni processo</p>
+              </div>
+              
+              <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10">
+                <div className="flex items-center space-x-2 mb-2">
+                  <Users className="w-5 h-5 text-green-300" />
+                  <span className="text-white font-semibold text-sm">Multi-Tenant</span>
+                </div>
+                <p className="text-blue-100/80 text-xs">Gestione clienti isolata e personalizzabile</p>
+              </div>
+              
+              <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10">
+                <div className="flex items-center space-x-2 mb-2">
+                  <Truck className="w-5 h-5 text-purple-300" />
+                  <span className="text-white font-semibold text-sm">Logistics 360°</span>
+                </div>
+                <p className="text-blue-100/80 text-xs">Dalla spedizione locale al commercio globale</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Decorative Elements */}
+        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-white/10 to-transparent rounded-full -translate-y-16 translate-x-16"></div>
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-cyan-400/20 to-transparent rounded-full translate-y-12 -translate-x-12"></div>
+        <div className="absolute top-1/2 left-0 w-2 h-48 bg-gradient-to-b from-transparent via-white/20 to-transparent -translate-x-1"></div>
       </div>
     </div>
   );

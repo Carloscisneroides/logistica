@@ -52,64 +52,7 @@ export default function Dashboard() {
   const pendingCorrections = corrections?.filter((c: any) => c.status === "pending").length || 0;
 
   return (
-    <div className="p-6 space-y-8">
-      {/* HERO SECTION - YCORE BRAND MESSAGE */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-primary via-primary/90 to-accent rounded-2xl border border-primary/20 shadow-2xl">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_40%,rgba(255,255,255,0.1),transparent_50%)]"></div>
-        <div className="relative p-8 lg:p-12">
-          <div className="max-w-4xl mx-auto text-center space-y-6">
-            {/* Main Title */}
-            <h1 className="text-4xl lg:text-6xl xl:text-7xl font-black tracking-tight text-white">
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-white to-blue-100">
-                YCORE
-              </span>
-              <span className="block text-2xl lg:text-3xl xl:text-4xl font-bold text-blue-100 mt-2">
-                Il Motore Digitale del Business Moderno
-              </span>
-            </h1>
-            
-            {/* Subtitle */}
-            <p className="text-lg lg:text-xl text-blue-50/90 max-w-3xl mx-auto leading-relaxed font-medium">
-              Un ecosistema <span className="text-yellow-300 font-bold">modulare</span>, <span className="text-yellow-300 font-bold">intelligente</span> e <span className="text-yellow-300 font-bold">sicuro</span> che trasforma il modo in cui le aziende operano, vendono e crescono.
-            </p>
-            
-            {/* Core Message */}
-            <div className="bg-black/20 backdrop-blur-sm rounded-xl p-6 border border-white/20 max-w-2xl mx-auto">
-              <p className="text-white text-lg lg:text-xl font-semibold leading-relaxed">
-                YCORE non è solo una piattaforma: è il <span className="text-yellow-300">cuore operativo</span> che connette persone, processi e opportunità in <span className="text-cyan-300">tempo reale</span>.
-              </p>
-            </div>
-            
-            {/* Key Features */}
-            <div className="flex flex-wrap justify-center gap-4 pt-4">
-              <div className="bg-white/10 backdrop-blur-sm rounded-full px-6 py-3 border border-white/20">
-                <span className="text-white font-bold text-sm lg:text-base">SCALABILE</span>
-              </div>
-              <div className="bg-white/10 backdrop-blur-sm rounded-full px-6 py-3 border border-white/20">
-                <span className="text-white font-bold text-sm lg:text-base">PERSONALIZZABILE</span>
-              </div>
-              <div className="bg-white/10 backdrop-blur-sm rounded-full px-6 py-3 border border-white/20">
-                <span className="text-white font-bold text-sm lg:text-base">INIMITABILE</span>
-              </div>
-            </div>
-            
-            {/* Call to Action */}
-            <div className="pt-6">
-              <p className="text-2xl lg:text-3xl font-black text-white tracking-wide">
-                <span className="text-yellow-300">Il futuro</span> della gestione aziendale è già qui.
-              </p>
-              <p className="text-xl lg:text-2xl font-bold text-cyan-300 mt-2">
-                E parla <span className="text-white bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">YCORE</span>.
-              </p>
-            </div>
-          </div>
-        </div>
-        
-        {/* Decorative Elements */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-white/10 to-transparent rounded-full -translate-y-16 translate-x-16"></div>
-        <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-cyan-400/20 to-transparent rounded-full translate-y-12 -translate-x-12"></div>
-      </div>
-
+    <div className="p-6 space-y-6">
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
