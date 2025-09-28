@@ -56,6 +56,16 @@ export const translations = {
     authorizedPartners: "Accesso limitato ai partner autorizzati",
     installApp: "Installa YCORE App",
     
+    // eCommerce
+    products: "Prodotti",
+    orders: "Ordini",
+    addProduct: "Aggiungi Prodotto",
+    productName: "Nome Prodotto",
+    productPrice: "Prezzo",
+    productStock: "Scorte",
+    outOfStock: "Esaurito",
+    inStock: "Disponibile",
+    
     // Dashboard
     todayShipments: "Spedizioni Oggi",
     activeClients: "Clienti Attivi",
@@ -112,6 +122,16 @@ export const translations = {
     demoReserved: "DEMO RESERVED",
     authorizedPartners: "Access limited to authorized partners",
     installApp: "Install YCORE App",
+    
+    // eCommerce
+    products: "Products",
+    orders: "Orders",
+    addProduct: "Add Product",
+    productName: "Product Name",
+    productPrice: "Price",
+    productStock: "Stock",
+    outOfStock: "Out of Stock",
+    inStock: "In Stock",
     
     // Dashboard
     todayShipments: "Today's Shipments",

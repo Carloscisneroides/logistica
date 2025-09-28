@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useDeviceInterface } from "@/hooks/use-device-interface";
+import { useTranslation } from "@/lib/i18n";
 import { apiRequest } from "@/lib/queryClient";
 import {
   Package,
@@ -24,7 +26,12 @@ import {
   Store,
   Edit,
   Eye,
-  ArrowUpDown
+  ArrowUpDown,
+  Search,
+  ChevronRight,
+  Grid,
+  List,
+  Loader2
 } from "lucide-react";
 
 interface EcommerceStats {
@@ -78,9 +85,13 @@ interface EcommerceCustomer {
 }
 
 export function EcommercePage() {
+  const { isApp } = useDeviceInterface();
+  const { t } = useTranslation();
   const [selectedTab, setSelectedTab] = useState("overview");
   const [isCreateProductOpen, setIsCreateProductOpen] = useState(false);
   const [isCreateOrderOpen, setIsCreateOrderOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const [newProduct, setNewProduct] = useState({
     name: "",
     description: "",
@@ -124,6 +135,22 @@ export function EcommercePage() {
   const { data: customers, isLoading: isLoadingCustomers } = useQuery<EcommerceCustomer[]>({
     queryKey: ["/api/ecommerce/customers"],
   });
+
+  // Filter functions
+  const productsList = products || [];
+  const ordersList = orders || [];
+  const customersList = customers || [];
+  
+  const filteredProducts = productsList.filter((product: Product) => 
+    product.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.category?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredOrders = ordersList.filter((order: EcommerceOrder) => 
+    order.orderNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    order.status?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   // Create product mutation
   const createProduct = useMutation({
@@ -227,6 +254,273 @@ export function EcommercePage() {
     }
   };
 
+  // Loading state
+  if (isLoadingStats && isLoadingProducts && isLoadingOrders) {
+    return (
+      <div className={isApp ? "content-app flex items-center justify-center h-64" : "space-y-6"}>
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // MOBILE ECOMMERCE
+  if (isApp) {
+    return (
+      <div className="content-app space-y-4">
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-bold">{t('products') || 'eCommerce'}</h1>
+          <Button size="sm" className="bg-primary text-primary-foreground" onClick={() => setIsCreateProductOpen(true)}>
+            <Plus className="w-4 h-4" />
+          </Button>
+        </div>
+        
+        {/* eCommerce Stats - Mobile */}
+        {stats && (
+          <div className="stats-scroll">
+            <div className="stat-card">
+              <div className="flex items-center space-x-2">
+                <Package className="w-4 h-4 text-blue-600" />
+                <span className="text-xs text-muted-foreground">Prodotti</span>
+              </div>
+              <p className="text-lg font-bold">{stats.totalProducts}</p>
+            </div>
+            <div className="stat-card">
+              <div className="flex items-center space-x-2">
+                <ShoppingCart className="w-4 h-4 text-green-600" />
+                <span className="text-xs text-muted-foreground">Ordini</span>
+              </div>
+              <p className="text-lg font-bold">{stats.totalOrders}</p>
+            </div>
+            <div className="stat-card">
+              <div className="flex items-center space-x-2">
+                <DollarSign className="w-4 h-4 text-yellow-600" />
+                <span className="text-xs text-muted-foreground">Ricavi</span>
+              </div>
+              <p className="text-lg font-bold">€{stats.monthlyRevenue}</p>
+            </div>
+            <div className="stat-card">
+              <div className="flex items-center space-x-2">
+                <Users className="w-4 h-4 text-purple-600" />
+                <span className="text-xs text-muted-foreground">Clienti</span>
+              </div>
+              <p className="text-lg font-bold">{stats.totalCustomers}</p>
+            </div>
+          </div>
+        )}
+        
+        {/* Search - Mobile */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+          <Input
+            placeholder="Cerca prodotti, ordini..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 h-12 rounded-xl"
+            data-testid="search-ecommerce"
+          />
+        </div>
+        
+        {/* Action Tabs - Mobile */}
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          <Button 
+            variant={selectedTab === "products" ? "default" : "outline"} 
+            size="sm" 
+            onClick={() => setSelectedTab("products")}
+            className="min-w-fit"
+          >
+            <Package className="w-4 h-4 mr-2" />
+            {t('products') || 'Prodotti'}
+          </Button>
+          <Button 
+            variant={selectedTab === "orders" ? "default" : "outline"} 
+            size="sm" 
+            onClick={() => setSelectedTab("orders")}
+            className="min-w-fit"
+          >
+            <ShoppingCart className="w-4 h-4 mr-2" />
+            {t('orders') || 'Ordini'}
+          </Button>
+          <Button 
+            variant={selectedTab === "customers" ? "default" : "outline"} 
+            size="sm" 
+            onClick={() => setSelectedTab("customers")}
+            className="min-w-fit"
+          >
+            <Users className="w-4 h-4 mr-2" />
+            Clienti
+          </Button>
+        </div>
+        
+        {/* Products Tab - Mobile */}
+        {selectedTab === "products" && (
+          <div className="space-y-2">
+            {filteredProducts.length > 0 ? (
+              filteredProducts.map((product: Product) => (
+                <div key={product.id} className="list-item" data-testid={`product-card-${product.id}`}>
+                  <div className="flex items-center space-x-3 flex-1">
+                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                      <Package className="w-5 h-5 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-medium text-sm">{product.name}</h3>
+                        {getStatusBadge(product.status)}
+                      </div>
+                      <p className="text-sm text-muted-foreground">{product.sku}</p>
+                      <div className="flex items-center space-x-4 mt-1">
+                        <span className="text-xs text-muted-foreground">
+                          {product.category || 'N/A'}
+                        </span>
+                        <span className="text-xs font-medium text-green-600">
+                          €{product.basePrice || '0'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <ChevronRight className="chevron" />
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">Nessun prodotto trovato</p>
+              </div>
+            )}
+          </div>
+        )}
+        
+        {/* Orders Tab - Mobile */}
+        {selectedTab === "orders" && (
+          <div className="space-y-2">
+            {filteredOrders.length > 0 ? (
+              filteredOrders.map((order: EcommerceOrder) => (
+                <div key={order.id} className="list-item" data-testid={`order-card-${order.id}`}>
+                  <div className="flex items-center space-x-3 flex-1">
+                    <div className="w-10 h-10 bg-green-50 rounded-full flex items-center justify-center">
+                      <ShoppingCart className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-medium text-sm">{order.orderNumber}</h3>
+                        {getStatusBadge(order.status)}
+                      </div>
+                      <p className="text-sm text-muted-foreground">Cliente #{order.customerId}</p>
+                      <div className="flex items-center space-x-4 mt-1">
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(order.createdAt).toLocaleDateString()}
+                        </span>
+                        <span className="text-xs font-medium text-green-600">
+                          €{order.totalAmount}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <ChevronRight className="chevron" />
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <ShoppingCart className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">Nessun ordine trovato</p>
+              </div>
+            )}
+          </div>
+        )}
+        
+        {/* Customers Tab - Mobile */}
+        {selectedTab === "customers" && (
+          <div className="space-y-2">
+            {customersList.length > 0 ? (
+              customersList.map((customer: EcommerceCustomer) => (
+                <div key={customer.id} className="list-item" data-testid={`customer-card-${customer.id}`}>
+                  <div className="flex items-center space-x-3 flex-1">
+                    <div className="w-10 h-10 bg-purple-50 rounded-full flex items-center justify-center">
+                      <Users className="w-5 h-5 text-purple-600" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-medium text-sm">{customer.name}</h3>
+                        <Badge variant="outline" className="text-xs px-2 py-1">
+                          Cliente
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">{customer.email}</p>
+                      <div className="flex items-center space-x-4 mt-1">
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(customer.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <ChevronRight className="chevron" />
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">Nessun cliente trovato</p>
+              </div>
+            )}
+          </div>
+        )}
+        
+        {/* Create Product Dialog - Mobile */}
+        <Dialog open={isCreateProductOpen} onOpenChange={setIsCreateProductOpen}>
+          <DialogContent className="w-[95vw] max-w-md mx-4">
+            <DialogHeader>
+              <DialogTitle>{t('addProduct') || 'Nuovo Prodotto'}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <Input
+                placeholder={t('productName') || 'Nome prodotto'}
+                value={newProduct.name}
+                onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
+                className="h-12"
+              />
+              <Input
+                placeholder="SKU"
+                value={newProduct.sku}
+                onChange={(e) => setNewProduct({...newProduct, sku: e.target.value})}
+                className="h-12"
+              />
+              <Input
+                placeholder={t('productPrice') || 'Prezzo (€)'}
+                type="number"
+                value={newProduct.basePrice}
+                onChange={(e) => setNewProduct({...newProduct, basePrice: e.target.value})}
+                className="h-12"
+              />
+              <Select 
+                value={newProduct.category} 
+                onValueChange={(value) => setNewProduct({...newProduct, category: value})}
+              >
+                <SelectTrigger className="h-12">
+                  <SelectValue placeholder="Categoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="electronics">Elettronica</SelectItem>
+                  <SelectItem value="clothing">Abbigliamento</SelectItem>
+                  <SelectItem value="home">Casa</SelectItem>
+                  <SelectItem value="other">Altro</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="flex gap-2 pt-2">
+                <Button type="button" variant="outline" onClick={() => setIsCreateProductOpen(false)} className="flex-1 h-12">
+                  Annulla
+                </Button>
+                <Button onClick={handleCreateProduct} disabled={createProduct.isPending} className="flex-1 h-12">
+                  {createProduct.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Crea
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
+  }
+
+  // DESKTOP ECOMMERCE
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
