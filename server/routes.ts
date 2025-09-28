@@ -35,7 +35,9 @@ import {
   insertWeightBracketSchema, insertTonneBracketSchema, insertCarrierRateCardSchema,
   insertClientRateCardSchema, insertShippingQuoteSchema,
   // Warehouse & Inventory imports
-  insertWarehouseSchema, insertInventorySchema, insertWarehouseZoneSchema
+  insertWarehouseSchema, insertInventorySchema, insertWarehouseZoneSchema,
+  // Commercial Module imports
+  insertCommercialApplicationSchema, insertCommercialProfileSchema, insertCommercialExperienceSchema
 } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
@@ -5124,6 +5126,297 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
     } catch (error) {
       console.error("Error fetching client profile:", error);
       res.status(500).json({ error: "Failed to fetch client profile" });
+    }
+  });
+
+  // ======== COMMERCIAL MODULE ENDPOINTS ========
+  
+  // Public registration endpoint
+  app.post("/api/commercial/register", async (req, res) => {
+    try {
+      const result = insertCommercialApplicationSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ 
+          error: "Invalid application data", 
+          details: result.error.issues 
+        });
+      }
+
+      // Rate limiting check (simple IP-based)
+      const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
+      
+      // Check if email already exists
+      const existingApplication = await storage.getCommercialApplicationByEmail(result.data.email);
+      if (existingApplication) {
+        return res.status(409).json({ 
+          error: "Email già registrata. Se hai già inviato una candidatura, controlla la tua email per aggiornamenti." 
+        });
+      }
+
+      const applicationData = {
+        ...result.data,
+        tenantId: (await storage.getDefaultTenant()).id,
+        ipAddress,
+        userAgent: req.get('User-Agent') || 'unknown'
+      };
+
+      const application = await storage.createCommercialApplication(applicationData);
+      
+      // AI Analysis if CV provided
+      if (application.cvUrl) {
+        try {
+          const analysis = await storage.analyzeCommercialApplication(application.id);
+          await storage.updateCommercialApplication(application.id, {
+            aiAnalysis: analysis
+          });
+        } catch (error) {
+          console.error('AI analysis failed:', error);
+          // Continue without AI analysis - it's not critical
+        }
+      }
+
+      res.status(201).json({
+        message: "Candidatura inviata con successo! Ti contatteremo entro 48 ore.",
+        applicationId: application.id
+      });
+    } catch (error: any) {
+      console.error("Error creating commercial application:", error);
+      res.status(500).json({ error: "Errore interno del server" });
+    }
+  });
+
+  // CV Upload endpoint (public)
+  app.post("/api/commercial/cv-upload", upload.single('cv'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "Nessun file CV fornito" });
+      }
+
+      // Validate file type and size
+      const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      if (!allowedTypes.includes(req.file.mimetype)) {
+        return res.status(400).json({ error: "Formato file non supportato. Usa PDF, DOC o DOCX." });
+      }
+
+      if (req.file.size > 5 * 1024 * 1024) { // 5MB limit
+        return res.status(400).json({ error: "File troppo grande. Massimo 5MB." });
+      }
+
+      // Generate unique filename
+      const fileExtension = req.file.originalname.split('.').pop();
+      const fileName = `cv_${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExtension}`;
+      
+      // TODO: Implement object storage upload with presigned URL
+      // For now, return mock response
+      const mockStorageKey = `commercial/cvs/${fileName}`;
+      const mockUrl = `/api/files/${mockStorageKey}`;
+
+      res.json({
+        url: mockUrl,
+        storageKey: mockStorageKey,
+        fileName: req.file.originalname
+      });
+    } catch (error: any) {
+      console.error("Error uploading CV:", error);
+      res.status(500).json({ error: "Errore durante upload del CV" });
+    }
+  });
+
+  // Commercial profile endpoints (authenticated commerciale users)
+  app.get("/api/commercial/profile", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (user?.role !== 'commerciale') {
+        return res.status(403).json({ error: "Accesso riservato ai commerciali" });
+      }
+
+      const profile = await storage.getCommercialProfileByUserId(user.id);
+      if (!profile) {
+        return res.status(404).json({ error: "Profilo commerciale non trovato" });
+      }
+
+      const experiences = await storage.getCommercialExperiencesByProfile(profile.id);
+      
+      res.json({
+        ...profile,
+        experiences
+      });
+    } catch (error: any) {
+      console.error("Error fetching commercial profile:", error);
+      res.status(500).json({ error: "Errore nel recupero del profilo" });
+    }
+  });
+
+  app.patch("/api/commercial/profile", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (user?.role !== 'commerciale') {
+        return res.status(403).json({ error: "Accesso riservato ai commerciali" });
+      }
+
+      const profile = await storage.getCommercialProfileByUserId(user.id);
+      if (!profile) {
+        return res.status(404).json({ error: "Profilo commerciale non trovato" });
+      }
+
+      const updatedProfile = await storage.updateCommercialProfile(profile.id, req.body);
+      res.json(updatedProfile);
+    } catch (error: any) {
+      console.error("Error updating commercial profile:", error);
+      res.status(500).json({ error: "Errore nell'aggiornamento del profilo" });
+    }
+  });
+
+  // Commercial experiences endpoints
+  app.post("/api/commercial/experiences", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (user?.role !== 'commerciale') {
+        return res.status(403).json({ error: "Accesso riservato ai commerciali" });
+      }
+
+      const profile = await storage.getCommercialProfileByUserId(user.id);
+      if (!profile) {
+        return res.status(404).json({ error: "Profilo commerciale non trovato" });
+      }
+
+      const result = insertCommercialExperienceSchema.safeParse({
+        ...req.body,
+        profileId: profile.id
+      });
+      
+      if (!result.success) {
+        return res.status(400).json({ 
+          error: "Dati esperienza non validi", 
+          details: result.error.issues 
+        });
+      }
+
+      const experience = await storage.createCommercialExperience(result.data);
+      res.status(201).json(experience);
+    } catch (error: any) {
+      console.error("Error creating commercial experience:", error);
+      res.status(500).json({ error: "Errore nella creazione dell'esperienza" });
+    }
+  });
+
+  app.delete("/api/commercial/experiences/:id", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (user?.role !== 'commerciale') {
+        return res.status(403).json({ error: "Accesso riservato ai commerciali" });
+      }
+
+      const experience = await storage.getCommercialExperience(req.params.id);
+      if (!experience) {
+        return res.status(404).json({ error: "Esperienza non trovata" });
+      }
+
+      // Verify ownership
+      const profile = await storage.getCommercialProfileByUserId(user.id);
+      if (!profile || experience.profileId !== profile.id) {
+        return res.status(403).json({ error: "Non puoi eliminare questa esperienza" });
+      }
+
+      await storage.deleteCommercialExperience(req.params.id);
+      res.json({ message: "Esperienza eliminata con successo" });
+    } catch (error: any) {
+      console.error("Error deleting commercial experience:", error);
+      res.status(500).json({ error: "Errore nell'eliminazione dell'esperienza" });
+    }
+  });
+
+  // Admin endpoints for commercial management
+  app.get("/api/commercial/applications", requireAdmin, async (req, res) => {
+    try {
+      const user = req.user;
+      const status = req.query.status as string;
+      
+      let applications;
+      if (status) {
+        applications = await storage.getCommercialApplicationsByStatus(status, user!.tenantId!);
+      } else {
+        applications = await storage.getCommercialApplicationsByTenant(user!.tenantId!);
+      }
+
+      res.json(applications);
+    } catch (error: any) {
+      console.error("Error fetching commercial applications:", error);
+      res.status(500).json({ error: "Errore nel recupero delle candidature" });
+    }
+  });
+
+  app.get("/api/commercial/profiles", requireAdmin, async (req, res) => {
+    try {
+      const user = req.user;
+      const profiles = await storage.getCommercialProfilesByTenant(user!.tenantId!);
+      res.json(profiles);
+    } catch (error: any) {
+      console.error("Error fetching commercial profiles:", error);
+      res.status(500).json({ error: "Errore nel recupero dei profili commerciali" });
+    }
+  });
+
+  app.patch("/api/commercial/applications/:id/approve", requireAdmin, async (req, res) => {
+    try {
+      const { subRole, livello, grado, percentuale, notes } = req.body;
+      
+      if (!subRole || !['agente', 'responsabile'].includes(subRole)) {
+        return res.status(400).json({ error: "SubRole non valido" });
+      }
+
+      const result = await storage.approveCommercialApplication(req.params.id, {
+        subRole,
+        livello: livello || 'base',
+        grado: grado || '1',
+        percentuale: percentuale || '5.00',
+        notes
+      });
+
+      res.json({
+        message: "Candidatura approvata con successo",
+        profile: result.profile,
+        user: result.user
+      });
+    } catch (error: any) {
+      console.error("Error approving commercial application:", error);
+      res.status(500).json({ error: "Errore nell'approvazione della candidatura" });
+    }
+  });
+
+  app.patch("/api/commercial/applications/:id/reject", requireAdmin, async (req, res) => {
+    try {
+      const { reason } = req.body;
+      const user = req.user;
+      
+      if (!reason) {
+        return res.status(400).json({ error: "Motivo del rifiuto richiesto" });
+      }
+
+      const application = await storage.rejectCommercialApplication(
+        req.params.id, 
+        reason, 
+        user!.id
+      );
+
+      res.json({
+        message: "Candidatura rifiutata",
+        application
+      });
+    } catch (error: any) {
+      console.error("Error rejecting commercial application:", error);
+      res.status(500).json({ error: "Errore nel rifiuto della candidatura" });
+    }
+  });
+
+  app.get("/api/commercial/dashboard-stats", requireAdmin, async (req, res) => {
+    try {
+      const user = req.user;
+      const stats = await storage.getCommercialDashboardStats(user!.tenantId!);
+      res.json(stats);
+    } catch (error: any) {
+      console.error("Error fetching commercial dashboard stats:", error);
+      res.status(500).json({ error: "Errore nel recupero delle statistiche" });
     }
   });
 
