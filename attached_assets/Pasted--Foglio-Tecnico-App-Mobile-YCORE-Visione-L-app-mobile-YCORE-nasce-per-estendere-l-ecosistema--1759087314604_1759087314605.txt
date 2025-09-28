@@ -1,0 +1,86 @@
+📱 Foglio Tecnico – App Mobile YCORE
+🧠 Visione
+L’app mobile YCORE nasce per estendere l’ecosistema digitale direttamente nelle mani degli utenti. È progettata come interfaccia touch-first, installabile, intelligente e scalabile, con accesso dedicato per clienti, promoter, commerciali e team interni.
+
+🔧 Architettura Mobile
+Interfaccia responsive con layout adattivo per smartphone e tablet
+
+Navigazione semplificata con bottom bar e gesture native
+
+Safe-area detection per dispositivi notch
+
+Keyboard-adaptive per input fluidi e visibili
+
+Component policy attiva per differenziare comportamenti mobile vs desktop
+
+Wizard mobile-friendly per login e autenticazione
+
+👥 Tipologie Utente Gestite
+Clienti Privati
+
+Clienti Marketplace
+
+Clienti Logistica
+
+Commerciali
+
+Promoter
+
+Admin System + Team
+
+Ogni utente accede a moduli e funzionalità specifiche, con interfacce ottimizzate per il contesto mobile.
+
+🔐 Sicurezza Mobile
+Whitelist enforcement su login
+
+Rate limiting e protezione CSRF
+
+IP tracking e audit logging anche da mobile
+
+Ruoli granulari e accesso condizionato
+
+Ambiente blindato per test e demo
+
+🤖 AI & Algoritmi su Mobile
+Rilevamento anomalie in tempo reale
+
+Ottimizzazione automatica dei flussi utente
+
+Supporto decisionale per promoter e commerciali
+
+Assistente AI integrato per onboarding e supporto
+
+Algoritmi distribuiti su moduli Wallet, Marketplace, Logistica
+
+⚙️ Stack Tecnologico
+Frontend: React Native + Tailwind Mobile
+
+Backend: Node.js + Prisma + PostgreSQL
+
+AI Layer: modelli proprietari + anomaly detection
+
+DevOps: Docker, GitHub Actions, Vercel/AWS
+
+Monitoring: logs, HMR, audit trail mobile
+
+📈 Stato Attuale
+Ottimizzazione mobile completata (auth, login, layout)
+
+Interfaccia mobile potenziata e testata su dispositivi reali
+
+Logs server OK – nessun errore critico
+
+App in fase di progettazione con flusso operativo definito
+
+Card fisiche con QR già distribuite e integrate nel sistema mobile
+
+🤝 Obiettivo Collaborazione con Reply
+Validazione architetturale mobile
+
+Ottimizzazione moduli interni per app native
+
+Integrazione con servizi Reply/AWS
+
+Strategia di rollout mobile nazionale e internazionale
+
+Supporto su AI, sicurezza e distribuzione scalabile

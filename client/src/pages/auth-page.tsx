@@ -428,7 +428,7 @@ export default function AuthPage() {
               {isLogin ? (
                 <form 
                   onSubmit={loginForm.handleSubmit(onLoginSubmit)} 
-                  className={`space-y-6 ${isApp ? 'form-keyboard-adaptive' : ''}`}
+                  className={`space-y-6 ${isApp ? 'form-keyboard-adaptive form-mobile' : ''}`}
                   data-keyboard-open={keyboardOpen ? '1' : '0'}
                 >
                   <div className="space-y-4">
@@ -485,7 +485,7 @@ export default function AuthPage() {
                 <Form {...registerForm}>
                   <form 
                     onSubmit={registerForm.handleSubmit(onRegisterSubmit)} 
-                    className={`space-y-4 ${isApp ? 'form-keyboard-adaptive' : ''}`}
+                    className={`space-y-4 ${isApp ? 'form-keyboard-adaptive form-mobile' : ''}`}
                     data-keyboard-open={keyboardOpen ? '1' : '0'}
                   >
                     {/* Dati di accesso */}
