@@ -682,7 +682,7 @@ export default function AuthPage() {
                   <div className="text-sm text-amber-700 dark:text-amber-300">
                     <span className="font-semibold">🔒 DEMO RISERVATA</span>
                     <div className="mt-1">
-                      Registrazione disabilitata. Contattare Reply/AWS per credenziali di accesso.
+                      Registrazione disabilitata. Contattare l'amministratore per credenziali di accesso.
                     </div>
                   </div>
                 </div>
