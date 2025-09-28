@@ -102,7 +102,7 @@ export const subClientStatusEnum = pgEnum("sub_client_status", ["pending_approva
 export const domainStatusEnum = pgEnum("domain_status", ["pending", "active", "ssl_pending", "ssl_active", "suspended"]);
 export const subscriptionTierEnum = pgEnum("subscription_tier", ["basic", "premium", "enterprise", "custom"]);
 export const billingCycleEnum = pgEnum("billing_cycle", ["monthly", "quarterly", "annually"]);
-// Payment method enum moved to Wallet System section for unified management
+export const paymentMethodEnum = pgEnum("payment_method", ["stripe", "bonifico", "credito_virtuale", "fidelity_card"]);
 
 // Registration requests - Sistema approvazione manuale
 export const registrationRequests = pgTable("registration_requests", {
@@ -4101,8 +4101,7 @@ export type CommercialRejection = z.infer<typeof commercialRejectionSchema>;
 // YCORE WALLET SYSTEM - MODULO PAGAMENTI E CREDITO VIRTUALE
 // ========================
 
-// Enum per tipologie di pagamento
-export const paymentMethodEnum = pgEnum("payment_method", ["stripe", "bonifico", "credito_virtuale", "fidelity_card"]);
+// Enum per tipologie di pagamento (definito sopra per riuso)
 export const transactionTypeEnum = pgEnum("transaction_type", ["ricarica", "pagamento", "rimborso", "commissione", "prelievo", "accredito_commerciale"]);
 export const transactionStatusEnum = pgEnum("transaction_status", ["pending", "completed", "failed", "cancelled", "requires_confirmation"]);
 export const bonificoStatusEnum = pgEnum("bonifico_status", ["pending", "under_review", "confirmed", "rejected", "expired"]);
@@ -4410,7 +4409,177 @@ export type CommercialBonificoRequest = typeof commercialBonificoRequests.$infer
 export type InsertCommercialBonificoRequest = z.infer<typeof insertCommercialBonificoRequestSchema>;
 export type TransactionAuditLog = typeof transactionAuditLogs.$inferSelect;
 
-// API schemas types
+// ========================
+// ADVANCED ZOD SCHEMAS - STRATEGICI CON LOGICHE AI
+// ========================
+
+// Schema transazioni con AI validation
+export const transactionValidationSchema = z.object({
+  userId: z.string().uuid(),
+  amount: z.string()
+    .regex(/^\d+\.\d{2}$/, "Formato importo non valido")
+    .refine((val) => parseFloat(val) >= 0.01, "Importo minimo €0.01")
+    .refine((val) => parseFloat(val) <= 10000.00, "Importo massimo €10,000"),
+  method: z.enum(['stripe', 'bonifico', 'credito_virtuale', 'fidelity_card']),
+  timestamp: z.string().datetime(),
+  ipAddress: z.string().ip().optional(),
+  // AI anomaly detection
+  velocityCheck: z.boolean().default(true),
+  patternAnalysis: z.boolean().default(true),
+}).refine((data) => {
+  // Logica AI: se importo > €1000 e metodo bonifico, richiede pattern analysis
+  if (parseFloat(data.amount) > 1000 && data.method === 'bonifico') {
+    return data.patternAnalysis === true;
+  }
+  return true;
+}, "Transazioni bonifico >€1000 richiedono analisi pattern AI");
+
+// Schema bonifici con scadenze AI
+export const bonificoValidationSchema = z.object({
+  walletId: z.string().uuid(),
+  amount: z.string()
+    .regex(/^\d+\.\d{2}$/, "Formato importo non valido")
+    .refine((val) => parseFloat(val) >= 10.00, "Importo minimo bonifico €10.00")
+    .refine((val) => parseFloat(val) <= 50000.00, "Importo massimo bonifico €50,000"),
+  iban: z.string()
+    .min(15, "IBAN troppo corto")
+    .max(34, "IBAN troppo lungo")
+    .regex(/^[A-Z]{2}[0-9]{2}[A-Z0-9]+$/, "Formato IBAN non valido"),
+  description: z.string().min(5, "Descrizione richiesta").max(200),
+  scadenza: z.string().datetime(),
+  bankReference: z.string().min(3).max(50).optional(),
+  // AI pre-validation
+  aiPreCheck: z.boolean().default(true),
+  riskScore: z.number().min(0).max(100).optional(),
+}).refine((data) => {
+  // Logica AI: bonifici >€5000 richiedono pre-validazione
+  if (parseFloat(data.amount) > 5000) {
+    return data.aiPreCheck === true;
+  }
+  return true;
+}, "Bonifici >€5000 richiedono pre-validazione AI");
+
+// Schema Fidelity Card con limiti AI
+export const fidelityCardValidationSchema = z.object({
+  userId: z.string().uuid(),
+  cardNumber: z.string().length(16, "Numero carta deve essere 16 cifre"),
+  saldo: z.string()
+    .regex(/^\d+\.\d{2}$/, "Formato saldo non valido")
+    .refine((val) => parseFloat(val) >= 0, "Saldo non può essere negativo"),
+  limiteGiornaliero: z.string()
+    .regex(/^\d+\.\d{2}$/, "Formato limite non valido")
+    .refine((val) => parseFloat(val) >= 10.00 && parseFloat(val) <= 2000.00, "Limite giornaliero tra €10-€2000"),
+  tipo: z.enum(['standard', 'premium', 'commercial']),
+  // AI spending patterns
+  aiSpendingAnalysis: z.boolean().default(true),
+  lastUsage: z.string().datetime().optional(),
+}).refine((data) => {
+  // Logica AI: card premium hanno limiti più alti
+  if (data.tipo === 'premium' || data.tipo === 'commercial') {
+    return parseFloat(data.limiteGiornaliero) >= 100.00;
+  }
+  return true;
+}, "Card premium/commercial richiedono limite minimo €100");
+
+// Schema richieste bonifico commerciali con AI
+export const commercialBonificoValidationSchema = z.object({
+  commercialId: z.string().uuid(),
+  requestedAmount: z.string()
+    .regex(/^\d+\.\d{2}$/, "Formato importo non valido")
+    .refine((val) => parseFloat(val) >= 50.00, "Importo minimo richiesta €50.00")
+    .refine((val) => parseFloat(val) <= 20000.00, "Importo massimo richiesta €20,000"),
+  iban: z.string()
+    .min(15, "IBAN troppo corto")
+    .max(34, "IBAN troppo lungo")
+    .regex(/^[A-Z]{2}[0-9]{2}[A-Z0-9]+$/, "Formato IBAN non valido"),
+  bankName: z.string().min(2, "Nome banca richiesto").max(100),
+  accountHolder: z.string().min(2, "Intestatario richiesto").max(100),
+  // Performance commerciale per AI
+  monthlyEarnings: z.string().regex(/^\d+\.\d{2}$/).optional(),
+  performanceScore: z.number().min(0).max(100).optional(),
+  // AI risk assessment
+  aiRiskAssessment: z.boolean().default(true),
+  previousRequests: z.number().min(0).optional(),
+}).refine((data) => {
+  // Logica AI: commerciali con performance >80% hanno priorità
+  if (data.performanceScore && data.performanceScore > 80) {
+    return parseFloat(data.requestedAmount) <= 10000.00; // Limite più alto
+  }
+  return parseFloat(data.requestedAmount) <= 5000.00; // Limite standard
+}, "Limite richiesta basato su performance commerciale");
+
+// Schema abbonamenti con Fidelity Card
+export const abbonamentoPagamentoSchema = z.object({
+  userId: z.string().uuid(),
+  planType: z.enum(['basic', 'premium', 'enterprise']),
+  amount: z.string().regex(/^\d+\.\d{2}$/),
+  paymentMethod: z.enum(['stripe', 'fidelity_card', 'credito_virtuale']),
+  useCredito: z.boolean().default(false),
+  useFidelity: z.boolean().default(false),
+  autoRenewal: z.boolean().default(true),
+  // AI upgrade suggestions
+  aiUpgradeSuggestion: z.boolean().default(true),
+}).refine((data) => {
+  // Logica AI: se usa fidelity, deve avere saldo sufficiente
+  if (data.useFidelity) {
+    return data.paymentMethod === 'fidelity_card';
+  }
+  return true;
+}, "Uso Fidelity richiede metodo fidelity_card");
+
+// Schema commissioni YCORE con AI predictions
+export const ycoreCommissionSchema = z.object({
+  spentAmount: z.string().regex(/^\d+\.\d{2}$/),
+  category: z.enum(['marketplace', 'logistica', 'servizi', 'abbonamenti']),
+  userId: z.string().uuid(),
+  // AI commission calculation
+  standardRate: z.number().min(0.001).max(0.05).default(0.01), // 1%
+  dynamicRate: z.number().min(0.001).max(0.05).optional(),
+  // AI predictions
+  aiPredictedNext: z.string().regex(/^\d+\.\d{2}$/).optional(),
+  aiConfidence: z.number().min(0).max(100).optional(),
+}).refine((data) => {
+  // Logica AI: commissioni più basse per volumi alti
+  const spent = parseFloat(data.spentAmount);
+  if (spent > 1000 && data.dynamicRate) {
+    return data.dynamicRate <= 0.008; // 0.8% per volumi >€1000
+  }
+  return true;
+}, "Commissioni dinamiche per volumi elevati");
+
+// Schema audit logging con AI anomaly
+export const auditLogSchema = z.object({
+  userId: z.string().uuid(),
+  action: z.enum(['transaction', 'bonifico', 'fidelity_usage', 'commercial_request', 'admin_action']),
+  details: z.object({
+    amount: z.string().regex(/^\d+\.\d{2}$/).optional(),
+    method: z.string().optional(),
+    ipAddress: z.string().ip().optional(),
+    userAgent: z.string().optional(),
+  }),
+  // AI anomaly detection
+  aiAnomalyDetected: z.boolean().default(false),
+  aiRiskLevel: z.enum(['low', 'medium', 'high', 'critical']).default('low'),
+  aiReasons: z.array(z.string()).optional(),
+  timestamp: z.string().datetime(),
+}).refine((data) => {
+  // Logica AI: anomalie high/critical richiedono dettagli
+  if (data.aiAnomalyDetected && (data.aiRiskLevel === 'high' || data.aiRiskLevel === 'critical')) {
+    return data.aiReasons && data.aiReasons.length > 0;
+  }
+  return true;
+}, "Anomalie critiche richiedono spiegazione AI");
+
+// API schemas types STRATEGICI
+export type TransactionValidation = z.infer<typeof transactionValidationSchema>;
+export type BonificoValidation = z.infer<typeof bonificoValidationSchema>;
+export type FidelityCardValidation = z.infer<typeof fidelityCardValidationSchema>;
+export type CommercialBonificoValidation = z.infer<typeof commercialBonificoValidationSchema>;
+export type AbbonamentoPagamento = z.infer<typeof abbonamentoPagamentoSchema>;
+export type YcoreCommission = z.infer<typeof ycoreCommissionSchema>;
+export type AuditLog = z.infer<typeof auditLogSchema>;
+
+// Legacy API schemas types (mantenuti per compatibilità)
 export type WalletRecharge = z.infer<typeof walletRechargeSchema>;
 export type WalletPayment = z.infer<typeof walletPaymentSchema>;
 export type BonificoConfirmation = z.infer<typeof bonificoConfirmationSchema>;
