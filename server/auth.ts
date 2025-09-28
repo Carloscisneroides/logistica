@@ -26,7 +26,10 @@ const AUTHORIZED_USERS = [
   "demo@partner.com",
   "tech@aws.com",
   "partner@trusted.com",
-  "test@ycore.it"
+  "test@ycore.it",
+  "cliente@demo.it",
+  "amico",
+  "demo"
 ];
 
 // **PRIVATE ACCESS MIDDLEWARE** - Verifica utente in whitelist
