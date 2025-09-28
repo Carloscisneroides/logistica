@@ -1,0 +1,87 @@
+Foglio Tecnico – YCore
+Titolo: Architettura White-Label per Clienti Logistici ed eCommerce Autore: Ylenia Sacco – Founder & CEO Destinatario: Reply – Validazione Moduli & Scalabilità Data: Settembre 2025
+
+🔗 Personalizzazione White-Label
+Ogni cliente (logistica, merchant, broker) riceve:
+
+Link dedicato per registrazione subclienti
+
+Pagina personalizzata con:
+
+Logo cliente al posto di YCore
+
+Colori e tema coerenti con brand identity
+
+Dominio dedicato (es. cliente.ycore.app o app.cliente.it)
+
+Brand YCore invisibile lato utente finale
+
+Compatibilità con ambienti separati e SRL territoriali
+
+🎯 Obiettivo: neutralità competitiva, fiducia del cliente, controllo completo sull’onboarding.
+
+🏬 Magazzino & Inventario
+Magazzini multipli con dashboard dedicata
+
+Stoccaggio per zona/scaffale con QR/RFID
+
+Inventario dinamico con aggiornamento in tempo reale
+
+Movimentazione interna tracciata
+
+Ricezione da fornitori con validazione documentale
+
+📦 Modulo Fornitori
+Anagrafica fornitori categorizzata
+
+Ordini di approvvigionamento automatici
+
+Upload contratti e documenti con watermark invisibili
+
+KPI su puntualità, qualità e anomalie
+
+Tracciabilità completa e logging antifrode
+
+🌐 Magazzini Partner & Rete Logistica
+Magazzini affiliati in Italia e all’estero
+
+Strutture a consumo ridotto e prossimità al business
+
+Rete di corrieri privati e trasportatori locali
+
+Marketplace interno per selezione logistica
+
+Compatibilità con container, doganale, cold chain
+
+🤖 AI Integrata
+AI antifrode su registrazioni, spedizioni, transazioni
+
+AI corriere per selezione dinamica e scoring affidabilità
+
+ETA predittivo con analisi storica e real-time
+
+AI inventario per suggerimenti di riordino e ottimizzazione stoccaggio
+
+Logging su ogni evento con escalation automatica
+
+🔐 Sicurezza & Protezione
+Logging antifrode su ogni azione utente
+
+Watermark invisibili su documenti e contratti
+
+Stripe integrato con antifrode nativo
+
+Compatibilità futura con wallet, bonifico, PayPal
+
+Documentazione firmata e depositabile
+
+Protezione IP e conferibilità in SRL innovativa
+
+📈 Scalabilità & Abbonamenti
+Abbonamento basato su numero di spedizioni mensili
+
+Upgrade automatico al superamento soglia
+
+Fatturazione trasparente e dashboard cliente
+
+Compatibilità con merchant, logistiche e SRL territoriali

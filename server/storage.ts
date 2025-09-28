@@ -53,6 +53,7 @@ import {
   type GlobalTrackingEvent, type InsertGlobalTrackingEvent,
   type LogisticsPartner, type InsertLogisticsPartner,
   // Listini & Corrieri types
+  carriers, zones, zoneOverlays, weightBrackets, tonneBrackets, carrierRateCards, clientRateCards, shippingQuotes,
   type Carrier, type InsertCarrier, type Zone, type InsertZone,
   type ZoneOverlay, type InsertZoneOverlay, type WeightBracket, type InsertWeightBracket,
   type TonneBracket, type InsertTonneBracket, type CarrierRateCard, type InsertCarrierRateCard,
@@ -763,6 +764,77 @@ export interface IStorage {
     zoneDistribution: Array<{zone: string; quotes: number; avgPrice: number}>;
     weightDistribution: Array<{bracket: string; quotes: number; percentage: number}>;
   }>;
+
+  // ========================
+  // LISTINI & CORRIERI METHODS
+  // ========================
+  
+  // Carriers
+  getCarrier(id: string): Promise<Carrier | undefined>;
+  getCarriersByTenant(tenantId: string): Promise<Carrier[]>;
+  getActiveCarriers(tenantId: string): Promise<Carrier[]>;
+  createCarrier(carrier: InsertCarrier): Promise<Carrier>;
+  updateCarrier(id: string, updates: Partial<Carrier>): Promise<Carrier>;
+  deleteCarrier(id: string): Promise<void>;
+  
+  // Zones
+  getZone(id: string): Promise<Zone | undefined>;
+  getZonesByTenant(tenantId: string): Promise<Zone[]>;
+  getZonesByCarrier(carrierId: string): Promise<Zone[]>;
+  createZone(zone: InsertZone): Promise<Zone>;
+  updateZone(id: string, updates: Partial<Zone>): Promise<Zone>;
+  deleteZone(id: string): Promise<void>;
+  
+  // Zone Overlays
+  getZoneOverlay(id: string): Promise<ZoneOverlay | undefined>;
+  getZoneOverlaysByTenant(tenantId: string): Promise<ZoneOverlay[]>;
+  getZoneOverlaysByZone(zoneId: string): Promise<ZoneOverlay[]>;
+  createZoneOverlay(overlay: InsertZoneOverlay): Promise<ZoneOverlay>;
+  updateZoneOverlay(id: string, updates: Partial<ZoneOverlay>): Promise<ZoneOverlay>;
+  deleteZoneOverlay(id: string): Promise<void>;
+  
+  // Weight Brackets
+  getWeightBracket(id: string): Promise<WeightBracket | undefined>;
+  getWeightBracketsByTenant(tenantId: string): Promise<WeightBracket[]>;
+  getWeightBracketsByRange(minWeight: number, maxWeight: number, tenantId: string): Promise<WeightBracket[]>;
+  createWeightBracket(bracket: InsertWeightBracket): Promise<WeightBracket>;
+  updateWeightBracket(id: string, updates: Partial<WeightBracket>): Promise<WeightBracket>;
+  deleteWeightBracket(id: string): Promise<void>;
+  
+  // Tonne Brackets
+  getTonneBracket(id: string): Promise<TonneBracket | undefined>;
+  getTonneBracketsByTenant(tenantId: string): Promise<TonneBracket[]>;
+  getTonneBracketsByRange(minWeight: number, maxWeight: number, tenantId: string): Promise<TonneBracket[]>;
+  createTonneBracket(bracket: InsertTonneBracket): Promise<TonneBracket>;
+  updateTonneBracket(id: string, updates: Partial<TonneBracket>): Promise<TonneBracket>;
+  deleteTonneBracket(id: string): Promise<void>;
+  
+  // Carrier Rate Cards
+  getCarrierRateCard(id: string): Promise<CarrierRateCard | undefined>;
+  getCarrierRateCardsByTenant(tenantId: string): Promise<CarrierRateCard[]>;
+  getCarrierRateCardsByCarrier(carrierId: string): Promise<CarrierRateCard[]>;
+  getCarrierRateCardsByZone(zoneId: string): Promise<CarrierRateCard[]>;
+  createCarrierRateCard(rateCard: InsertCarrierRateCard): Promise<CarrierRateCard>;
+  updateCarrierRateCard(id: string, updates: Partial<CarrierRateCard>): Promise<CarrierRateCard>;
+  deleteCarrierRateCard(id: string): Promise<void>;
+  
+  // Client Rate Cards
+  getClientRateCard(id: string): Promise<ClientRateCard | undefined>;
+  getClientRateCardsByTenant(tenantId: string): Promise<ClientRateCard[]>;
+  getClientRateCardsByClient(clientId: string): Promise<ClientRateCard[]>;
+  getClientRateCardsByCarrierRate(carrierRateCardId: string): Promise<ClientRateCard[]>;
+  createClientRateCard(rateCard: InsertClientRateCard): Promise<ClientRateCard>;
+  updateClientRateCard(id: string, updates: Partial<ClientRateCard>): Promise<ClientRateCard>;
+  deleteClientRateCard(id: string): Promise<void>;
+  
+  // Shipping Quotes
+  getShippingQuote(id: string): Promise<ShippingQuote | undefined>;
+  getShippingQuotesByTenant(tenantId: string): Promise<ShippingQuote[]>;
+  getShippingQuotesByClient(clientId: string): Promise<ShippingQuote[]>;
+  getActiveShippingQuotes(tenantId: string): Promise<ShippingQuote[]>;
+  createShippingQuote(quote: InsertShippingQuote): Promise<ShippingQuote>;
+  updateShippingQuote(id: string, updates: Partial<ShippingQuote>): Promise<ShippingQuote>;
+  deleteShippingQuote(id: string): Promise<void>;
   
   sessionStore: session.Store;
 }
@@ -3886,6 +3958,329 @@ export class DatabaseStorage implements IStorage {
     actionsTaken.push('Logged automated response in audit trail');
 
     return { actionsTaken, escalationId, notificationsSent };
+  }
+
+  // ========================
+  // LISTINI & CORRIERI IMPLEMENTATION 
+  // ========================
+  
+  // Carriers Implementation
+  async getCarrier(id: string): Promise<Carrier | undefined> {
+    const [carrier] = await db.select().from(carriers).where(eq(carriers.id, id));
+    return carrier || undefined;
+  }
+
+  async getCarriersByTenant(tenantId: string): Promise<Carrier[]> {
+    return db.select().from(carriers).where(eq(carriers.tenantId, tenantId)).orderBy(desc(carriers.createdAt));
+  }
+
+  async getActiveCarriers(tenantId: string): Promise<Carrier[]> {
+    return db.select().from(carriers).where(and(eq(carriers.tenantId, tenantId), eq(carriers.isActive, true))).orderBy(desc(carriers.createdAt));
+  }
+
+  async createCarrier(carrier: InsertCarrier): Promise<Carrier> {
+    const [created] = await db.insert(carriers).values(carrier).returning();
+    return created;
+  }
+
+  async updateCarrier(id: string, updates: Partial<Carrier>): Promise<Carrier> {
+    const [updated] = await db.update(carriers).set(updates).where(eq(carriers.id, id)).returning();
+    return updated;
+  }
+
+  async deleteCarrier(id: string): Promise<void> {
+    await db.delete(carriers).where(eq(carriers.id, id));
+  }
+
+  // Zones Implementation
+  async getZone(id: string): Promise<Zone | undefined> {
+    const [zone] = await db.select().from(zones).where(eq(zones.id, id));
+    return zone || undefined;
+  }
+
+  async getZonesByTenant(tenantId: string): Promise<Zone[]> {
+    return db.select().from(zones).where(eq(zones.tenantId, tenantId)).orderBy(desc(zones.createdAt));
+  }
+
+  async getZonesByCarrier(carrierId: string): Promise<Zone[]> {
+    return db.select().from(zones).where(eq(zones.carrierId, carrierId)).orderBy(desc(zones.createdAt));
+  }
+
+  async createZone(zone: InsertZone): Promise<Zone> {
+    const [created] = await db.insert(zones).values(zone).returning();
+    return created;
+  }
+
+  async updateZone(id: string, updates: Partial<Zone>): Promise<Zone> {
+    const [updated] = await db.update(zones).set(updates).where(eq(zones.id, id)).returning();
+    return updated;
+  }
+
+  async deleteZone(id: string): Promise<void> {
+    await db.delete(zones).where(eq(zones.id, id));
+  }
+
+  // Zone Overlays Implementation
+  async getZoneOverlay(id: string): Promise<ZoneOverlay | undefined> {
+    const [overlay] = await db.select().from(zoneOverlays).where(eq(zoneOverlays.id, id));
+    return overlay || undefined;
+  }
+
+  async getZoneOverlaysByTenant(tenantId: string): Promise<ZoneOverlay[]> {
+    return db.select().from(zoneOverlays).where(eq(zoneOverlays.tenantId, tenantId)).orderBy(desc(zoneOverlays.createdAt));
+  }
+
+  async getZoneOverlaysByZone(zoneId: string): Promise<ZoneOverlay[]> {
+    return db.select().from(zoneOverlays).where(eq(zoneOverlays.zoneId, zoneId)).orderBy(desc(zoneOverlays.createdAt));
+  }
+
+  async createZoneOverlay(overlay: InsertZoneOverlay): Promise<ZoneOverlay> {
+    const [created] = await db.insert(zoneOverlays).values(overlay).returning();
+    return created;
+  }
+
+  async updateZoneOverlay(id: string, updates: Partial<ZoneOverlay>): Promise<ZoneOverlay> {
+    const [updated] = await db.update(zoneOverlays).set(updates).where(eq(zoneOverlays.id, id)).returning();
+    return updated;
+  }
+
+  async deleteZoneOverlay(id: string): Promise<void> {
+    await db.delete(zoneOverlays).where(eq(zoneOverlays.id, id));
+  }
+
+  // Weight Brackets Implementation
+  async getWeightBracket(id: string): Promise<WeightBracket | undefined> {
+    const [bracket] = await db.select().from(weightBrackets).where(eq(weightBrackets.id, id));
+    return bracket || undefined;
+  }
+
+  async getWeightBracketsByTenant(tenantId: string): Promise<WeightBracket[]> {
+    return db.select().from(weightBrackets).where(eq(weightBrackets.tenantId, tenantId)).orderBy(desc(weightBrackets.createdAt));
+  }
+
+  async getWeightBracketsByRange(minWeight: number, maxWeight: number, tenantId: string): Promise<WeightBracket[]> {
+    return db.select().from(weightBrackets).where(
+      and(
+        eq(weightBrackets.tenantId, tenantId),
+        sql`${weightBrackets.minWeight} >= ${minWeight}`,
+        sql`${weightBrackets.maxWeight} <= ${maxWeight}`
+      )
+    ).orderBy(desc(weightBrackets.createdAt));
+  }
+
+  async createWeightBracket(bracket: InsertWeightBracket): Promise<WeightBracket> {
+    const [created] = await db.insert(weightBrackets).values(bracket).returning();
+    return created;
+  }
+
+  async updateWeightBracket(id: string, updates: Partial<WeightBracket>): Promise<WeightBracket> {
+    const [updated] = await db.update(weightBrackets).set(updates).where(eq(weightBrackets.id, id)).returning();
+    return updated;
+  }
+
+  async deleteWeightBracket(id: string): Promise<void> {
+    await db.delete(weightBrackets).where(eq(weightBrackets.id, id));
+  }
+
+  // Tonne Brackets Implementation
+  async getTonneBracket(id: string): Promise<TonneBracket | undefined> {
+    const [bracket] = await db.select().from(tonneBrackets).where(eq(tonneBrackets.id, id));
+    return bracket || undefined;
+  }
+
+  async getTonneBracketsByTenant(tenantId: string): Promise<TonneBracket[]> {
+    return db.select().from(tonneBrackets).where(eq(tonneBrackets.tenantId, tenantId)).orderBy(desc(tonneBrackets.createdAt));
+  }
+
+  async getTonneBracketsByRange(minWeight: number, maxWeight: number, tenantId: string): Promise<TonneBracket[]> {
+    return db.select().from(tonneBrackets).where(
+      and(
+        eq(tonneBrackets.tenantId, tenantId),
+        sql`${tonneBrackets.minWeight} >= ${minWeight}`,
+        sql`${tonneBrackets.maxWeight} <= ${maxWeight}`
+      )
+    ).orderBy(desc(tonneBrackets.createdAt));
+  }
+
+  async createTonneBracket(bracket: InsertTonneBracket): Promise<TonneBracket> {
+    const [created] = await db.insert(tonneBrackets).values(bracket).returning();
+    return created;
+  }
+
+  async updateTonneBracket(id: string, updates: Partial<TonneBracket>): Promise<TonneBracket> {
+    const [updated] = await db.update(tonneBrackets).set(updates).where(eq(tonneBrackets.id, id)).returning();
+    return updated;
+  }
+
+  async deleteTonneBracket(id: string): Promise<void> {
+    await db.delete(tonneBrackets).where(eq(tonneBrackets.id, id));
+  }
+
+  // Carrier Rate Cards Implementation
+  async getCarrierRateCard(id: string): Promise<CarrierRateCard | undefined> {
+    const [rateCard] = await db.select().from(carrierRateCards).where(eq(carrierRateCards.id, id));
+    return rateCard || undefined;
+  }
+
+  async getCarrierRateCardsByTenant(tenantId: string): Promise<CarrierRateCard[]> {
+    return db.select().from(carrierRateCards).where(eq(carrierRateCards.tenantId, tenantId)).orderBy(desc(carrierRateCards.createdAt));
+  }
+
+  async getCarrierRateCardsByCarrier(carrierId: string): Promise<CarrierRateCard[]> {
+    return db.select().from(carrierRateCards).where(eq(carrierRateCards.carrierId, carrierId)).orderBy(desc(carrierRateCards.createdAt));
+  }
+
+  async getCarrierRateCardsByZone(zoneId: string): Promise<CarrierRateCard[]> {
+    return db.select().from(carrierRateCards).where(eq(carrierRateCards.zoneId, zoneId)).orderBy(desc(carrierRateCards.createdAt));
+  }
+
+  async createCarrierRateCard(rateCard: InsertCarrierRateCard): Promise<CarrierRateCard> {
+    const [created] = await db.insert(carrierRateCards).values(rateCard).returning();
+    return created;
+  }
+
+  async updateCarrierRateCard(id: string, updates: Partial<CarrierRateCard>): Promise<CarrierRateCard> {
+    const [updated] = await db.update(carrierRateCards).set(updates).where(eq(carrierRateCards.id, id)).returning();
+    return updated;
+  }
+
+  async deleteCarrierRateCard(id: string): Promise<void> {
+    await db.delete(carrierRateCards).where(eq(carrierRateCards.id, id));
+  }
+
+  // Client Rate Cards Implementation
+  async getClientRateCard(id: string): Promise<ClientRateCard | undefined> {
+    const [rateCard] = await db.select().from(clientRateCards).where(eq(clientRateCards.id, id));
+    return rateCard || undefined;
+  }
+
+  async getClientRateCardsByTenant(tenantId: string): Promise<ClientRateCard[]> {
+    return db.select().from(clientRateCards).where(eq(clientRateCards.tenantId, tenantId)).orderBy(desc(clientRateCards.createdAt));
+  }
+
+  async getClientRateCardsByClient(clientId: string): Promise<ClientRateCard[]> {
+    return db.select().from(clientRateCards).where(eq(clientRateCards.clientId, clientId)).orderBy(desc(clientRateCards.createdAt));
+  }
+
+  async getClientRateCardsByCarrierRate(carrierRateCardId: string): Promise<ClientRateCard[]> {
+    return db.select().from(clientRateCards).where(eq(clientRateCards.carrierRateCardId, carrierRateCardId)).orderBy(desc(clientRateCards.createdAt));
+  }
+
+  async createClientRateCard(rateCard: InsertClientRateCard): Promise<ClientRateCard> {
+    const [created] = await db.insert(clientRateCards).values(rateCard).returning();
+    return created;
+  }
+
+  async updateClientRateCard(id: string, updates: Partial<ClientRateCard>): Promise<ClientRateCard> {
+    const [updated] = await db.update(clientRateCards).set(updates).where(eq(clientRateCards.id, id)).returning();
+    return updated;
+  }
+
+  async deleteClientRateCard(id: string): Promise<void> {
+    await db.delete(clientRateCards).where(eq(clientRateCards.id, id));
+  }
+
+  // Shipping Quotes Implementation
+  async getShippingQuote(id: string): Promise<ShippingQuote | undefined> {
+    const [quote] = await db.select().from(shippingQuotes).where(eq(shippingQuotes.id, id));
+    return quote || undefined;
+  }
+
+  async getShippingQuotesByTenant(tenantId: string): Promise<ShippingQuote[]> {
+    return db.select().from(shippingQuotes).where(eq(shippingQuotes.tenantId, tenantId)).orderBy(desc(shippingQuotes.createdAt));
+  }
+
+  async getShippingQuotesByClient(clientId: string): Promise<ShippingQuote[]> {
+    return db.select().from(shippingQuotes).where(eq(shippingQuotes.clientId, clientId)).orderBy(desc(shippingQuotes.createdAt));
+  }
+
+  async getActiveShippingQuotes(tenantId: string): Promise<ShippingQuote[]> {
+    return db.select().from(shippingQuotes).where(
+      and(
+        eq(shippingQuotes.tenantId, tenantId),
+        sql`${shippingQuotes.expiresAt} > NOW()`,
+        eq(shippingQuotes.isAccepted, false)
+      )
+    ).orderBy(desc(shippingQuotes.createdAt));
+  }
+
+  async createShippingQuote(quote: InsertShippingQuote): Promise<ShippingQuote> {
+    const [created] = await db.insert(shippingQuotes).values(quote).returning();
+    return created;
+  }
+
+  async updateShippingQuote(id: string, updates: Partial<ShippingQuote>): Promise<ShippingQuote> {
+    const [updated] = await db.update(shippingQuotes).set(updates).where(eq(shippingQuotes.id, id)).returning();
+    return updated;
+  }
+
+  async deleteShippingQuote(id: string): Promise<void> {
+    await db.delete(shippingQuotes).where(eq(shippingQuotes.id, id));
+  }
+
+  // Dashboard Stats Implementation for Rates & Carriers
+  async getRatesCarriersDashboardStats(tenantId: string): Promise<{
+    totalCarriers: number;
+    activeCarriers: number;
+    totalZones: number;
+    specialZones: number;
+    totalWeightBrackets: number;
+    tonneBrackets: number;
+    carrierRateCards: number;
+    clientRateCards: number;
+    pendingQuotes: number;
+    acceptedQuotes: number;
+    avgQuoteValue: number;
+    topCarriers: Array<{id: string; name: string; quotes: number; avgPrice: number; reliability: number}>;
+    zoneDistribution: Array<{zone: string; quotes: number; avgPrice: number}>;
+    weightDistribution: Array<{bracket: string; quotes: number; percentage: number}>;
+  }> {
+    // Get all basic counts
+    const [
+      totalCarriersRes,
+      activeCarriersRes,
+      totalZonesRes,
+      specialZonesRes,
+      totalWeightBracketsRes,
+      tonneBracketsRes,
+      carrierRateCardsRes,
+      clientRateCardsRes,
+      pendingQuotesRes,
+      acceptedQuotesRes
+    ] = await Promise.all([
+      db.select({ count: sql<number>`count(*)` }).from(carriers).where(eq(carriers.tenantId, tenantId)),
+      db.select({ count: sql<number>`count(*)` }).from(carriers).where(and(eq(carriers.tenantId, tenantId), eq(carriers.isActive, true))),
+      db.select({ count: sql<number>`count(*)` }).from(zones).where(eq(zones.tenantId, tenantId)),
+      db.select({ count: sql<number>`count(*)` }).from(zoneOverlays).where(eq(zoneOverlays.tenantId, tenantId)),
+      db.select({ count: sql<number>`count(*)` }).from(weightBrackets).where(eq(weightBrackets.tenantId, tenantId)),
+      db.select({ count: sql<number>`count(*)` }).from(tonneBrackets).where(eq(tonneBrackets.tenantId, tenantId)),
+      db.select({ count: sql<number>`count(*)` }).from(carrierRateCards).where(eq(carrierRateCards.tenantId, tenantId)),
+      db.select({ count: sql<number>`count(*)` }).from(clientRateCards).where(eq(clientRateCards.tenantId, tenantId)),
+      db.select({ count: sql<number>`count(*)` }).from(shippingQuotes).where(and(eq(shippingQuotes.tenantId, tenantId), eq(shippingQuotes.isAccepted, false))),
+      db.select({ count: sql<number>`count(*)` }).from(shippingQuotes).where(and(eq(shippingQuotes.tenantId, tenantId), eq(shippingQuotes.isAccepted, true)))
+    ]);
+
+    // Calculate average quote value
+    const avgQuoteRes = await db.select({ 
+      avg: sql<number>`AVG(CAST(json_extract_path_text((selected_rate::json), 'totalPrice') AS DECIMAL))` 
+    }).from(shippingQuotes).where(and(eq(shippingQuotes.tenantId, tenantId), eq(shippingQuotes.isAccepted, true)));
+
+    return {
+      totalCarriers: totalCarriersRes[0]?.count || 0,
+      activeCarriers: activeCarriersRes[0]?.count || 0,
+      totalZones: totalZonesRes[0]?.count || 0,
+      specialZones: specialZonesRes[0]?.count || 0,
+      totalWeightBrackets: totalWeightBracketsRes[0]?.count || 0,
+      tonneBrackets: tonneBracketsRes[0]?.count || 0,
+      carrierRateCards: carrierRateCardsRes[0]?.count || 0,
+      clientRateCards: clientRateCardsRes[0]?.count || 0,
+      pendingQuotes: pendingQuotesRes[0]?.count || 0,
+      acceptedQuotes: acceptedQuotesRes[0]?.count || 0,
+      avgQuoteValue: avgQuoteRes[0]?.avg || 0,
+      topCarriers: [], // Placeholder - would need complex query with joins
+      zoneDistribution: [], // Placeholder - would need complex query with joins
+      weightDistribution: [] // Placeholder - would need complex query with joins
+    };
   }
 }
 

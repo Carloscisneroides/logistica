@@ -92,6 +92,14 @@ export const transportModeEnum = pgEnum("transport_mode", ["air", "sea", "rail",
 export const legStatusEnum = pgEnum("leg_status", ["planned", "in_progress", "completed", "delayed", "cancelled"]);
 export const partnerTypeEnum = pgEnum("partner_type", ["carrier", "forwarder", "customs_broker", "warehouse", "technology"]);
 
+// White-Label Multi-Tenant Enums
+export const clientBrandingStatusEnum = pgEnum("client_branding_status", ["active", "pending", "suspended", "archived"]);
+export const subClientStatusEnum = pgEnum("sub_client_status", ["pending_approval", "active", "suspended", "archived"]);
+export const domainStatusEnum = pgEnum("domain_status", ["pending", "active", "ssl_pending", "ssl_active", "suspended"]);
+export const subscriptionTierEnum = pgEnum("subscription_tier", ["basic", "premium", "enterprise", "custom"]);
+export const billingCycleEnum = pgEnum("billing_cycle", ["monthly", "quarterly", "annually"]);
+export const paymentMethodEnum = pgEnum("payment_method", ["stripe", "paypal", "wire_transfer", "invoice"]);
+
 // Registration requests - Sistema approvazione manuale
 export const registrationRequests = pgTable("registration_requests", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -3130,3 +3138,287 @@ export type ClientRateCard = typeof clientRateCards.$inferSelect;
 export type InsertClientRateCard = z.infer<typeof insertClientRateCardSchema>;
 export type ShippingQuote = typeof shippingQuotes.$inferSelect;
 export type InsertShippingQuote = z.infer<typeof insertShippingQuoteSchema>;
+
+// =====================================================
+// WHITE-LABEL MULTI-TENANT SYSTEM
+// Sistema registrazione subclienti personalizzata
+// =====================================================
+
+// Client Branding Configurations - Configurazioni branding per ogni cliente
+export const clientBrandingConfigs = pgTable("client_branding_configs", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  clientId: uuid("client_id").references(() => clients.id).notNull(),
+  brandName: text("brand_name").notNull(),
+  logoUrl: text("logo_url"),
+  faviconUrl: text("favicon_url"),
+  primaryColor: text("primary_color").default("#2563eb"), // Blue-600
+  secondaryColor: text("secondary_color").default("#64748b"), // Slate-500
+  accentColor: text("accent_color").default("#10b981"), // Emerald-500
+  backgroundGradient: text("background_gradient"),
+  customCss: text("custom_css"),
+  customDomain: text("custom_domain"), // app.logisticaX.it
+  subdomainPrefix: text("subdomain_prefix"), // logisticaX.ycore.app
+  whitelabelEnabled: boolean("whitelabel_enabled").default(true),
+  hideYcoreBranding: boolean("hide_ycore_branding").default(true),
+  customTermsUrl: text("custom_terms_url"),
+  customPrivacyUrl: text("custom_privacy_url"),
+  customSupportEmail: text("custom_support_email"),
+  customSupportPhone: text("custom_support_phone"),
+  status: clientBrandingStatusEnum("status").default("pending"),
+  metadata: json("metadata").$type<{
+    theme: string;
+    typography: string;
+    layout: string;
+    features: string[];
+  }>(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  tenantClientIdx: unique("branding_tenant_client_idx").on(table.tenantId, table.clientId),
+  customDomainIdx: unique("branding_custom_domain_idx").on(table.customDomain),
+  subdomainIdx: unique("branding_subdomain_idx").on(table.subdomainPrefix),
+  statusIdx: index("branding_status_idx").on(table.status),
+}));
+
+// Sub-Client Registrations - Registrazioni subclienti attraverso link personalizzati
+export const subClientRegistrations = pgTable("sub_client_registrations", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  parentClientId: uuid("parent_client_id").references(() => clients.id).notNull(), // Cliente che gestisce i subclienti
+  registrationToken: text("registration_token").notNull().unique(), // Token unico per link registrazione
+  brandingConfigId: uuid("branding_config_id").references(() => clientBrandingConfigs.id).notNull(),
+  
+  // Dati subcliente
+  subClientEmail: text("sub_client_email").notNull(),
+  subClientName: text("sub_client_name").notNull(),
+  subClientCompany: text("sub_client_company"),
+  subClientPhone: text("sub_client_phone"),
+  subClientAddress: text("sub_client_address"),
+  subClientVat: text("sub_client_vat"),
+  
+  // Metadata registrazione
+  registrationData: json("registration_data").$type<{
+    userAgent: string;
+    ipAddress: string;
+    referrer: string;
+    language: string;
+    timezone: string;
+    customFields: Record<string, any>;
+  }>(),
+  
+  // Status e approvazione
+  status: subClientStatusEnum("status").default("pending_approval"),
+  approvedAt: timestamp("approved_at"),
+  approvedBy: uuid("approved_by").references(() => users.id),
+  rejectedAt: timestamp("rejected_at"),
+  rejectionReason: text("rejection_reason"),
+  
+  // Antifrode
+  fraudScore: decimal("fraud_score", { precision: 5, scale: 2 }).default("0.00"), // 0-100
+  fraudFlags: json("fraud_flags").$type<string[]>().default([]),
+  ipAnalysis: json("ip_analysis").$type<{
+    country: string;
+    region: string;
+    city: string;
+    isp: string;
+    isVpn: boolean;
+    isTor: boolean;
+    riskScore: number;
+  }>(),
+  
+  expiresAt: timestamp("expires_at").notNull(), // Link scadenza
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  tenantParentIdx: index("sub_registrations_tenant_parent_idx").on(table.tenantId, table.parentClientId),
+  tokenIdx: unique("sub_registrations_token_idx").on(table.registrationToken),
+  emailIdx: index("sub_registrations_email_idx").on(table.subClientEmail),
+  statusIdx: index("sub_registrations_status_idx").on(table.status),
+  expiryIdx: index("sub_registrations_expiry_idx").on(table.expiresAt),
+  fraudScoreIdx: index("sub_registrations_fraud_score_idx").on(table.fraudScore),
+}));
+
+// Domain Configurations - Gestione domini personalizzati
+export const domainConfigurations = pgTable("domain_configurations", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  brandingConfigId: uuid("branding_config_id").references(() => clientBrandingConfigs.id).notNull(),
+  
+  domainName: text("domain_name").notNull(),
+  domainType: text("domain_type").notNull(), // subdomain, custom_domain
+  isActive: boolean("is_active").default(false),
+  isPrimary: boolean("is_primary").default(false),
+  
+  // SSL Configuration
+  sslCertificateId: text("ssl_certificate_id"),
+  sslStatus: domainStatusEnum("ssl_status").default("pending"),
+  sslExpiresAt: timestamp("ssl_expires_at"),
+  autoRenewSsl: boolean("auto_renew_ssl").default(true),
+  
+  // DNS Configuration
+  dnsRecords: json("dns_records").$type<Array<{
+    type: string; // A, CNAME, TXT
+    name: string;
+    value: string;
+    ttl: number;
+    verified: boolean;
+  }>>().default([]),
+  dnsVerified: boolean("dns_verified").default(false),
+  dnsVerifiedAt: timestamp("dns_verified_at"),
+  
+  // Redirect Configuration
+  redirectUrls: json("redirect_urls").$type<{
+    http: string;
+    https: string;
+    mobile: string;
+  }>(),
+  
+  status: domainStatusEnum("status").default("pending"),
+  lastCheckedAt: timestamp("last_checked_at"),
+  errorLog: text("error_log"),
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  domainNameIdx: unique("domain_configs_domain_name_idx").on(table.domainName),
+  brandingConfigIdx: index("domain_configs_branding_idx").on(table.brandingConfigId),
+  statusIdx: index("domain_configs_status_idx").on(table.status),
+  activeIdx: index("domain_configs_active_idx").on(table.isActive),
+  sslExpiryIdx: index("domain_configs_ssl_expiry_idx").on(table.sslExpiresAt),
+}));
+
+// Client Subscriptions - Abbonamenti scalabili basati su volumi
+export const clientSubscriptions = pgTable("client_subscriptions", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  clientId: uuid("client_id").references(() => clients.id).notNull(),
+  
+  // Subscription Plan
+  tier: subscriptionTierEnum("tier").notNull(),
+  billingCycle: billingCycleEnum("billing_cycle").default("monthly"),
+  monthlyShipmentLimit: integer("monthly_shipment_limit").notNull(),
+  currentUsage: integer("current_usage").default(0),
+  overage: integer("overage").default(0), // Spedizioni oltre il limite
+  
+  // Pricing
+  basePrice: decimal("base_price", { precision: 10, scale: 2 }).notNull(),
+  overagePrice: decimal("overage_price", { precision: 10, scale: 4 }).notNull(), // Prezzo per spedizione eccedente
+  currency: text("currency").default("EUR"),
+  
+  // Stripe Integration
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  stripeCustomerId: text("stripe_customer_id"),
+  stripePriceId: text("stripe_price_id"),
+  stripeInvoiceId: text("stripe_invoice_id"),
+  
+  // Payment Method
+  paymentMethod: paymentMethodEnum("payment_method").default("stripe"),
+  paymentMethodDetails: json("payment_method_details").$type<{
+    last4: string;
+    brand: string;
+    expiresAt: string;
+    country: string;
+  }>(),
+  
+  // Subscription Status
+  status: subscriptionStatusEnum("status").default("active"),
+  trialEndsAt: timestamp("trial_ends_at"),
+  currentPeriodStart: timestamp("current_period_start").notNull(),
+  currentPeriodEnd: timestamp("current_period_end").notNull(),
+  cancelAt: timestamp("cancel_at"),
+  canceledAt: timestamp("canceled_at"),
+  cancelReason: text("cancel_reason"),
+  
+  // Auto-scaling
+  autoUpgrade: boolean("auto_upgrade").default(true),
+  nextTierThreshold: decimal("next_tier_threshold", { precision: 5, scale: 2 }).default("80.00"), // % utilizzo per upgrade
+  upgradeNotificationSent: boolean("upgrade_notification_sent").default(false),
+  
+  // Usage Tracking
+  usageHistory: json("usage_history").$type<Array<{
+    period: string; // YYYY-MM
+    shipments: number;
+    overage: number;
+    totalCost: number;
+  }>>().default([]),
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  tenantClientIdx: unique("subscriptions_tenant_client_idx").on(table.tenantId, table.clientId),
+  stripeSubIdx: unique("subscriptions_stripe_sub_idx").on(table.stripeSubscriptionId),
+  statusIdx: index("subscriptions_status_idx").on(table.status),
+  tierIdx: index("subscriptions_tier_idx").on(table.tier),
+  currentPeriodIdx: index("subscriptions_current_period_idx").on(table.currentPeriodStart, table.currentPeriodEnd),
+  usageIdx: index("subscriptions_usage_idx").on(table.currentUsage, table.monthlyShipmentLimit),
+}));
+
+// Registration Links - Link personalizzati per registrazione subclienti
+export const registrationLinks = pgTable("registration_links", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  clientId: uuid("client_id").references(() => clients.id).notNull(),
+  brandingConfigId: uuid("branding_config_id").references(() => clientBrandingConfigs.id).notNull(),
+  
+  linkToken: text("link_token").notNull().unique(),
+  linkUrl: text("link_url").notNull(), // Full URL with domain + token
+  
+  // Link Configuration
+  customMessage: text("custom_message"),
+  prefilledData: json("prefilled_data").$type<{
+    companyName: string;
+    industry: string;
+    estimatedVolume: number;
+    referenceCode: string;
+  }>(),
+  
+  // Usage Tracking
+  clickCount: integer("click_count").default(0),
+  registrationCount: integer("registration_count").default(0),
+  conversionRate: decimal("conversion_rate", { precision: 5, scale: 2 }).default("0.00"),
+  
+  // Access Control
+  maxRegistrations: integer("max_registrations"), // null = unlimited
+  maxClicks: integer("max_clicks"), // null = unlimited
+  allowedDomains: json("allowed_domains").$type<string[]>().default([]),
+  restrictedCountries: json("restricted_countries").$type<string[]>().default([]),
+  
+  // Analytics
+  analytics: json("analytics").$type<{
+    sources: Record<string, number>; // referrer -> count
+    countries: Record<string, number>; // country -> count
+    devices: Record<string, number>; // device type -> count
+    fraudAttempts: number;
+  }>().default(sql`'{}'::json`),
+  
+  isActive: boolean("is_active").default(true),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  tokenIdx: unique("registration_links_token_idx").on(table.linkToken),
+  clientBrandingIdx: index("registration_links_client_branding_idx").on(table.clientId, table.brandingConfigId),
+  activeIdx: index("registration_links_active_idx").on(table.isActive),
+  expiryIdx: index("registration_links_expiry_idx").on(table.expiresAt),
+  conversionIdx: index("registration_links_conversion_idx").on(table.conversionRate),
+}));
+
+// Insert Schemas per White-Label Multi-Tenant
+export const insertClientBrandingConfigSchema = createInsertSchema(clientBrandingConfigs);
+export const insertSubClientRegistrationSchema = createInsertSchema(subClientRegistrations);
+export const insertDomainConfigurationSchema = createInsertSchema(domainConfigurations);
+export const insertClientSubscriptionSchema = createInsertSchema(clientSubscriptions);
+export const insertRegistrationLinkSchema = createInsertSchema(registrationLinks);
+
+// Types per White-Label Multi-Tenant
+export type ClientBrandingConfig = typeof clientBrandingConfigs.$inferSelect;
+export type InsertClientBrandingConfig = z.infer<typeof insertClientBrandingConfigSchema>;
+export type SubClientRegistration = typeof subClientRegistrations.$inferSelect;
+export type InsertSubClientRegistration = z.infer<typeof insertSubClientRegistrationSchema>;
+export type DomainConfiguration = typeof domainConfigurations.$inferSelect;
+export type InsertDomainConfiguration = z.infer<typeof insertDomainConfigurationSchema>;
+export type ClientSubscription = typeof clientSubscriptions.$inferSelect;
+export type InsertClientSubscription = z.infer<typeof insertClientSubscriptionSchema>;
+export type RegistrationLink = typeof registrationLinks.$inferSelect;
+export type InsertRegistrationLink = z.infer<typeof insertRegistrationLinkSchema>;

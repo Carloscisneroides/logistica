@@ -181,7 +181,7 @@ export default function CourierModules() {
       </div>
 
       <div className="grid grid-cols-1 gap-4">
-        {modules?.map((module: any) => (
+        {(modules || []).map((module: any) => (
           <CourierModuleCard
             key={module.id}
             module={module}
