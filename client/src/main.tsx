@@ -2,35 +2,63 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 
-// Force PWA update v2.1.0 - Clear cache mobile
+// PWA v2.2.0 - FIX MENU SOVRAPPOSTI
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
-      .then((registration) => {
-        console.log('🚀 SW v2.1.0 registered - FORCE UPDATE!');
-        
-        // Force immediate update check
-        registration.addEventListener('updatefound', () => {
-          console.log('🔄 SW Update found - Refreshing...');
-          const newWorker = registration.installing;
-          if (newWorker) {
-            newWorker.addEventListener('statechange', () => {
-              if (newWorker.state === 'installed') {
-                console.log('✅ SW Updated - FORCE REFRESH');
-                window.location.reload();
-              }
-            });
-          }
-        });
-        
-        // Check for updates every 5 seconds
-        setInterval(() => {
-          registration.update();
-        }, 5000);
-      })
-      .catch((error) => {
-        console.log('SW registration failed: ', error);
+    // UNREGISTER ALL SERVICE WORKERS FIRST
+    navigator.serviceWorker.getRegistrations().then(registrations => {
+      registrations.forEach(registration => {
+        console.log('🗑️ Unregistering old SW...');
+        registration.unregister();
       });
+      
+      // CLEAR ALL STORAGES
+      if ('localStorage' in window) {
+        localStorage.clear();
+      }
+      if ('sessionStorage' in window) {
+        sessionStorage.clear();
+      }
+      
+      // REGISTER NEW CLEAN SW
+      setTimeout(() => {
+        navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
+          .then((registration) => {
+            console.log('🚀 SW v2.2.0 CLEAN registered!');
+          })
+          .catch((error) => {
+            console.log('SW registration failed: ', error);
+          });
+      }, 1000);
+    });
+    
+    // Listen for hard refresh messages
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      if (event.data.type === 'HARD_REFRESH') {
+        console.log('🔄 HARD REFRESH received - Clearing all');
+        
+        // Clear all storages
+        if (event.data.clearStorage) {
+          localStorage.clear();
+          sessionStorage.clear();
+          
+          // Clear IndexedDB if exists
+          if ('indexedDB' in window) {
+            indexedDB.databases().then(databases => {
+              databases.forEach(db => {
+                if (db.name) indexedDB.deleteDatabase(db.name);
+              });
+            }).catch(() => {});
+          }
+        }
+        
+        if (event.data.reloadPage) {
+          setTimeout(() => {
+            window.location.reload(true);
+          }, 500);
+        }
+      }
+    });
   });
 }
 

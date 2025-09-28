@@ -1,7 +1,7 @@
-// YCORE Progressive Web App Service Worker - AGGIORNAMENTO FORZATO
-const CACHE_NAME = 'ycore-v2.1.0';
-const STATIC_CACHE_NAME = 'ycore-static-v2.1.0';
-const DYNAMIC_CACHE_NAME = 'ycore-dynamic-v2.1.0';
+// YCORE Progressive Web App Service Worker - FIX MENU DUPLICATI
+const CACHE_NAME = 'ycore-v2.2.0';
+const STATIC_CACHE_NAME = 'ycore-static-v2.2.0';
+const DYNAMIC_CACHE_NAME = 'ycore-dynamic-v2.2.0';
 
 // Resources to cache immediately
 const STATIC_ASSETS = [
@@ -37,34 +37,39 @@ self.addEventListener('install', event => {
   );
 });
 
-// Activate event - clean old caches
+// Activate event - HARD CLEAN ALL CACHES
 self.addEventListener('activate', event => {
-  console.log('⚡ YCORE SW: Activating...');
+  console.log('⚡ YCORE SW v2.2.0: HARD CLEANING...');
   
   event.waitUntil(
-    caches.keys()
-      .then(cacheNames => {
+    Promise.all([
+      // DELETE ALL YCORE CACHES (including current)
+      caches.keys().then(cacheNames => {
         return Promise.all(
           cacheNames
-            .filter(cacheName => 
-              cacheName.startsWith('ycore-') && 
-              cacheName !== STATIC_CACHE_NAME &&
-              cacheName !== DYNAMIC_CACHE_NAME
-            )
+            .filter(cacheName => cacheName.startsWith('ycore-'))
             .map(cacheName => {
-              console.log('🗑️ YCORE SW: Deleting old cache:', cacheName);
+              console.log('🗑️ HARD DELETE:', cacheName);
               return caches.delete(cacheName);
             })
         );
-      })
-      .then(() => {
-        console.log('✅ YCORE SW v2.1.0: Activated and ready - PWA AGGIORNATA!');
-        // Force refresh all clients
-        self.clients.matchAll().then(clients => {
-          clients.forEach(client => client.postMessage({type: 'FORCE_REFRESH'}));
+      }),
+      
+      // CLEAR ALL CLIENT STORAGES
+      self.clients.matchAll().then(clients => {
+        clients.forEach(client => {
+          console.log('🔄 FORCE FULL RELOAD CLIENT');
+          client.postMessage({
+            type: 'HARD_REFRESH',
+            clearStorage: true,
+            reloadPage: true
+          });
         });
-        return self.clients.claim(); // Take control immediately
       })
+    ]).then(() => {
+      console.log('✅ YCORE SW v2.2.0: HARD CLEAN COMPLETED - MENU FIX!');
+      return self.clients.claim();
+    })
   );
 });
 
