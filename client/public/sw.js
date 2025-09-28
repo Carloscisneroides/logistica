@@ -1,7 +1,7 @@
 // YCORE Progressive Web App Service Worker
-const CACHE_NAME = 'ycore-v1.0.0';
-const STATIC_CACHE_NAME = 'ycore-static-v1.0.0';
-const DYNAMIC_CACHE_NAME = 'ycore-dynamic-v1.0.0';
+const CACHE_NAME = 'ycore-v1.2.0';
+const STATIC_CACHE_NAME = 'ycore-static-v1.2.0';
+const DYNAMIC_CACHE_NAME = 'ycore-dynamic-v1.2.0';
 
 // Resources to cache immediately
 const STATIC_ASSETS = [
