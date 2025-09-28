@@ -54,7 +54,7 @@ export function Header({ title, onMenuToggle }: HeaderProps) {
                     <Menu className="w-6 h-6" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="left" className="w-[320px] sm:w-[280px]">
+                <SheetContent side="left" className="mobile-menu-content">
                   <div className="flex flex-col h-full">
                     {/* Header Logo */}
                     <div className="flex items-center space-x-3 pb-6 border-b border-border">
