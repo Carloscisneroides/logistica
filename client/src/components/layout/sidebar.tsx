@@ -58,6 +58,28 @@ const menuItems = [
     title: "Spedizioni",
     href: "/shipments", 
     icon: Truck,
+    submenu: [
+      {
+        title: "Dashboard Spedizioni",
+        href: "/shipments",
+        icon: Truck,
+      },
+      {
+        title: "Shipment Tracking",
+        href: "/shipment-tracking",
+        icon: MapPin,
+      },
+      {
+        title: "Elenco Spedizioni",
+        href: "/shipments-list",
+        icon: Package,
+      },
+      {
+        title: "Logistica Magazzini",
+        href: "/logistics-warehouses",
+        icon: Warehouse,
+      }
+    ]
   },
   {
     title: "Logistica Globale",
@@ -126,6 +148,16 @@ const menuItems = [
         icon: ShoppingCart,
       },
       {
+        title: "Magazzini",
+        href: "/ecommerce/warehouses",
+        icon: Warehouse,
+      },
+      {
+        title: "Fornitori",
+        href: "/ecommerce/suppliers",
+        icon: Package,
+      },
+      {
         title: "CSM Tickets",
         href: "/ecommerce/csm-tickets",
         icon: UserCheck,
@@ -170,12 +202,6 @@ const menuItems = [
     title: "Gestione Resi",
     href: "/returns",
     icon: RotateCcw,
-    roles: ["admin", "merchant"],
-  },
-  {
-    title: "Magazzino & Inventario",
-    href: "/warehouse-inventory",
-    icon: Warehouse,
     roles: ["admin", "merchant"],
   },
   {

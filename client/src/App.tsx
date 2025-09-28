@@ -35,6 +35,12 @@ import { EcommercePage } from "@/pages/ecommerce-page";
 import { MarketplacePage } from "@/pages/marketplace-page";
 import FidelityPage from "@/pages/fidelity-page";
 import ShipmentsPage from "@/pages/shipments";
+import ShipmentTrackingPage from "@/pages/shipment-tracking-page";
+import ShipmentsListPage from "@/pages/shipments-list-page";
+import LogisticsWarehousesPage from "@/pages/logistics-warehouses-page";
+import EcommerceWarehousesPage from "@/pages/ecommerce-warehouses-page";
+import EcommerceSuppliersPage from "@/pages/ecommerce-suppliers-page";
+import WalletPage from "@/pages/wallet-page";
 import RatesCarriersPage from "@/pages/rates-carriers-page";
 import GlobalLogisticsPage from "@/pages/global-logistics-page";
 import NotFound from "@/pages/not-found";
@@ -120,6 +126,36 @@ function Router() {
       <ProtectedRoute path="/rates-carriers" component={() => (
         <MainLayout>
           <RatesCarriersPage />
+        </MainLayout>
+      )} />
+      <ProtectedRoute path="/shipment-tracking" component={() => (
+        <MainLayout>
+          <ShipmentTrackingPage />
+        </MainLayout>
+      )} />
+      <ProtectedRoute path="/shipments-list" component={() => (
+        <MainLayout>
+          <ShipmentsListPage />
+        </MainLayout>
+      )} />
+      <ProtectedRoute path="/logistics-warehouses" component={() => (
+        <MainLayout>
+          <LogisticsWarehousesPage />
+        </MainLayout>
+      )} />
+      <ProtectedRoute path="/ecommerce/warehouses" component={() => (
+        <MainLayout>
+          <EcommerceWarehousesPage />
+        </MainLayout>
+      )} />
+      <ProtectedRoute path="/ecommerce/suppliers" component={() => (
+        <MainLayout>
+          <EcommerceSuppliersPage />
+        </MainLayout>
+      )} />
+      <ProtectedRoute path="/wallet" component={() => (
+        <MainLayout>
+          <WalletPage />
         </MainLayout>
       )} />
       <ProtectedRoute path="/global-logistics" component={() => (
