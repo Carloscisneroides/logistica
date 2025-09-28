@@ -701,128 +701,65 @@ export default function AuthPage() {
           <div className="absolute top-1/2 right-1/4 w-16 h-16 bg-cyan-300/30 rounded-full blur-md animate-ping delay-500"></div>
         </div>
         
-        {/* Main Content */}
-        <div className="relative flex items-center justify-center p-12 z-10">
-          <div className="max-w-3xl text-center space-y-10">
-            {/* Hero Logo and Brand - LAYOUT ORIZZONTALE */}
-            <div className="space-y-6">
-              <div className="flex items-center justify-center space-x-6">
-                <div className="w-20 h-20 bg-white/20 backdrop-blur-xl rounded-2xl border border-white/30 shadow-2xl flex items-center justify-center">
+        {/* Main Content - TUTTO IN ORIZZONTALE */}
+        <div className="relative flex items-center justify-center p-8 z-10">
+          <div className="w-full space-y-6">
+            {/* Prima riga: Logo + YCORE + Sottotitolo */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="w-16 h-16 bg-white/20 backdrop-blur-xl rounded-2xl border border-white/30 shadow-2xl flex items-center justify-center">
                   <img 
                     src={ycoreLogo} 
                     alt="YCORE Logo" 
-                    className="w-12 h-12 object-contain"
+                    className="w-10 h-10 object-contain"
                   />
                 </div>
-                
-                <div className="text-left">
-                  <h1 className="text-5xl lg:text-6xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-blue-100 to-cyan-200">
-                    YCORE
-                  </h1>
-                </div>
+                <h1 className="text-4xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-blue-100 to-cyan-200">
+                  YCORE
+                </h1>
               </div>
-              
-              <div className="text-center">
-                <h2 className="text-2xl lg:text-3xl font-bold text-white/90">
-                  Il Motore Digitale del Business Moderno
-                </h2>
-              </div>
+              <h2 className="text-xl font-bold text-white/90">
+                Il Motore Digitale del Business Moderno
+              </h2>
             </div>
             
-            {/* Value Proposition */}
-            <div className="space-y-8">
-              <p className="text-xl text-white/80 leading-relaxed font-medium max-w-2xl mx-auto">
-                Un ecosistema <span className="text-yellow-300 font-bold">modulare</span>, <span className="text-yellow-300 font-bold">intelligente</span> e <span className="text-yellow-300 font-bold">sicuro</span> che trasforma il modo in cui le aziende operano, vendono e crescono.
-              </p>
-              
-              <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-8 border border-white/20 shadow-2xl">
-                <p className="text-white text-xl font-semibold leading-relaxed">
-                  YCORE non è solo una piattaforma: è il <span className="text-yellow-300">cuore operativo</span> che connette persone, processi e opportunità in <span className="text-cyan-300">tempo reale</span>.
+            {/* Seconda riga: Value Proposition + Features */}
+            <div className="flex items-center justify-between space-x-6">
+              {/* Descrizione principale */}
+              <div className="flex-1">
+                <p className="text-lg text-white/80 leading-relaxed font-medium">
+                  Un ecosistema <span className="text-yellow-300 font-bold">modulare</span>, <span className="text-yellow-300 font-bold">intelligente</span> e <span className="text-yellow-300 font-bold">sicuro</span> che trasforma il modo in cui le aziende operano, vendono e crescono.
                 </p>
               </div>
               
-              {/* Innovation Features */}
-              <div className="grid grid-cols-3 gap-6 mt-12">
-                <div className="text-center space-y-2">
-                  <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                    <span className="text-2xl">🚀</span>
+              {/* Features in orizzontale */}
+              <div className="flex items-center space-x-4">
+                <div className="text-center">
+                  <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-2">
+                    <span className="text-lg">🚀</span>
                   </div>
-                  <h3 className="text-white font-semibold">Innovazione</h3>
-                  <p className="text-white/70 text-sm">Tecnologie all'avanguardia</p>
+                  <p className="text-white text-xs font-semibold">Innovazione</p>
                 </div>
-                <div className="text-center space-y-2">
-                  <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                    <span className="text-2xl">🔒</span>
+                <div className="text-center">
+                  <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-2">
+                    <span className="text-lg">🔒</span>
                   </div>
-                  <h3 className="text-white font-semibold">Sicurezza</h3>
-                  <p className="text-white/70 text-sm">Enterprise-grade</p>
+                  <p className="text-white text-xs font-semibold">Sicurezza</p>
                 </div>
-                <div className="text-center space-y-2">
-                  <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                    <span className="text-2xl">⚡</span>
+                <div className="text-center">
+                  <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-2">
+                    <span className="text-lg">⚡</span>
                   </div>
-                  <h3 className="text-white font-semibold">Velocità</h3>
-                  <p className="text-white/70 text-sm">Performance ottimali</p>
+                  <p className="text-white text-xs font-semibold">Velocità</p>
                 </div>
               </div>
             </div>
             
-            {/* Key Features Badges */}
-            <div className="flex flex-wrap justify-center gap-3">
-              <div className="bg-white/10 backdrop-blur-sm rounded-full px-5 py-2 border border-white/20">
-                <span className="text-white font-bold text-sm">SCALABILE</span>
-              </div>
-              <div className="bg-white/10 backdrop-blur-sm rounded-full px-5 py-2 border border-white/20">
-                <span className="text-white font-bold text-sm">PERSONALIZZABILE</span>
-              </div>
-              <div className="bg-white/10 backdrop-blur-sm rounded-full px-5 py-2 border border-white/20">
-                <span className="text-white font-bold text-sm">INIMITABILE</span>
-              </div>
-            </div>
-            
-            {/* Call to Action */}
-            <div className="space-y-3 pt-4">
-              <p className="text-2xl font-black text-white tracking-wide">
-                <span className="text-yellow-300">Il futuro</span> della gestione aziendale è già qui.
+            {/* Terza riga: Citazione centrale */}
+            <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/20 shadow-2xl text-center">
+              <p className="text-white text-lg font-semibold leading-relaxed">
+                YCORE non è solo una piattaforma: è il <span className="text-yellow-300">cuore operativo</span> che connette persone, processi e opportunità in <span className="text-cyan-300">tempo reale</span>.
               </p>
-              <p className="text-xl font-bold text-cyan-300">
-                E parla <span className="text-white bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">YCORE</span>.
-              </p>
-            </div>
-
-            {/* Elegant Features Grid */}
-            <div className="pt-8 grid grid-cols-2 gap-4 text-left">
-              <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10">
-                <div className="flex items-center space-x-2 mb-2">
-                  <Shield className="w-5 h-5 text-cyan-300" />
-                  <span className="text-white font-semibold text-sm">Sicurezza Enterprise</span>
-                </div>
-                <p className="text-blue-100/80 text-xs">Protezione avanzata con AI antifrode integrata</p>
-              </div>
-              
-              <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10">
-                <div className="flex items-center space-x-2 mb-2">
-                  <Zap className="w-5 h-5 text-yellow-300" />
-                  <span className="text-white font-semibold text-sm">AI Integrata</span>
-                </div>
-                <p className="text-blue-100/80 text-xs">Automazione intelligente per ogni processo</p>
-              </div>
-              
-              <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10">
-                <div className="flex items-center space-x-2 mb-2">
-                  <Users className="w-5 h-5 text-green-300" />
-                  <span className="text-white font-semibold text-sm">Multi-Tenant</span>
-                </div>
-                <p className="text-blue-100/80 text-xs">Gestione clienti isolata e personalizzabile</p>
-              </div>
-              
-              <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10">
-                <div className="flex items-center space-x-2 mb-2">
-                  <Truck className="w-5 h-5 text-purple-300" />
-                  <span className="text-white font-semibold text-sm">Logistics 360°</span>
-                </div>
-                <p className="text-blue-100/80 text-xs">Dalla spedizione locale al commercio globale</p>
-              </div>
             </div>
           </div>
         </div>
