@@ -290,7 +290,7 @@ export default function AuthPage() {
                     <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
                   </div>
                   <p className="text-xs text-amber-600 dark:text-amber-400">
-                    Accesso limitato ai partner autorizzati Reply/AWS
+                    Accesso limitato ai partner autorizzati
                   </p>
                   <p className="text-[10px] text-amber-600/70 dark:text-amber-400/70">
                     Sistema protetto con tracciamento avanzato

@@ -23,7 +23,7 @@ const scryptAsync = promisify(scrypt);
 const AUTHORIZED_USERS = [
   "admin",
   "ylenia@ycore.it", 
-  "demo@reply.com",
+  "demo@partner.com",
   "tech@aws.com",
   "partner@trusted.com",
   "test@ycore.it"
@@ -230,7 +230,7 @@ export function setupAuth(app: Express) {
     
     return res.status(403).json({ 
       error: "Registrazione disabilitata. Sistema in fase di validazione privata.",
-      message: "Contattare Reply/AWS per credenziali di accesso."
+      message: "Contattare l'amministratore per credenziali di accesso."
     });
     
     // Codice originale disabilitato per mantenere sicurezza demo privata
@@ -255,7 +255,7 @@ export function setupAuth(app: Express) {
       // **WHITELIST ENFORCEMENT** - Verifica utente autorizzato
       if (!checkAuthorizedUser(user.username)) {
         console.log(`[AUTH] WHITELIST BLOCKED | IP: ${clientIP} | Username: ${user.username} | Time: ${new Date().toISOString()}`);
-        return res.status(403).json({ error: "Accesso non autorizzato. Contattare Reply/AWS." });
+        return res.status(403).json({ error: "Accesso non autorizzato. Contattare l'amministratore." });
       }
       
       // **SESSION FIXATION PROTECTION** - Regenerate session on successful login
