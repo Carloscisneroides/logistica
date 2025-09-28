@@ -22,7 +22,6 @@ import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/layout/sidebar";
 import { BottomNavigation } from "@/components/pwa/bottom-navigation";
 import { SplashScreen } from "@/components/pwa/splash-screen";
-import { useDeviceInterface } from "@/hooks/use-device-interface";
 import { useState } from "react";
 
 // Pages
@@ -59,8 +58,6 @@ import RatesCarriersPage from "@/pages/rates-carriers-page";
 import GlobalLogisticsPage from "@/pages/global-logistics-page";
 import NotFound from "@/pages/not-found";
 import CommercialRegistration from "@/pages/commercial-registration";
-import SplashScreen from "@/components/pwa/splash-screen";
-import BottomNavigation from "@/components/pwa/bottom-navigation";
 import { useDeviceInterface } from "@/hooks/use-device-interface";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect } from "react";
