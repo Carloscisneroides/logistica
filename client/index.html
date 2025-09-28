@@ -1,14 +1,267 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="it">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    
+    <!-- PWA Configuration -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#1e40af" />
+    <meta name="background-color" content="#0f172a" />
+    
+    <!-- Mobile App Meta Tags -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="YCORE" />
+    <meta name="msapplication-TileColor" content="#1e40af" />
+    <meta name="msapplication-tap-highlight" content="no" />
+    
+    <!-- App Icons for iOS -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/pwa-assets/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/pwa-assets/icon-152.png" />
+    <link rel="apple-touch-icon" sizes="144x144" href="/pwa-assets/icon-144.png" />
+    <link rel="apple-touch-icon" sizes="120x120" href="/pwa-assets/icon-120.png" />
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/pwa-assets/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/pwa-assets/favicon-16x16.png" />
+    
+    <!-- Windows Tiles -->
+    <meta name="msapplication-TileImage" content="/pwa-assets/icon-144.png" />
+    <meta name="msapplication-config" content="/browserconfig.xml" />
+    
+    <!-- SEO and App Description -->
+    <title>YCORE - Il Motore Digitale del Business Moderno</title>
+    <meta name="description" content="Ecosistema SaaS modulare, intelligente e sicuro per la trasformazione digitale aziendale. Logistics, eCommerce, Marketplace e AI integrati." />
+    <meta name="keywords" content="SaaS, logistics, ecommerce, marketplace, business platform, digital transformation" />
+    <meta name="author" content="YCORE Platform" />
+    
+    <!-- Open Graph / Social Media -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="YCORE - Il Motore Digitale del Business Moderno" />
+    <meta property="og:description" content="Piattaforma modulare per logistics, eCommerce e marketplace con AI integrata" />
+    <meta property="og:image" content="/pwa-assets/og-image.png" />
+    <meta property="og:url" content="/" />
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="YCORE Platform" />
+    <meta name="twitter:description" content="Il Motore Digitale del Business Moderno" />
+    <meta name="twitter:image" content="/pwa-assets/og-image.png" />
+    
+    <!-- Preload Critical Resources -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Fira+Code:wght@300..700&family=Geist+Mono:wght@100..900&family=Geist:wght@100..900&family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&family=IBM+Plex+Sans:ital,wght@0,100..700;1,100..700&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,400..700;1,400..700&family=Merriweather:ital,opsz,wght@0,18..144,300..900;1,18..144,300..900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Outfit:wght@100..900&family=Oxanium:wght@200..800&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto+Mono:ital,wght@0,100..700;1,100..700&family=Roboto:ital,wght@0,100..900;1,100..900&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&family=Source+Serif+4:ital,opsz,wght@0,8..60,200..900;1,8..60,200..900&family=Space+Grotesk:wght@300..700&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Prevent zoom on inputs for iOS -->
+    <style>
+      @media screen and (-webkit-min-device-pixel-ratio: 0) {
+        select, textarea, input[type="text"], input[type="password"], 
+        input[type="datetime"], input[type="datetime-local"], 
+        input[type="date"], input[type="month"], input[type="time"], 
+        input[type="week"], input[type="number"], input[type="email"], 
+        input[type="url"], input[type="search"], input[type="tel"], 
+        input[type="color"] {
+          font-size: 16px !important;
+        }
+      }
+      
+      /* Hide scrollbars in app mode */
+      .pwa-mode {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      .pwa-mode::-webkit-scrollbar {
+        display: none;
+      }
+      
+      /* Safe area insets for notched devices */
+      .safe-area-top {
+        padding-top: env(safe-area-inset-top);
+      }
+      .safe-area-bottom {
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+    </style>
   </head>
-  <body>
-    <div id="root"></div>
+  <body class="pwa-mode">
+    <div id="root" class="safe-area-top safe-area-bottom"></div>
     <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- PWA Service Worker Registration -->
+    <script>
+      // Register Service Worker for PWA functionality
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+              console.log('🚀 YCORE PWA: Service Worker registered successfully:', registration.scope);
+              
+              // Check for updates
+              registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                if (newWorker) {
+                  newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                      // New version available
+                      console.log('🔄 YCORE PWA: New version available');
+                      
+                      // Optionally show update notification
+                      if (window.confirm('Nueva versione di YCORE disponibile. Aggiornare ora?')) {
+                        window.location.reload();
+                      }
+                    }
+                  });
+                }
+              });
+            })
+            .catch((error) => {
+              console.log('❌ YCORE PWA: Service Worker registration failed:', error);
+            });
+        });
+      }
+      
+      // PWA Install Prompt
+      let deferredPrompt;
+      window.addEventListener('beforeinstallprompt', (e) => {
+        console.log('📱 YCORE PWA: Install prompt available');
+        e.preventDefault();
+        deferredPrompt = e;
+        
+        // Show custom install button/banner
+        const installBanner = document.createElement('div');
+        installBanner.id = 'install-banner';
+        installBanner.innerHTML = `
+          <div style="
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            right: 0; 
+            background: linear-gradient(90deg, #1e40af, #3b82f6); 
+            color: white; 
+            padding: 12px 16px; 
+            text-align: center; 
+            z-index: 10000;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            transform: translateY(-100%);
+            transition: transform 0.3s ease;
+          ">
+            <span style="font-weight: 600; margin-right: 12px;">📱 Installa YCORE come App</span>
+            <button id="install-btn" style="
+              background: rgba(255,255,255,0.2); 
+              border: 1px solid rgba(255,255,255,0.3); 
+              color: white; 
+              padding: 6px 12px; 
+              border-radius: 6px; 
+              margin-right: 8px;
+              cursor: pointer;
+              font-weight: 500;
+            ">Installa</button>
+            <button id="dismiss-btn" style="
+              background: transparent; 
+              border: none; 
+              color: rgba(255,255,255,0.8); 
+              cursor: pointer;
+              font-size: 18px;
+              padding: 6px;
+            ">×</button>
+          </div>
+        `;
+        document.body.appendChild(installBanner);
+        
+        // Animate in
+        setTimeout(() => {
+          installBanner.querySelector('div').style.transform = 'translateY(0)';
+        }, 1000);
+        
+        // Install button click
+        document.getElementById('install-btn').addEventListener('click', () => {
+          deferredPrompt.prompt();
+          deferredPrompt.userChoice.then((choiceResult) => {
+            if (choiceResult.outcome === 'accepted') {
+              console.log('✅ YCORE PWA: User accepted the install prompt');
+            } else {
+              console.log('❌ YCORE PWA: User dismissed the install prompt');
+            }
+            deferredPrompt = null;
+            document.body.removeChild(installBanner);
+          });
+        });
+        
+        // Dismiss button click
+        document.getElementById('dismiss-btn').addEventListener('click', () => {
+          document.body.removeChild(installBanner);
+        });
+      });
+      
+      // PWA Install Success
+      window.addEventListener('appinstalled', (evt) => {
+        console.log('🎉 YCORE PWA: App was installed successfully');
+        
+        // Track install event
+        if (typeof gtag === 'function') {
+          gtag('event', 'pwa_install', {
+            event_category: 'engagement',
+            event_label: 'YCORE PWA Installed'
+          });
+        }
+      });
+      
+      // Detect PWA launch
+      window.addEventListener('DOMContentLoaded', () => {
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+        const isIOSStandalone = 'standalone' in window.navigator && window.navigator.standalone;
+        
+        if (isStandalone || isIOSStandalone) {
+          console.log('📱 YCORE PWA: Running in app mode');
+          document.body.classList.add('pwa-standalone');
+          
+          // Add app-specific behaviors
+          document.documentElement.style.setProperty('--app-mode', '1');
+        }
+      });
+      
+      // Handle offline/online status
+      function updateOnlineStatus() {
+        const status = navigator.onLine ? 'online' : 'offline';
+        console.log(`🌐 YCORE PWA: Network status changed to ${status}`);
+        
+        if (!navigator.onLine) {
+          // Show offline indicator
+          const offlineIndicator = document.createElement('div');
+          offlineIndicator.id = 'offline-indicator';
+          offlineIndicator.innerHTML = `
+            <div style="
+              position: fixed;
+              bottom: 20px;
+              left: 50%;
+              transform: translateX(-50%);
+              background: #ef4444;
+              color: white;
+              padding: 8px 16px;
+              border-radius: 8px;
+              font-size: 14px;
+              font-weight: 500;
+              z-index: 10000;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            ">
+              🔌 Modalità Offline - Alcune funzioni potrebbero essere limitate
+            </div>
+          `;
+          document.body.appendChild(offlineIndicator);
+        } else {
+          // Remove offline indicator
+          const indicator = document.getElementById('offline-indicator');
+          if (indicator) {
+            document.body.removeChild(indicator);
+          }
+        }
+      }
+      
+      window.addEventListener('online', updateOnlineStatus);
+      window.addEventListener('offline', updateOnlineStatus);
+    </script>
   </body>
 </html>
