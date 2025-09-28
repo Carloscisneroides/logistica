@@ -1,0 +1,97 @@
+🧾 FOGLIO TECNICO UNIFICATO – YCORE
+Destinatario: Reply – Partner Tecnico Autrice: Ylenia Sacco – Founder & CEO Data: 29 settembre 2025 Oggetto: Architettura Modulare YCore – Stato, Roadmap, Personalizzazione, Multilingua, Marketplace
+
+✅ STATO ATTUALE
+YCore è operativo, antifrode, multilingua, modulare. Lanciato da zero in 48h con oltre 45 tabelle, UI/UX mobile/desktop, PWA, e documentazione tecnica pronta per SRL innovativa e partner internazionali.
+
+🧩 STRUTTURA MODULARE – STATO E COMPLETAMENTO
+Core Platform
+
+Dashboard, autenticazione, sicurezza ✅ Operativo
+
+Logistica & Spedizioni
+
+7 moduli attivi (routing, tracking, tariffe, dogana, resi…)
+
+Modulo Globale Enterprise 🔧 In fase di perfezionamento
+
+eCommerce
+
+Vetrina, checkout antifrode, fidelity ✅ Operativo
+
+Clienti & CRM
+
+Gestione clienti, profilazione antifrode 🔧 Da rifinire
+
+Finanziario
+
+Fatturazione, pagamenti, Stripe 🔧 In fase di test
+
+Marketplace Digitale
+
+90% completato
+
+Integrazione con Amazon, Shopify, Sendcloud 🆕 Modello Glovo da integrare come modulo nativo 🔧 In fase di consolidamento
+
+Commerciale
+
+Offerte, coupon, upsell AI 🔧 Da rifinire
+
+Sistema Amministrativo
+
+Documenti, contratti, fatture, registro SRL ✅ Operativo
+
+Role-based Interfaces
+
+5 aree: merchant, operatore, partner, sottocliente, admin ✅ Operativo
+
+Sistema AI
+
+Assistant contestuale, antifrode predittivo ✅ Operativo
+
+Espansione Internazionale
+
+4 moduli pianificati: localizzazione, compliance, partner API, distribuzione 🔧 In fase di rollout
+
+Architettura PWA Mobile
+
+UI rifattorizzata, accesso per categoria, registrazione unica
+
+Modalità Power User, personalizzazione white-label ✅ Operativo
+
+🌐 MULTILINGUA
+Traduzione in 10 lingue: IT, EN, ES, FR, DE, PT, AR, ZH, JA, TR
+
+UI/UX adattiva per lingua, paese, settore
+
+Sistema centralizzato con fallback linguistico ✅ Pronto per distribuzione globale
+
+🎨 PERSONALIZZAZIONE CLIENTI LOGISTICI
+Branding white-label per sottoclienti: logo, colori, nome, dominio
+
+Personalizzazione anche su app mobile (icone, splash screen, header)
+
+Gestione centralizzata da pannello YCore ✅ Attivo e scalabile
+
+🛡️ DIFESA DELLA COMPETIZIONE
+Ambienti isolati per ogni cliente
+
+Nessuna visibilità incrociata
+
+Protezione antifrode, anti-clonazione, compliance ✅ Integrato nella logica di sistema
+
+📈 ROADMAP ATTIVABILE
+V1: Core operativo + mobile rifattorizzato
+
+V2: eCommerce + assistenza + fidelity
+
+V3: logistica globale + magazzino + antifrode avanzata
+
+V4: API partner + AI routing + white-label + multilingua
+
+V5: Marketplace completo con modello Glovo integrato
+
+📌 DOCUMENTAZIONE DISPONIBILE
+Fogli tecnici, memo, pitch deck, flussi UX, milestone SRL innovativa
+
+Compatibilità con onboarding Reply, AWS, partner internazionali

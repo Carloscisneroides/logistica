@@ -5,7 +5,19 @@
 
 ## Overview
 
-YCORE is a modular and scalable SaaS ecosystem designed for comprehensive logistics, commercial, and operational management. Its core purpose is to provide a robust platform with contextual AI, multi-tenant segmentation, competitive protection, and integrated monetization. The project is strategically expanding to integrate with international partners such as Temu, Shein, Alibaba, and global logistics providers like Maersk, DHL, and Cainiao. Key capabilities include multi-language support (10 languages), role-specific environments, and specialized modules for maritime/air fleets, container management, customs documentation, and intercontinental tracking. The vision is to establish YCORE as a leading global logistics and e-commerce platform.
+YCORE is a modular and scalable SaaS ecosystem designed for comprehensive logistics, commercial, and operational management. Launched from zero in 48 hours, YCORE is now operativo, antifrode, multilingua, and modulare with 45+ database tables, PWA mobile architecture, and ready for SRL innovativa and international partners.
+
+The platform provides a robust foundation with contextual AI, multi-tenant segmentation, competitive protection, and integrated monetization. Strategic expansion includes integration with international partners (Temu, Shein, Alibaba, Maersk, DHL, Cainiao) and the new Glovo-model integration for marketplace delivery services.
+
+**Key Status (September 2025):**
+- ✅ Core Platform: Operational with mobile navigation system
+- ✅ 50+ Specialized Modules: Fully inventoried and categorized  
+- ✅ PWA Mobile: Refactored with centralized hook architecture
+- ✅ Multilingua: 10 languages ready for global distribution
+- ✅ White-label: Complete customization for sub-clients
+- ✅ Anti-fraud: Integrated system with AI prediction
+- 🔧 Enterprise Modules: In consolidation phase
+- 🔧 Marketplace: 90% complete with Glovo integration planned
 
 ## User Preferences
 
@@ -29,12 +41,28 @@ The frontend utilizes React 18 with Vite and TypeScript, styled with shadcn/ui a
 - **Database**: PostgreSQL with a multi-tenant optimized schema, over 45 tables across core modules, Drizzle ORM for type safety and auto-migrations, comprehensive audit logging, and automated backups. A dedicated anti-fraud database is implemented for pattern detection and risk scoring.
 
 ### Feature Specifications
-- **AI Assistant**: Global access from the header, dynamic context for all modules (dashboard, clients, shipments, eCommerce, marketplace).
-- **eCommerce Module**: Manages products, orders, customers, and integrates with marketplaces.
-- **Logistics/Shipment Module**: Comprehensive shipment management including QR/tracking labels, private courier GPS tracking, and dedicated interfaces for Merchant, Client, Courier, and Admin roles. Features advanced anti-fraud integration, mobile courier interface, undelivered shipment management, and reverse logistics.
-- **AI Anti-fraud**: AI-powered pattern detection (velocity, cross-module, temporal analysis), dynamic risk clustering, automated response mechanisms (warnings, enhanced monitoring, account suspension), OpenAI integration for risk adjustment, and robust evidence collection.
-- **Digital Professional Marketplace**: (90% complete) Features a bidding system, portfolio management, anti-disintermediation protection, modular commissions, AI-driven client-professional matching, and Stripe Connect for milestone payments.
-- **Planned International Expansion Modules**: Maritime/Air Fleet Management (IMO, AIS, IATA integration), Container Management (ISO 6346, RFID/IoT, cold chain monitoring), AI-powered Customs Documentation (OCR, HS code prediction, compliance checks), and Intercontinental Tracking (global route dashboards, AI-powered ETA, anomaly detection).
+
+**OPERATIONAL MODULES (✅ Ready):**
+- **Core Platform**: Dashboard, authentication, security
+- **Logistica & Spedizioni**: 7 active modules (routing, tracking, rates, customs, returns)
+- **eCommerce**: Storefront, anti-fraud checkout, loyalty system
+- **Sistema Amministrativo**: Documents, contracts, invoices, SRL registry
+- **Role-based Interfaces**: 5 areas (merchant, operator, partner, sub-client, admin)
+- **Sistema AI**: Contextual assistant, predictive anti-fraud
+- **PWA Mobile**: Refactored UI, category access, unified registration
+
+**IN CONSOLIDATION (🔧 Refinement Phase):**
+- **Global Enterprise Module**: Maritime/Air fleet management perfection
+- **Clienti & CRM**: Client management, anti-fraud profiling refinement
+- **Finanziario**: Billing, payments, Stripe testing phase
+- **Marketplace Digitale**: 90% complete + planned Glovo model integration
+- **Commerciale**: AI offers, coupons, upselling refinement
+- **Espansione Internazionale**: 4 modules in rollout (localization, compliance, partner APIs, distribution)
+
+**MULTILINGUA & PERSONALIZATION:**
+- **10 Languages**: IT, EN, ES, FR, DE, PT, AR, ZH, JA, TR with adaptive UI/UX
+- **White-label Customization**: Complete branding for sub-clients (logo, colors, domain, mobile icons)
+- **Competitive Defense**: Isolated environments, no cross-visibility, anti-fraud protection
 
 ### System Design Choices
 - **Modularity**: Core design principle allowing independent development and deployment of features.
