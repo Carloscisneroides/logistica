@@ -123,10 +123,11 @@ function hasPermission(userRole: UserRole, allowedRoles: UserRole[]): boolean {
   
   // Verifica gerarchia permessi
   const roleHierarchy: Record<UserRole, UserRole[]> = {
-    system_creator: ['system_creator', 'admin', 'staff', 'client'],
-    admin: ['admin', 'staff', 'client'],
+    system_creator: ['system_creator', 'admin', 'staff', 'client', 'commerciale'],
+    admin: ['admin', 'staff', 'client', 'commerciale'],
     staff: ['staff', 'client'],
-    client: ['client']
+    client: ['client'],
+    commerciale: ['commerciale', 'client']
   };
   
   const userPermissions = roleHierarchy[userRole];
