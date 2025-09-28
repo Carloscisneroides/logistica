@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-type UserRole = 'system_creator' | 'admin' | 'staff' | 'client';
+type UserRole = 'system_creator' | 'admin' | 'staff' | 'client' | 'commerciale';
 
 interface RoleProtectedProps {
   allowedRoles: UserRole[];
@@ -12,6 +12,7 @@ interface RoleProtectedProps {
   fallback?: React.ReactNode;
   showFallback?: boolean;
   clientType?: 'marketplace' | 'logistica';
+  subRole?: 'agente' | 'responsabile';
 }
 
 /**
@@ -23,7 +24,8 @@ export function RoleProtected({
   children, 
   fallback,
   showFallback = true,
-  clientType
+  clientType,
+  subRole
 }: RoleProtectedProps) {
   const { user, isLoading } = useAuth();
 
@@ -62,9 +64,10 @@ export function RoleProtected({
     );
   }
 
-  // Verifica autorizzazione ruolo e clientType
+  // Verifica autorizzazione ruolo, clientType e subRole
   if (!hasPermission(user.role as UserRole, allowedRoles) || 
-      (clientType && user.role === 'client' && (user as any).clientType !== clientType)) {
+      (clientType && user.role === 'client' && (user as any).clientType !== clientType) ||
+      (subRole && user.role === 'commerciale' && (user as any).subRole !== subRole)) {
     if (fallback) return <>{fallback}</>;
     
     if (!showFallback) return null;

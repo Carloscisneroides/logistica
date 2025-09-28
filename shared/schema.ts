@@ -5,8 +5,11 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Enums
-export const userRoleEnum = pgEnum("user_role", ["system_creator", "admin", "staff", "client"]);
+export const userRoleEnum = pgEnum("user_role", ["system_creator", "admin", "staff", "client", "commerciale"]);
 export const clientTypeEnum = pgEnum("client_type", ["marketplace", "logistica"]);
+export const subRoleEnum = pgEnum("sub_role", ["agente", "responsabile"]);
+export const livelloEnum = pgEnum("livello", ["base", "medium", "premium"]);
+export const gradoEnum = pgEnum("grado", ["1", "2", "3"]);
 export const tenantTypeEnum = pgEnum("tenant_type", ["enterprise", "standard", "basic"]);
 export const moduleStatusEnum = pgEnum("module_status", ["active", "inactive", "pending", "validation"]);
 export const billingModeEnum = pgEnum("billing_mode", ["prepaid", "postpaid"]);
@@ -131,6 +134,11 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   role: userRoleEnum("role").notNull().default("merchant"),
   clientType: clientTypeEnum("client_type"), // Solo per role='client'
+  subRole: subRoleEnum("sub_role"), // Solo per role='commerciale'
+  livello: livelloEnum("livello"), // Solo per agenti
+  grado: gradoEnum("grado"), // Solo per agenti
+  percentuale: integer("percentuale"), // Performance percentuale agenti
+  aiSupport: boolean("ai_support").default(true), // Supporto AI abilitato
   tenantId: uuid("tenant_id").references(() => tenants.id),
   stripeCustomerId: text("stripe_customer_id"),
   stripeAccountId: text("stripe_account_id"), // For Stripe Connect

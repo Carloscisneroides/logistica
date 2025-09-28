@@ -47,6 +47,8 @@ import StaffConsole from "./pages/roles/staff-console";
 import ClientArea from "./pages/roles/client-area";
 import MarketplaceArea from "./pages/roles/client/marketplace-area";
 import LogisticaArea from "./pages/roles/client/logistica-area";
+import AgenteDashboard from "./pages/roles/commerciale/agente-dashboard";
+import ResponsabileDashboard from "./pages/roles/commerciale/responsabile-dashboard";
 import { RoleProtected } from "./components/role-protected";
 import EcommerceSuppliersPage from "@/pages/ecommerce-suppliers-page";
 import WalletPage from "@/pages/wallet-page";
@@ -213,6 +215,20 @@ function Router() {
         <RoleProtected allowedRoles={['client']} clientType="logistica">
           <MainLayout>
             <LogisticaArea />
+          </MainLayout>
+        </RoleProtected>
+      )} />
+      <ProtectedRoute path="/commerciale/agente" component={() => (
+        <RoleProtected allowedRoles={['commerciale']} subRole="agente">
+          <MainLayout>
+            <AgenteDashboard />
+          </MainLayout>
+        </RoleProtected>
+      )} />
+      <ProtectedRoute path="/commerciale/responsabile" component={() => (
+        <RoleProtected allowedRoles={['commerciale']} subRole="responsabile">
+          <MainLayout>
+            <ResponsabileDashboard />
           </MainLayout>
         </RoleProtected>
       )} />

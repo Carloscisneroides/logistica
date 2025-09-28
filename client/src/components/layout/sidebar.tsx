@@ -254,6 +254,21 @@ const menuItems = [
     roles: ["client"], 
     clientType: "logistica",
   },
+  // Commerciale-specific areas
+  {
+    title: "Dashboard Agente",
+    href: "/commerciale/agente",
+    icon: TrendingUp,
+    roles: ["commerciale"],
+    subRole: "agente",
+  },
+  {
+    title: "Dashboard Responsabile",
+    href: "/commerciale/responsabile",
+    icon: UserCheck,
+    roles: ["commerciale"],
+    subRole: "responsabile",
+  },
 ];
 
 interface SidebarProps {
@@ -273,6 +288,11 @@ export function Sidebar({ className }: SidebarProps) {
     // Check clientType for client users
     if (item.clientType && user?.role === 'client') {
       return (user as any).clientType === item.clientType;
+    }
+    
+    // Check subRole for commerciale users
+    if ((item as any).subRole && user?.role === 'commerciale') {
+      return (user as any).subRole === (item as any).subRole;
     }
     
     return true;
