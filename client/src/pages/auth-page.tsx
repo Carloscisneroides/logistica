@@ -704,24 +704,27 @@ export default function AuthPage() {
         {/* Main Content */}
         <div className="relative flex items-center justify-center p-12 z-10">
           <div className="max-w-3xl text-center space-y-10">
-            {/* Hero Logo and Brand */}
+            {/* Hero Logo and Brand - LAYOUT ORIZZONTALE */}
             <div className="space-y-6">
-              <div className="flex justify-center">
-                <div className="w-24 h-24 bg-white/20 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl flex items-center justify-center">
+              <div className="flex items-center justify-center space-x-6">
+                <div className="w-20 h-20 bg-white/20 backdrop-blur-xl rounded-2xl border border-white/30 shadow-2xl flex items-center justify-center">
                   <img 
                     src={ycoreLogo} 
                     alt="YCORE Logo" 
-                    className="w-16 h-16 object-contain"
+                    className="w-12 h-12 object-contain"
                   />
+                </div>
+                
+                <div className="text-left">
+                  <h1 className="text-5xl lg:text-6xl font-black tracking-tight">
+                    <span className="block text-transparent bg-clip-text bg-gradient-to-r from-white via-blue-100 to-cyan-200">
+                      YCORE
+                    </span>
+                  </h1>
                 </div>
               </div>
               
-              <div className="space-y-4">
-                <h1 className="text-6xl lg:text-7xl font-black tracking-tight">
-                  <span className="block text-transparent bg-clip-text bg-gradient-to-r from-white via-blue-100 to-cyan-200">
-                    YCORE
-                  </span>
-                </h1>
+              <div className="text-center">
                 <h2 className="text-2xl lg:text-3xl font-bold text-white/90">
                   Il Motore Digitale del Business Moderno
                 </h2>
