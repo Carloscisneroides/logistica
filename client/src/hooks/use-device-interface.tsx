@@ -12,53 +12,67 @@ export function useDeviceInterface() {
 
   useEffect(() => {
     function detectInterface() {
-      // Rileva se è in modalità standalone (PWA installata)
+      // Check for debug override first (QA only)
+      const urlParams = new URLSearchParams(window.location.search);
+      const debugMode = urlParams.get('mode') as InterfaceMode;
+      if (debugMode === 'app' || debugMode === 'pc') {
+        setInterfaceMode(debugMode);
+        return;
+      }
+
+      // Check localStorage override (hidden QA feature)
+      const savedMode = localStorage.getItem('ycore-debug-mode') as InterfaceMode;
+      if (savedMode === 'app' || savedMode === 'pc') {
+        setInterfaceMode(savedMode);
+        return;
+      }
+
+      // ROBUST AUTOMATIC DETECTION
+      
+      // 1. PWA Standalone Detection
       const isStandalonePWA = window.matchMedia('(display-mode: standalone)').matches;
       const isIOSStandalone = 'standalone' in window.navigator && (window.navigator as any).standalone;
       const isPWAStandalone = isStandalonePWA || isIOSStandalone;
-
-      // Rileva tipo di dispositivo
-      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      
+      // 2. iPadOS Detection (reports as Mac but has touch)
+      const isIpadOS = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+      
+      // 3. Touch-first device detection (more reliable than UA)
+      const isTouchFirst = window.matchMedia('(pointer: coarse)').matches || 
+                          navigator.maxTouchPoints > 0;
+      
+      // 4. Small viewport detection
+      const isSmallViewport = window.matchMedia('(max-width: 900px)').matches;
+      
+      // 5. No hover capability (typically mobile)
+      const noHover = !window.matchMedia('(hover: hover)').matches;
+      
+      // 6. Screen dimensions
       const screenWidth = window.innerWidth;
       const screenHeight = window.innerHeight;
-      const userAgent = navigator.userAgent.toLowerCase();
+
+      // DECISION LOGIC: APP mode criteria
+      let newMode: InterfaceMode = 'pc';
       
-      // Rileva dispositivi mobili
-      const isMobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent) ||
-                            (isTouchDevice && screenWidth <= 1024);
+      if (isPWAStandalone) {
+        // PWA installed = always APP mode
+        newMode = 'app';
+      } else if (isIpadOS) {
+        // iPadOS = APP mode (even though UA says Mac)
+        newMode = 'app';
+      } else if (isTouchFirst && (isSmallViewport || noHover)) {
+        // Touch device with small screen or no hover = APP mode
+        newMode = 'app';
+      } else if (screenWidth <= 768) {
+        // Very small screens = APP mode (fallback)
+        newMode = 'app';
+      }
+      // Otherwise: PC mode (desktop browsers, large screens with hover)
 
-      // Rileva tablet in orientamento landscape
-      const isTabletLandscape = isTouchDevice && screenWidth > 768 && screenWidth <= 1024;
-
-      setIsMobile(isMobileDevice);
+      // Update state
+      setIsMobile(isTouchFirst && (isSmallViewport || noHover || isIpadOS));
       setIsStandalone(isPWAStandalone);
       setScreenSize({ width: screenWidth, height: screenHeight });
-
-      // Logica di decisione interfaccia
-      let newMode: InterfaceMode = 'pc';
-
-      if (isPWAStandalone) {
-        // Se è PWA installata, usa sempre interfaccia APP
-        newMode = 'app';
-      } else if (isMobileDevice) {
-        // Su mobile usa interfaccia APP  
-        newMode = 'app';
-      } else if (isTabletLandscape) {
-        // Su tablet in landscape, usa interfaccia PC
-        newMode = 'pc';
-      } else if (screenWidth <= 768) {
-        // Schermi piccoli usano interfaccia APP
-        newMode = 'app';
-      } else {
-        // Desktop e schermi grandi usano interfaccia PC
-        newMode = 'pc';
-      }
-
-      // Override manuale via localStorage (per testing)
-      const manualMode = localStorage.getItem('ycore-interface-mode') as InterfaceMode;
-      if (manualMode && (manualMode === 'pc' || manualMode === 'app')) {
-        newMode = manualMode;
-      }
 
       setInterfaceMode(newMode);
 
@@ -71,9 +85,9 @@ export function useDeviceInterface() {
       document.documentElement.style.setProperty('--screen-width', `${screenWidth}px`);
       document.documentElement.style.setProperty('--screen-height', `${screenHeight}px`);
       document.documentElement.style.setProperty('--is-standalone', isPWAStandalone ? '1' : '0');
-      document.documentElement.style.setProperty('--is-mobile', isMobileDevice ? '1' : '0');
+      document.documentElement.style.setProperty('--is-mobile', (isTouchFirst && (isSmallViewport || noHover || isIpadOS)) ? '1' : '0');
 
-      console.log(`🎯 YCORE Interface: ${newMode.toUpperCase()} | Screen: ${screenWidth}x${screenHeight} | Mobile: ${isMobileDevice} | PWA: ${isPWAStandalone}`);
+      console.log(`🎯 YCORE Interface: ${newMode.toUpperCase()} | Screen: ${screenWidth}x${screenHeight} | Touch: ${isTouchFirst} | PWA: ${isPWAStandalone} | iPad: ${isIpadOS}`);
     }
 
     // Keyboard detection for mobile
@@ -150,20 +164,14 @@ export function useDeviceInterface() {
     };
   }, []);
 
-  // Funzione per switch manuale (per testing/debugging)
-  const switchInterface = (mode: InterfaceMode) => {
-    localStorage.setItem('ycore-interface-mode', mode);
-    setInterfaceMode(mode);
-    document.body.classList.remove('interface-pc', 'interface-app');
-    document.body.classList.add(`interface-${mode}`);
-    document.documentElement.style.setProperty('--interface-mode', mode);
-    console.log(`🎯 YCORE Interface switched to: ${mode.toUpperCase()}`);
-  };
-
-  // Funzione per reset automatico
-  const resetToAutoDetect = () => {
-    localStorage.removeItem('ycore-interface-mode');
-    window.location.reload(); // Ricarica per rieseguire auto-detect
+  // Hidden QA debug functions (not exposed in UI)
+  const setDebugMode = (mode: InterfaceMode | null) => {
+    if (mode) {
+      localStorage.setItem('ycore-debug-mode', mode);
+    } else {
+      localStorage.removeItem('ycore-debug-mode');
+    }
+    window.location.reload(); // Refresh to apply
   };
 
   // Component policy mapping for app-first UX
@@ -184,8 +192,7 @@ export function useDeviceInterface() {
     keyboardOpen,
     safeArea,
     componentPolicy,
-    switchInterface,
-    resetToAutoDetect,
+    __debugSetMode: setDebugMode,
     isPC: interfaceMode === 'pc',
     isApp: interfaceMode === 'app',
     isPWA: isStandalone

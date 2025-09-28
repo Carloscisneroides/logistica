@@ -188,7 +188,7 @@ type RegisterData = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
   const { user, isLoading, loginMutation, registerMutation } = useAuth();
-  const { interfaceMode, isApp, isPC, keyboardOpen, safeArea, componentPolicy, switchInterface } = useDeviceInterface();
+  const { interfaceMode, isApp, isPC, keyboardOpen, safeArea, componentPolicy } = useDeviceInterface();
   // **PRIVATE DEMO MODE** - Disabilita registrazione pubblica
   const [isLogin, setIsLogin] = useState(true);
   const [registrationStep, setRegistrationStep] = useState(1); // 1=Account, 2=Business, 3=Compliance
@@ -893,44 +893,14 @@ export default function AuthPage() {
                   )}
                 </p>
                 
-                {/* Interface Mode Toggle */}
-                <div className="py-3 border-t border-border/50">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center space-x-2">
-                      <Settings2 className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">Modalità Interfaccia</span>
-                    </div>
-                    <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full">
-                      {interfaceMode === 'pc' ? 'PC' : 'APP'}
+                {/* Automatic Interface Detection Active */}
+                <div className="py-2 border-t border-border/50">
+                  <div className="flex items-center justify-center space-x-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <span className="text-xs text-muted-foreground">
+                      Rilevamento automatico attivo
                     </span>
                   </div>
-                  
-                  <div className="flex space-x-2">
-                    <Button
-                      variant={interfaceMode === 'pc' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => switchInterface('pc')}
-                      className="flex-1"
-                      data-testid="button-switch-pc"
-                    >
-                      <span className="font-bold mr-1">PC</span>
-                      Desktop
-                    </Button>
-                    <Button
-                      variant={interfaceMode === 'app' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => switchInterface('app')}
-                      className="flex-1"
-                      data-testid="button-switch-app"
-                    >
-                      <Smartphone className="w-4 h-4 mr-1" />
-                      APP
-                    </Button>
-                  </div>
-                  
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Cambia modalità per testare le due esperienze grafiche
-                  </p>
                 </div>
                 
                 {!window.matchMedia('(display-mode: standalone)').matches && (
