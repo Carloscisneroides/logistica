@@ -237,7 +237,7 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-blue-950 dark:to-indigo-950 flex relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-blue-950 dark:to-indigo-950 relative overflow-hidden">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-indigo-600/20 rounded-full blur-3xl animate-pulse"></div>
@@ -245,28 +245,87 @@ export default function AuthPage() {
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-cyan-400/10 to-blue-600/10 rounded-full blur-3xl animate-ping"></div>
       </div>
       
-      {/* Left side - Forms */}
-      <div className="flex-1 flex items-center justify-center p-8 lg:w-1/2 relative z-10">
-        <div className="w-full max-w-md space-y-8">
-          {/* Modern Logo Section */}
-          <div className="text-center space-y-4">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-white/20 dark:bg-black/20 backdrop-blur-xl rounded-2xl border border-white/30 dark:border-white/10 shadow-2xl">
-              <img 
-                src={ycoreLogo} 
-                alt="YCORE Logo" 
-                className="w-10 h-10 object-contain"
-              />
-            </div>
-            <div className="space-y-2">
-              <h1 className="text-3xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
-                YCORE
-              </h1>
-              <p className="text-sm text-muted-foreground/80 font-medium">
+      {/* Full Width YCORE Header */}
+      <div className="w-full bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-800 relative overflow-hidden">
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-white/10 rounded-full blur-xl animate-pulse"></div>
+          <div className="absolute bottom-1/3 right-1/3 w-24 h-24 bg-yellow-300/20 rounded-full blur-lg animate-pulse delay-1000"></div>
+          <div className="absolute top-1/2 right-1/4 w-16 h-16 bg-cyan-300/30 rounded-full blur-md animate-ping delay-500"></div>
+        </div>
+        
+        {/* Main Content - TUTTO IN ORIZZONTALE E LARGHEZZA PIENA */}
+        <div className="relative flex items-center justify-center py-16 px-8 z-10">
+          <div className="w-full max-w-6xl space-y-6">
+            {/* Prima riga: Logo + YCORE + Sottotitolo - LARGHEZZA PIENA */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="w-16 h-16 bg-white/20 backdrop-blur-xl rounded-2xl border border-white/30 shadow-2xl flex items-center justify-center">
+                  <img 
+                    src={ycoreLogo} 
+                    alt="YCORE Logo" 
+                    className="w-10 h-10 object-contain"
+                  />
+                </div>
+                <h1 className="text-4xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-blue-100 to-cyan-200">
+                  YCORE
+                </h1>
+              </div>
+              <h2 className="text-xl font-bold text-white/90">
                 Il Motore Digitale del Business Moderno
+              </h2>
+            </div>
+            
+            {/* Seconda riga: Value Proposition + Features - LARGHEZZA PIENA */}
+            <div className="flex items-center justify-between space-x-6">
+              {/* Descrizione principale */}
+              <div className="flex-1">
+                <p className="text-lg text-white/80 leading-relaxed font-medium">
+                  Un ecosistema <span className="text-yellow-300 font-bold">modulare</span>, <span className="text-yellow-300 font-bold">intelligente</span> e <span className="text-yellow-300 font-bold">sicuro</span> che trasforma il modo in cui le aziende operano, vendono e crescono.
+                </p>
+              </div>
+              
+              {/* Features in orizzontale */}
+              <div className="flex items-center space-x-4">
+                <div className="text-center">
+                  <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-2">
+                    <span className="text-lg">🚀</span>
+                  </div>
+                  <p className="text-white text-xs font-semibold">Innovazione</p>
+                </div>
+                <div className="text-center">
+                  <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-2">
+                    <span className="text-lg">🔒</span>
+                  </div>
+                  <p className="text-white text-xs font-semibold">Sicurezza</p>
+                </div>
+                <div className="text-center">
+                  <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-2">
+                    <span className="text-lg">⚡</span>
+                  </div>
+                  <p className="text-white text-xs font-semibold">Velocità</p>
+                </div>
+              </div>
+            </div>
+            
+            {/* Terza riga: Citazione centrale - LARGHEZZA PIENA */}
+            <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/20 shadow-2xl text-center">
+              <p className="text-white text-lg font-semibold leading-relaxed">
+                YCORE non è solo una piattaforma: è il <span className="text-yellow-300">cuore operativo</span> che connette persone, processi e opportunità in <span className="text-cyan-300">tempo reale</span>.
               </p>
             </div>
           </div>
+        </div>
+        
+        {/* Decorative Elements */}
+        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-white/10 to-transparent rounded-full -translate-y-16 translate-x-16"></div>
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-cyan-400/20 to-transparent rounded-full translate-y-12 -translate-x-12"></div>
+        <div className="absolute top-1/2 left-0 w-2 h-48 bg-gradient-to-b from-transparent via-white/20 to-transparent -translate-x-1"></div>
+      </div>
 
+      {/* Form di login CENTRATO SOTTO */}
+      <div className="flex items-center justify-center p-8 relative z-10">
+        <div className="w-full max-w-md space-y-8">
           {/* Glassmorphism Card */}
           <div className="bg-white/70 dark:bg-black/40 backdrop-blur-xl rounded-3xl border border-white/50 dark:border-white/10 shadow-2xl shadow-blue-500/10 p-8">
             <div className="text-center space-y-3 mb-8">
