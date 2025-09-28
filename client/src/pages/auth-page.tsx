@@ -186,7 +186,9 @@ type RegisterData = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
   const { user, isLoading, loginMutation, registerMutation } = useAuth();
+  // **PRIVATE DEMO MODE** - Disabilita registrazione pubblica
   const [isLogin, setIsLogin] = useState(true);
+  const isPrivateDemo = true; // Modalità demo privata attiva
 
   const loginForm = useForm<LoginData>({
     resolver: zodResolver(loginSchema),
@@ -626,18 +628,33 @@ export default function AuthPage() {
                 </Form>
               )}
 
-              <div className="text-center">
-                <Button
-                  variant="link"
-                  onClick={() => setIsLogin(!isLogin)}
-                  data-testid="button-switch-mode"
-                >
-                  {isLogin 
-                    ? "Non hai un account? Registrati" 
-                    : "Hai già un account? Accedi"
-                  }
-                </Button>
-              </div>
+              {/* NASCONDE REGISTRAZIONE IN MODALITÀ DEMO PRIVATA */}
+              {!isPrivateDemo && (
+                <div className="text-center">
+                  <Button
+                    variant="link"
+                    onClick={() => setIsLogin(!isLogin)}
+                    data-testid="button-switch-mode"
+                  >
+                    {isLogin 
+                      ? "Non hai un account? Registrati" 
+                      : "Hai già un account? Accedi"
+                    }
+                  </Button>
+                </div>
+              )}
+              
+              {/* MESSAGGIO DEMO PRIVATA */}
+              {isPrivateDemo && (
+                <div className="text-center mt-4 p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
+                  <div className="text-sm text-amber-700 dark:text-amber-300">
+                    <span className="font-semibold">🔒 DEMO RISERVATA</span>
+                    <div className="mt-1">
+                      Registrazione disabilitata. Contattare Reply/AWS per credenziali di accesso.
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

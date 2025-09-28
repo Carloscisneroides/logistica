@@ -233,76 +233,7 @@ export function setupAuth(app: Express) {
       message: "Contattare Reply/AWS per credenziali di accesso."
     });
     
-    // Codice originale commentato per mantenere funzionalità future
-    /*
-    try {
-      const clientIP = req.ip || req.socket.remoteAddress || 'unknown';
-      const userAgent = req.headers['user-agent'] || 'unknown';
-      console.log(`[AUTH] REGISTRATION REQUEST | IP: ${clientIP} | Username: ${req.body.username} | Time: ${new Date().toISOString()}`);
-      
-      // Check existing user or pending request
-      const existingUser = await storage.getUserByUsername(req.body.username);
-      if (existingUser) {
-        console.log(`[AUTH] REGISTRATION FAILED | IP: ${clientIP} | Reason: Username exists | Time: ${new Date().toISOString()}`);
-        return res.status(400).json({ error: "Username already exists" });
-      }
-
-      // More original code would be here...
-      res.status(201).json({ message: "Registration would be processed normally" });
-    } catch (error: any) {
-      res.status(500).json({ error: "Registration error" });
-    }
-    */
-      
-      // Check existing user or pending request
-      const existingUser = await storage.getUserByUsername(req.body.username);
-      if (existingUser) {
-        console.log(`[AUTH] REGISTRATION FAILED | IP: ${clientIP} | Reason: Username exists | Time: ${new Date().toISOString()}`);
-        return res.status(400).json({ error: "Username already exists" });
-      }
-
-      // **SAVE REGISTRATION REQUEST**
-      const registrationRequest = await storage.createRegistrationRequest({
-        username: req.body.username,
-        email: req.body.email,
-        password: await hashPassword(req.body.password),
-        companyName: req.body.companyName,
-        phoneNumber: req.body.phoneNumber,
-        businessType: req.body.businessType,
-        message: req.body.message,
-        role: req.body.role || 'merchant',
-        ipAddress: clientIP,
-        userAgent: userAgent
-      });
-
-      // **SEND EMAIL NOTIFICATION TO ADMIN** - Skip if SendGrid not available
-      try {
-        const { sendRegistrationNotification } = require('./sendgrid');
-        const adminEmail = "ylenia@ycore.it";
-        await sendRegistrationNotification(adminEmail, {
-          username: req.body.username,
-          email: req.body.email,
-          companyName: req.body.companyName,
-          businessType: req.body.businessType,
-          message: req.body.message,
-          ipAddress: clientIP
-        });
-      } catch (emailError) {
-        console.log(`[AUTH] EMAIL NOTIFICATION SKIPPED | Error: ${emailError} | Time: ${new Date().toISOString()}`);
-      }
-
-      console.log(`[AUTH] REGISTRATION REQUEST SAVED | ID: ${registrationRequest.id} | IP: ${clientIP} | Time: ${new Date().toISOString()}`);
-      
-      res.status(201).json({ 
-        message: "Richiesta di registrazione inviata con successo. Riceverai una email di conferma dopo l'approvazione dell'amministratore.",
-        requestId: registrationRequest.id
-      });
-      
-    } catch (error: any) {
-      const clientIP = req.ip || req.socket.remoteAddress || 'unknown';
-      console.log(`[AUTH] REGISTRATION REQUEST ERROR | IP: ${clientIP} | Error: ${error.message} | Time: ${new Date().toISOString()}`);
-      res.status(500).json({ error: "Errore nell'invio della richiesta di registrazione" });
-    }
+    // Codice originale disabilitato per mantenere sicurezza demo privata
   });
 
   // **PROTECTED LOGIN** - Rate limited, CSRF protected with session regeneration
