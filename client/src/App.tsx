@@ -39,6 +39,15 @@ import ShipmentTrackingPage from "@/pages/shipment-tracking-page";
 import ShipmentsListPage from "@/pages/shipments-list-page";
 import LogisticsWarehousesPage from "@/pages/logistics-warehouses-page";
 import EcommerceWarehousesPage from "@/pages/ecommerce-warehouses-page";
+
+// Role-based pages
+import SystemCreatorDashboard from "./pages/roles/system-creator-dashboard";
+import AdminPanel from "./pages/roles/admin-panel";
+import StaffConsole from "./pages/roles/staff-console";
+import ClientArea from "./pages/roles/client-area";
+import MarketplaceArea from "./pages/roles/client/marketplace-area";
+import LogisticaArea from "./pages/roles/client/logistica-area";
+import { RoleProtected } from "./components/role-protected";
 import EcommerceSuppliersPage from "@/pages/ecommerce-suppliers-page";
 import WalletPage from "@/pages/wallet-page";
 import RatesCarriersPage from "@/pages/rates-carriers-page";
@@ -163,6 +172,51 @@ function Router() {
           <GlobalLogisticsPage />
         </MainLayout>
       )} />
+      
+      {/* Role-based dashboards */}
+      <ProtectedRoute path="/system-creator" component={() => (
+        <RoleProtected allowedRoles={['system_creator']}>
+          <MainLayout>
+            <SystemCreatorDashboard />
+          </MainLayout>
+        </RoleProtected>
+      )} />
+      <ProtectedRoute path="/admin-panel" component={() => (
+        <RoleProtected allowedRoles={['system_creator', 'admin']}>
+          <MainLayout>
+            <AdminPanel />
+          </MainLayout>
+        </RoleProtected>
+      )} />
+      <ProtectedRoute path="/staff-console" component={() => (
+        <RoleProtected allowedRoles={['system_creator', 'admin', 'staff']}>
+          <MainLayout>
+            <StaffConsole />
+          </MainLayout>
+        </RoleProtected>
+      )} />
+      <ProtectedRoute path="/client-area" component={() => (
+        <RoleProtected allowedRoles={['system_creator', 'admin', 'staff', 'client']}>
+          <MainLayout>
+            <ClientArea />
+          </MainLayout>
+        </RoleProtected>
+      )} />
+      <ProtectedRoute path="/client/marketplace" component={() => (
+        <RoleProtected allowedRoles={['client']} clientType="marketplace">
+          <MainLayout>
+            <MarketplaceArea />
+          </MainLayout>
+        </RoleProtected>
+      )} />
+      <ProtectedRoute path="/client/logistica" component={() => (
+        <RoleProtected allowedRoles={['client']} clientType="logistica">
+          <MainLayout>
+            <LogisticaArea />
+          </MainLayout>
+        </RoleProtected>
+      )} />
+      
       <Route component={NotFound} />
     </Switch>
   );

@@ -5,7 +5,8 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Enums
-export const userRoleEnum = pgEnum("user_role", ["admin", "merchant", "sub_client", "commercial"]);
+export const userRoleEnum = pgEnum("user_role", ["system_creator", "admin", "staff", "client"]);
+export const clientTypeEnum = pgEnum("client_type", ["marketplace", "logistica"]);
 export const tenantTypeEnum = pgEnum("tenant_type", ["enterprise", "standard", "basic"]);
 export const moduleStatusEnum = pgEnum("module_status", ["active", "inactive", "pending", "validation"]);
 export const billingModeEnum = pgEnum("billing_mode", ["prepaid", "postpaid"]);
@@ -129,6 +130,7 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
   role: userRoleEnum("role").notNull().default("merchant"),
+  clientType: clientTypeEnum("client_type"), // Solo per role='client'
   tenantId: uuid("tenant_id").references(() => tenants.id),
   stripeCustomerId: text("stripe_customer_id"),
   stripeAccountId: text("stripe_account_id"), // For Stripe Connect

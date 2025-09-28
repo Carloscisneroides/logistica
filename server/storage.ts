@@ -683,6 +683,62 @@ export interface IStorage {
     recommendations: string[];
   }>;
 
+  // ======== ROLE-BASED DASHBOARD METHODS ========
+  
+  // System Creator methods
+  getSystemStats(): Promise<{
+    totalTenants: number;
+    totalUsers: number;
+    alerts: number;
+  }>;
+  getSecurityLogs(): Promise<Array<{
+    action: string;
+    timestamp: string;
+    severity: string;
+  }>>;
+  
+  // Admin methods
+  getUserStats(tenantId?: string): Promise<{
+    activeUsers: number;
+    moderatedContent: number;
+    revenue: number;
+  }>;
+  
+  // Staff methods
+  getStaffTickets(tenantId?: string): Promise<{
+    open: number;
+    new: number;
+    active: Array<{
+      id: string;
+      subject: string;
+      customer: string;
+      priority: string;
+      created: string;
+    }>;
+    resolved: number;
+  }>;
+  getStaffOrders(tenantId?: string): Promise<{
+    pending: number;
+  }>;
+  
+  // Client methods
+  getClientOrders(userId?: string): Promise<{
+    total: number;
+    active: number;
+    recent: Array<{
+      id: string;
+      status: string;
+      items: string;
+      total: string;
+      date: string;
+    }>;
+  }>;
+  getClientProfile(userId?: string): Promise<{
+    totalSpent: number;
+    loyaltyPoints: number;
+    nextTier: string;
+  }>;
+
   // ======== LISTINI & CORRIERI MODULE METHODS ========
 
   // Carriers - Corrieri strategici (DHL, UPS, FedEx, Cainiao, Maersk)
@@ -4520,6 +4576,73 @@ export class DatabaseStorage implements IStorage {
       topCarriers: [], // Placeholder - would need complex query with joins
       zoneDistribution: [], // Placeholder - would need complex query with joins
       weightDistribution: [] // Placeholder - would need complex query with joins
+    };
+  }
+
+  // ======== ROLE-BASED DASHBOARD IMPLEMENTATIONS ========
+  
+  async getSystemStats() {
+    const [tenantsRes, usersRes] = await Promise.all([
+      db.select({ count: sql<number>`count(*)` }).from(tenants),
+      db.select({ count: sql<number>`count(*)` }).from(users)
+    ]);
+    
+    return {
+      totalTenants: tenantsRes[0]?.count || 0,
+      totalUsers: usersRes[0]?.count || 0,
+      alerts: 0 // Mock data
+    };
+  }
+
+  async getSecurityLogs() {
+    return [
+      { action: 'Failed login attempt', timestamp: new Date().toISOString(), severity: 'medium' },
+      { action: 'Admin access granted', timestamp: new Date().toISOString(), severity: 'low' }
+    ];
+  }
+
+  async getUserStats(tenantId?: string) {
+    const usersRes = await db.select({ count: sql<number>`count(*)` })
+      .from(users)
+      .where(tenantId ? eq(users.tenantId, tenantId) : undefined);
+    
+    return {
+      activeUsers: usersRes[0]?.count || 0,
+      moderatedContent: 0,
+      revenue: 0
+    };
+  }
+
+  async getStaffTickets(tenantId?: string) {
+    return {
+      open: 5,
+      new: 2,
+      active: [
+        { id: 'TK-001', subject: 'Delivery issue', customer: 'Mario Rossi', priority: 'high', created: '2 ore fa' }
+      ],
+      resolved: 12
+    };
+  }
+
+  async getStaffOrders(tenantId?: string) {
+    return { pending: 8 };
+  }
+
+  async getClientOrders(userId?: string) {
+    return {
+      total: 25,
+      active: 3,
+      recent: [
+        { id: '12345', status: 'shipped', items: '2 items', total: '49.99', date: '2 giorni fa' }
+      ]
+    };
+  }
+
+  async getClientProfile(userId?: string) {
+    return {
+      totalSpent: 599.99,
+      loyaltyPoints: 150,
+      nextTier: 'Gold'
     };
   }
 }

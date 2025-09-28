@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useLocation, Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
+import { useRolePermissions } from "@/components/role-protected";
 import {
   Truck,
   LayoutDashboard,
@@ -238,6 +239,21 @@ const menuItems = [
     href: "/settings",
     icon: Settings,
   },
+  // Client-specific areas
+  {
+    title: "Marketplace",
+    href: "/client/marketplace",
+    icon: Store,
+    roles: ["client"],
+    clientType: "marketplace",
+  },
+  {
+    title: "Area Logistica",
+    href: "/client/logistica",
+    icon: Truck,
+    roles: ["client"], 
+    clientType: "logistica",
+  },
 ];
 
 interface SidebarProps {
@@ -248,10 +264,18 @@ export function Sidebar({ className }: SidebarProps) {
   const [location] = useLocation();
   const [expandedMenu, setExpandedMenu] = useState<string | null>(null);
   const { user, logoutMutation } = useAuth();
+  const { hasRole, canAccess } = useRolePermissions();
 
   const filteredMenuItems = menuItems.filter(item => {
-    if (!item.roles) return true;
-    return item.roles.includes(user?.role || "");
+    // Check role permission
+    if (item.roles && !item.roles.includes(user?.role || "")) return false;
+    
+    // Check clientType for client users
+    if (item.clientType && user?.role === 'client') {
+      return (user as any).clientType === item.clientType;
+    }
+    
+    return true;
   });
 
   return (

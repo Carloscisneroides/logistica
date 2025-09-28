@@ -3,6 +3,7 @@ import express from "express";
 import { createServer, type Server } from "http";
 import { setupAuth, isAuthenticated } from "./auth";
 import { storage } from "./storage";
+import { authorizeRole, requireSystemCreator, requireAdmin, requireStaff, requireClient } from "./middleware/role-auth";
 import { 
   insertClientSchema, 
   insertCourierModuleSchema, 
@@ -5043,6 +5044,86 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
     } catch (error) {
       console.error("Error creating warehouse zone:", error);
       res.status(500).json({ error: "Failed to create warehouse zone" });
+    }
+  });
+
+  // Role-based API Routes
+  // System Creator endpoints
+  app.get("/api/system-creator/stats", requireSystemCreator, async (req, res) => {
+    try {
+      const stats = await storage.getSystemStats();
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching system stats:", error);
+      res.status(500).json({ error: "Failed to fetch system stats" });
+    }
+  });
+
+  app.get("/api/system-creator/security-logs", requireSystemCreator, async (req, res) => {
+    try {
+      const logs = await storage.getSecurityLogs();
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching security logs:", error);
+      res.status(500).json({ error: "Failed to fetch security logs" });
+    }
+  });
+
+  // Admin endpoints  
+  app.get("/api/admin/user-stats", requireAdmin, async (req, res) => {
+    try {
+      const user = req.user;
+      const stats = await storage.getUserStats(user?.tenantId);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching user stats:", error);
+      res.status(500).json({ error: "Failed to fetch user stats" });
+    }
+  });
+
+  // Staff endpoints
+  app.get("/api/staff/tickets", requireStaff, async (req, res) => {
+    try {
+      const user = req.user;
+      const tickets = await storage.getStaffTickets(user?.tenantId);
+      res.json(tickets);
+    } catch (error) {
+      console.error("Error fetching staff tickets:", error);
+      res.status(500).json({ error: "Failed to fetch staff tickets" });
+    }
+  });
+
+  app.get("/api/staff/orders", requireStaff, async (req, res) => {
+    try {
+      const user = req.user;
+      const orders = await storage.getStaffOrders(user?.tenantId);
+      res.json(orders);
+    } catch (error) {
+      console.error("Error fetching staff orders:", error);
+      res.status(500).json({ error: "Failed to fetch staff orders" });
+    }
+  });
+
+  // Client endpoints
+  app.get("/api/client/orders", requireClient, async (req, res) => {
+    try {
+      const user = req.user;
+      const orders = await storage.getClientOrders(user?.id);
+      res.json(orders);
+    } catch (error) {
+      console.error("Error fetching client orders:", error);
+      res.status(500).json({ error: "Failed to fetch client orders" });
+    }
+  });
+
+  app.get("/api/client/profile", requireClient, async (req, res) => {
+    try {
+      const user = req.user;
+      const profile = await storage.getClientProfile(user?.id);
+      res.json(profile);
+    } catch (error) {
+      console.error("Error fetching client profile:", error);
+      res.status(500).json({ error: "Failed to fetch client profile" });
     }
   });
 
