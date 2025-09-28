@@ -188,7 +188,7 @@ type RegisterData = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
   const { user, isLoading, loginMutation, registerMutation } = useAuth();
-  const { interfaceMode, isApp, isPC, keyboardOpen, safeArea, componentPolicy } = useDeviceInterface();
+  const { interfaceMode, isApp, isPC, keyboardOpen, safeArea, componentPolicy, switchInterface } = useDeviceInterface();
   // **PRIVATE DEMO MODE** - Disabilita registrazione pubblica
   const [isLogin, setIsLogin] = useState(true);
   const [registrationStep, setRegistrationStep] = useState(1); // 1=Account, 2=Business, 3=Compliance
