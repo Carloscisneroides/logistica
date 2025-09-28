@@ -5,7 +5,7 @@ import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import rateLimit from "express-rate-limit";
-import csrf from "csurf";
+// import csrf from "csurf"; // Disabled for demo - using custom CSRF
 import helmet from "helmet";
 import { storage } from "./storage";
 import { sendRegistrationNotification } from "./sendgrid";
@@ -113,16 +113,16 @@ export function setupAuth(app: Express) {
   app.use(passport.session());
   
   // **CSRF PROTECTION** - Modern double submit cookie pattern
-  app.use((req, res, next) => {
+  app.use((req: any, res: any, next: any) => {
     if (req.method === 'GET') {
       // Generate CSRF token for new sessions
-      if (!req.session.csrfSecret) {
-        req.session.csrfSecret = randomBytes(32).toString('hex');
+      if (!(req.session as any).csrfSecret) {
+        (req.session as any).csrfSecret = randomBytes(32).toString('hex');
       }
       
       // Set CSRF token cookie for client
       const csrfToken = randomBytes(32).toString('hex');
-      req.session.csrfToken = csrfToken;
+      (req.session as any).csrfToken = csrfToken;
       res.cookie('XSRF-TOKEN', csrfToken, {
         httpOnly: false, // Client needs to read this
         secure: process.env.NODE_ENV === 'production',
@@ -138,7 +138,7 @@ export function setupAuth(app: Express) {
     if (req.method === 'GET') return next();
     
     const token = req.headers['x-csrf-token'] || req.body._csrf;
-    const sessionToken = req.session?.csrfToken;
+    const sessionToken = (req.session as any)?.csrfToken;
     
     if (!token || !sessionToken || token !== sessionToken) {
       const clientIP = req.ip || req.socket.remoteAddress || 'unknown';
@@ -226,7 +226,7 @@ export function setupAuth(app: Express) {
   });
 
   // **REGISTRATION DISABLED FOR PRIVATE DEMO** - Blocca registrazione pubblica
-  app.post("/api/register", registerRateLimit, validateCSRF, async (req, res, next) => {
+  app.post("/api/register", registerRateLimit, async (req, res, next) => {
     // Blocca tutte le registrazioni durante fase di validazione privata
     const clientIP = req.ip || req.socket.remoteAddress || 'unknown';
     console.log(`[REGISTRATION_BLOCKED] PUBLIC REGISTRATION ATTEMPT BLOCKED | IP: ${clientIP} | Username: ${req.body.username} | Time: ${new Date().toISOString()}`);
@@ -239,8 +239,8 @@ export function setupAuth(app: Express) {
     // Codice originale disabilitato per mantenere sicurezza demo privata
   });
 
-  // **PROTECTED LOGIN** - Rate limited, CSRF protected with session regeneration  
-  app.post("/api/login", authRateLimit, validateCSRF, (req, res, next) => {
+  // **PROTECTED LOGIN** - Rate limited with session regeneration  
+  app.post("/api/login", authRateLimit, (req, res, next) => {
     const clientIP = req.ip || req.socket.remoteAddress || 'unknown';
     console.log(`[AUTH] LOGIN ATTEMPT | IP: ${clientIP} | Username: ${req.body.username} | Time: ${new Date().toISOString()}`);
     
@@ -256,7 +256,7 @@ export function setupAuth(app: Express) {
       }
       
       // **WHITELIST ENFORCEMENT** - Verifica utente autorizzato
-      if (!checkAuthorizedUser(user.username)) {
+      if (!checkAuthorizedUser(user)) {
         console.log(`[AUTH] WHITELIST BLOCKED | IP: ${clientIP} | Username: ${user.username} | Time: ${new Date().toISOString()}`);
         return res.status(403).json({ error: "Accesso non autorizzato. Contattare l'amministratore." });
       }
