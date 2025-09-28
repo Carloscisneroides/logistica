@@ -7,6 +7,8 @@ export function useDeviceInterface() {
   const [isMobile, setIsMobile] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
   const [screenSize, setScreenSize] = useState({ width: 0, height: 0 });
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const [safeArea, setSafeArea] = useState({ top: 0, bottom: 0, left: 0, right: 0 });
 
   useEffect(() => {
     function detectInterface() {
@@ -74,21 +76,61 @@ export function useDeviceInterface() {
       console.log(`🎯 YCORE Interface: ${newMode.toUpperCase()} | Screen: ${screenWidth}x${screenHeight} | Mobile: ${isMobileDevice} | PWA: ${isPWAStandalone}`);
     }
 
+    // Keyboard detection for mobile
+    function detectKeyboard() {
+      const currentHeight = window.visualViewport?.height || window.innerHeight;
+      const fullHeight = window.screen.height;
+      const heightDiff = fullHeight - currentHeight;
+      
+      // Keyboard is likely open if height difference > 200px
+      const keyboardIsOpen = heightDiff > 200;
+      setKeyboardOpen(keyboardIsOpen);
+      
+      // Apply CSS variable for keyboard state
+      document.documentElement.style.setProperty('--keyboard-open', keyboardIsOpen ? '1' : '0');
+    }
+
+    // Safe area detection - Read from CSS variables (set by CSS env())
+    function detectSafeArea() {
+      const computedStyle = getComputedStyle(document.documentElement);
+      const top = parseInt(computedStyle.getPropertyValue('--safe-area-top')) || 0;
+      const bottom = parseInt(computedStyle.getPropertyValue('--safe-area-bottom')) || 0;
+      const left = parseInt(computedStyle.getPropertyValue('--safe-area-left')) || 0;
+      const right = parseInt(computedStyle.getPropertyValue('--safe-area-right')) || 0;
+      
+      setSafeArea({ top, bottom, left, right });
+      
+      // Don't override CSS env() values - they're already set in CSS
+      // Just read the computed values for JS use
+    }
+
     // Rileva al caricamento iniziale
     detectInterface();
+    detectKeyboard();
+    detectSafeArea();
 
     // Rileva al ridimensionamento finestra
     const handleResize = () => {
       detectInterface();
+      detectKeyboard();
     };
 
     // Rileva cambio orientamento mobile
     const handleOrientationChange = () => {
-      setTimeout(detectInterface, 100); // Piccolo delay per aspettare il ridimensionamento
+      setTimeout(() => {
+        detectInterface();
+        detectKeyboard();
+        detectSafeArea();
+      }, 100); // Piccolo delay per aspettare il ridimensionamento
     };
 
     window.addEventListener('resize', handleResize);
     window.addEventListener('orientationchange', handleOrientationChange);
+    
+    // Visual viewport listeners for keyboard detection
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', detectKeyboard);
+    }
     
     // Rileva cambio modalità standalone (se supportato)
     const standaloneMediaQuery = window.matchMedia('(display-mode: standalone)');
@@ -99,6 +141,9 @@ export function useDeviceInterface() {
     return () => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('orientationchange', handleOrientationChange);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', detectKeyboard);
+      }
       if (standaloneMediaQuery.removeEventListener) {
         standaloneMediaQuery.removeEventListener('change', detectInterface);
       }
@@ -121,14 +166,28 @@ export function useDeviceInterface() {
     window.location.reload(); // Ricarica per rieseguire auto-detect
   };
 
+  // Component policy mapping for app-first UX
+  const componentPolicy = {
+    Dialog: interfaceMode === 'app' ? 'Drawer' : 'Dialog',
+    Popover: interfaceMode === 'app' ? 'BottomSheet' : 'Popover', 
+    Tabs: interfaceMode === 'app' ? 'Segmented' : 'Tabs',
+    Menu: interfaceMode === 'app' ? 'BottomSheet' : 'Menu',
+    Select: interfaceMode === 'app' ? 'NativeSelect' : 'Select',
+    Table: interfaceMode === 'app' ? 'CardList' : 'Table'
+  };
+
   return {
     interfaceMode,
     isMobile,
     isStandalone,
     screenSize,
+    keyboardOpen,
+    safeArea,
+    componentPolicy,
     switchInterface,
     resetToAutoDetect,
     isPC: interfaceMode === 'pc',
-    isApp: interfaceMode === 'app'
+    isApp: interfaceMode === 'app',
+    isPWA: isStandalone
   };
 }

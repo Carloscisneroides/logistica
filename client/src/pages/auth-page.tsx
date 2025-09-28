@@ -188,9 +188,10 @@ type RegisterData = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
   const { user, isLoading, loginMutation, registerMutation } = useAuth();
-  const { interfaceMode, isApp, isPC } = useDeviceInterface();
+  const { interfaceMode, isApp, isPC, keyboardOpen, safeArea, componentPolicy } = useDeviceInterface();
   // **PRIVATE DEMO MODE** - Disabilita registrazione pubblica
   const [isLogin, setIsLogin] = useState(true);
+  const [registrationStep, setRegistrationStep] = useState(1); // 1=Account, 2=Business, 3=Compliance
   const isPrivateDemo = true; // Modalità demo privata attiva
   const [showPWAInstall, setShowPWAInstall] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -220,15 +221,28 @@ export default function AuthPage() {
     },
   });
 
-  // PWA Install Handler
+  // PWA Install Handler - PIÙ VELOCE E AUTOMATICO
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: any) => {
       e.preventDefault();
       setDeferredPrompt(e);
       setShowPWAInstall(true);
+      
+      // AUTO-SHOW DOPO 2 SECONDI SE CHROME SUPPORTA PWA
+      setTimeout(() => {
+        const isChrome = /Chrome/.test(navigator.userAgent);
+        if (isChrome && e) {
+          console.log('🚀 YCORE PWA pronta per installazione automatica!');
+        }
+      }, 2000);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    // DETECT SE GIÀ INSTALLATA
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setShowPWAInstall(false);
+    }
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -412,7 +426,11 @@ export default function AuthPage() {
             
             <div className="space-y-6">
               {isLogin ? (
-                <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-6">
+                <form 
+                  onSubmit={loginForm.handleSubmit(onLoginSubmit)} 
+                  className={`space-y-6 ${isApp ? 'form-keyboard-adaptive' : ''}`}
+                  data-keyboard-open={keyboardOpen ? '1' : '0'}
+                >
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="username" className="text-sm font-medium text-foreground/80">Username</Label>
@@ -465,7 +483,11 @@ export default function AuthPage() {
                 </form>
               ) : (
                 <Form {...registerForm}>
-                  <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4">
+                  <form 
+                    onSubmit={registerForm.handleSubmit(onRegisterSubmit)} 
+                    className={`space-y-4 ${isApp ? 'form-keyboard-adaptive' : ''}`}
+                    data-keyboard-open={keyboardOpen ? '1' : '0'}
+                  >
                     {/* Dati di accesso */}
                     <div className="space-y-4">
                       <h3 className="font-semibold text-lg">🔐 Dati di Accesso</h3>
@@ -477,7 +499,14 @@ export default function AuthPage() {
                           <FormItem>
                             <FormLabel>Username *</FormLabel>
                             <FormControl>
-                              <Input {...field} data-testid="input-reg-username" />
+                              <Input 
+                                {...field} 
+                                data-testid="input-reg-username"
+                                className={isApp ? 'input-app h-12 text-base' : ''}
+                                autoComplete="username"
+                                autoCapitalize="none"
+                                autoCorrect="off"
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -491,14 +520,23 @@ export default function AuthPage() {
                           <FormItem>
                             <FormLabel>Email *</FormLabel>
                             <FormControl>
-                              <Input type="email" {...field} data-testid="input-reg-email" />
+                              <Input 
+                                type="email" 
+                                {...field} 
+                                data-testid="input-reg-email"
+                                className={isApp ? 'input-app h-12 text-base' : ''}
+                                autoComplete="email"
+                                autoCapitalize="none"
+                                autoCorrect="off"
+                                inputMode="email"
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
                       
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className={`space-y-4 ${isApp ? '' : 'grid grid-cols-2 gap-4'}`}>
                         <FormField
                           control={registerForm.control}
                           name="password"
@@ -506,7 +544,13 @@ export default function AuthPage() {
                             <FormItem>
                               <FormLabel>Password *</FormLabel>
                               <FormControl>
-                                <Input type="password" {...field} data-testid="input-reg-password" />
+                                <Input 
+                                  type="password" 
+                                  {...field} 
+                                  data-testid="input-reg-password"
+                                  className={isApp ? 'input-app h-12 text-base' : ''}
+                                  autoComplete="new-password"
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -520,7 +564,13 @@ export default function AuthPage() {
                             <FormItem>
                               <FormLabel>Conferma Password *</FormLabel>
                               <FormControl>
-                                <Input type="password" {...field} data-testid="input-password-confirm" />
+                                <Input 
+                                  type="password" 
+                                  {...field} 
+                                  data-testid="input-password-confirm"
+                                  className={isApp ? 'input-app h-12 text-base' : ''}
+                                  autoComplete="new-password"
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -533,7 +583,7 @@ export default function AuthPage() {
                     <div className="space-y-4 pt-4 border-t">
                       <h3 className="font-semibold text-lg">👤 Dati Anagrafici</h3>
                       
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className={`space-y-4 ${isApp ? '' : 'grid grid-cols-2 gap-4'}`}>
                         <FormField
                           control={registerForm.control}
                           name="firstName"
@@ -541,7 +591,13 @@ export default function AuthPage() {
                             <FormItem>
                               <FormLabel>Nome *</FormLabel>
                               <FormControl>
-                                <Input {...field} data-testid="input-first-name" />
+                                <Input 
+                                  {...field} 
+                                  data-testid="input-first-name"
+                                  className={isApp ? 'input-app h-12 text-base' : ''}
+                                  autoComplete="given-name"
+                                  autoCapitalize="words"
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -555,7 +611,13 @@ export default function AuthPage() {
                             <FormItem>
                               <FormLabel>Cognome *</FormLabel>
                               <FormControl>
-                                <Input {...field} data-testid="input-last-name" />
+                                <Input 
+                                  {...field} 
+                                  data-testid="input-last-name"
+                                  className={isApp ? 'input-app h-12 text-base' : ''}
+                                  autoComplete="family-name"
+                                  autoCapitalize="words"
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -584,7 +646,15 @@ export default function AuthPage() {
                           <FormItem>
                             <FormLabel>Telefono *</FormLabel>
                             <FormControl>
-                              <Input {...field} placeholder="+39 123 456 7890" data-testid="input-phone" />
+                              <Input 
+                                {...field} 
+                                placeholder="+39 123 456 7890" 
+                                data-testid="input-phone"
+                                className={isApp ? 'input-app h-12 text-base' : ''}
+                                autoComplete="tel"
+                                inputMode="tel"
+                                type="tel"
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>

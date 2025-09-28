@@ -1,0 +1,15 @@
+Scheda Tecnica – YCORE
+
+YCORE è una piattaforma modulare e scalabile che funge da sistema operativo per il business digitale. Integra vendite, spedizioni, pagamenti, clienti, team, marketplace e intelligenza artificiale in un’unica architettura cloud-ready.
+
+La struttura modulare comprende: dashboard con KPI e alert, wallet aziendale con bonifici e tracciamento, sistema spedizioni con tracking live, ecommerce integrato, marketplace B2B per gare e milestone, area commerciale per agenti e prospect, fidelity card digitale con QR fisico, supporto clienti con ticket e assistente AI, fatturazione automatica con Stripe, AI globale per ottimizzazione e rilevamento anomalie, sistema di sicurezza avanzato con audit e whitelist, e logistica globale in fase di sviluppo.
+
+La piattaforma è già disponibile come PWA installabile su Android, iOS e desktop. L’app mobile è in sviluppo con interfaccia touch-optimized, layout responsive, gestione della safe-area, adattamento alla tastiera e wizard mobile-friendly per l’autenticazione. I moduli interni come Marketplace, Wallet e Supporto sono stati ottimizzati per l’uso mobile.
+
+Sul fronte sicurezza, YCORE implementa whitelist enforcement, protezione CSRF, rate limiting su endpoint critici, IP tracking e audit logging completo. È attiva una component policy che differenzia il comportamento tra mobile e desktop.
+
+Lo stack tecnologico include React per il frontend, Tailwind per lo styling, Node.js e Prisma per il backend, PostgreSQL come database, modelli AI proprietari per l’analisi, Docker e GitHub Actions per il DevOps, e Vercel/AWS per il deployment. Il sistema è monitorato con logging continuo e hot module replacement attivo.
+
+Attualmente YCORE è blindato per demo privata, con branding attivo, logging enterprise e card fisiche con QR dinamico già distribuite. L’interfaccia mobile è in fase di revisione architetturale.
+
+L’obiettivo della collaborazione con Reply è validare l’architettura, ottimizzare i moduli interni per mobile, definire una strategia di distribuzione scalabile, integrare servizi cloud e infrastrutturali, e preparare la roadmap per il rollout nazionale e internazionale.

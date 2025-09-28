@@ -172,6 +172,13 @@
     --interface-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     --safe-area-top: env(safe-area-inset-top, 0px);
     --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-area-left: env(safe-area-inset-left, 0px);
+    --safe-area-right: env(safe-area-inset-right, 0px);
+    --input-height: 48px;
+    --button-height: 48px;
+    --min-touch-target: 44px;
+    --form-spacing: 1.5rem;
+    --keyboard-offset: 0px;
   }
 
   .interface-app .header-app {
@@ -220,10 +227,44 @@
     padding: 1rem;
     font-size: 16px;
     border-radius: 12px;
-    min-height: 48px;
+    min-height: var(--input-height);
     touch-action: manipulation;
     -webkit-appearance: none;
     -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Keyboard adaptive forms for mobile */
+  .interface-app .form-keyboard-adaptive {
+    transition: padding-bottom 0.3s ease;
+  }
+
+  .interface-app .form-keyboard-adaptive[data-keyboard-open="1"] {
+    padding-bottom: calc(var(--safe-area-bottom) + 2rem);
+  }
+
+  /* Mobile-first form layouts */
+  .interface-app .form-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: var(--form-spacing);
+    padding: 1rem;
+  }
+
+  .interface-app .form-mobile input,
+  .interface-app .form-mobile select,
+  .interface-app .form-mobile textarea {
+    height: var(--input-height);
+    font-size: 16px; /* Prevents zoom on iOS */
+    padding: 0.75rem 1rem;
+    border-radius: var(--interface-border-radius);
+  }
+
+  .interface-app .form-mobile button {
+    height: var(--button-height);
+    min-height: var(--min-touch-target);
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: var(--interface-border-radius);
   }
 
   /* PWA Install Button */
