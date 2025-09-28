@@ -179,60 +179,48 @@ export default function AdminPanel() {
     }
   });
 
-  // Handlers
-  const handleApprove = (application: any) => {
+  // Handlers with form-based approach
+  const handleApprove = (application: CommercialApplication) => {
     setSelectedApplication(application);
-    setApprovalData({
-      subRole: '',
+    approvalForm.reset({
+      subRole: undefined,
       livello: 'base',
       grado: '1',
       percentuale: '5.00',
-      notes: ''
+      notes: '',
     });
     setApprovalDialogOpen(true);
   };
 
-  const handleReject = (application: any) => {
+  const handleReject = (application: CommercialApplication) => {
     setSelectedApplication(application);
-    setRejectionReason('');
+    rejectionForm.reset({
+      rejectionReason: '',
+    });
     setRejectionDialogOpen(true);
   };
 
-  const submitApproval = () => {
-    if (!selectedApplication || !approvalData.subRole) {
-      toast({
-        title: "Errore",
-        description: "Seleziona un ruolo per il commerciale",
-        variant: "destructive",
-      });
-      return;
-    }
+  const onApprovalSubmit = (data: CommercialApproval) => {
+    if (!selectedApplication) return;
     
     approveMutation.mutate({
       id: selectedApplication.id,
-      data: approvalData
+      data
     });
   };
 
-  const submitRejection = () => {
-    if (!selectedApplication || !rejectionReason.trim()) {
-      toast({
-        title: "Errore",
-        description: "Inserisci una motivazione per il rifiuto",
-        variant: "destructive",
-      });
-      return;
-    }
+  const onRejectionSubmit = (data: CommercialRejection) => {
+    if (!selectedApplication) return;
     
     rejectMutation.mutate({
       id: selectedApplication.id,
-      reason: rejectionReason
+      data
     });
   };
 
   // Filter pending commercial applications
   const pendingCommercialApplications = commercialApplications?.filter(
-    (app: any) => app.status === 'pending'
+    (app: CommercialApplication) => app.status === 'pending'
   ) || [];
 
   return (
@@ -261,7 +249,7 @@ export default function AdminPanel() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{userStats?.activeUsers || 0}</div>
+            <div className="text-2xl font-bold">{(userStats as any)?.activeUsers || 0}</div>
             <p className="text-xs text-muted-foreground">
               +12% dal mese scorso
             </p>
@@ -287,7 +275,7 @@ export default function AdminPanel() {
             <MessageSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{userStats?.moderatedContent || 0}</div>
+            <div className="text-2xl font-bold">{(userStats as any)?.moderatedContent || 0}</div>
             <p className="text-xs text-muted-foreground">
               Ultima settimana
             </p>
@@ -300,7 +288,7 @@ export default function AdminPanel() {
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">€{userStats?.revenue || 0}</div>
+            <div className="text-2xl font-bold">€{(userStats as any)?.revenue || 0}</div>
             <p className="text-xs text-muted-foreground">
               Questo mese
             </p>
@@ -336,7 +324,7 @@ export default function AdminPanel() {
           <CardContent className="space-y-4">
             <Button variant="outline" className="w-full justify-start" data-testid="button-user-approval">
               <UserCheck className="h-4 w-4 mr-2" />
-              Approva Registrazioni ({pendingRequests?.length || 0})
+              Approva Registrazioni ({(pendingRequests as any)?.length || 0})
             </Button>
             <Button variant="outline" className="w-full justify-start" data-testid="button-user-management">
               <Users className="h-4 w-4 mr-2" />
@@ -392,7 +380,7 @@ export default function AdminPanel() {
             </Button>
             <Button variant="outline" className="w-full justify-start" data-testid="button-commercial-profiles">
               <Users className="h-4 w-4 mr-2" />
-              Profili Attivi ({commercialProfiles?.length || 0})
+              Profili Attivi ({commercialProfiles.length || 0})
             </Button>
             <Button variant="outline" className="w-full justify-start" data-testid="button-commercial-stats">
               <BarChart3 className="h-4 w-4 mr-2" />
@@ -415,7 +403,7 @@ export default function AdminPanel() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {pendingRequests?.slice(0, 5).map((request: any, index: number) => (
+            {(pendingRequests as any)?.slice(0, 5).map((request: any, index: number) => (
               <div key={index} className="flex items-center justify-between p-4 border rounded-lg" data-testid={`request-${index}`}>
                 <div className="space-y-1">
                   <p className="font-medium">{request.username}</p>
@@ -434,7 +422,7 @@ export default function AdminPanel() {
                 </div>
               </div>
             ))}
-            {(!pendingRequests || pendingRequests.length === 0) && (
+            {(!pendingRequests || (pendingRequests as any).length === 0) && (
               <p className="text-center text-muted-foreground py-8">
                 Nessuna richiesta pending al momento
               </p>
@@ -461,14 +449,14 @@ export default function AdminPanel() {
                 <div className="space-y-1 flex-1">
                   <div className="flex items-center gap-4">
                     <div>
-                      <p className="font-medium">{application.nome} {application.cognome}</p>
+                      <p className="font-medium">{application.fullName}</p>
                       <p className="text-sm text-muted-foreground">{application.email}</p>
                       <p className="text-xs text-muted-foreground">
-                        Tel: {application.telefono} | Esperienza: {application.anniEsperienza}
+                        Tel: {application.phoneNumber} | Area: {application.geographicArea}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-medium">Settore: {application.settoreEsperienza}</p>
+                      <p className="text-sm font-medium">Area: {application.geographicArea}</p>
                       <p className="text-xs text-muted-foreground">
                         Candidatura: {new Date(application.createdAt).toLocaleDateString()}
                       </p>
@@ -481,7 +469,7 @@ export default function AdminPanel() {
                   </div>
                   <div className="mt-2">
                     <p className="text-sm text-muted-foreground line-clamp-2">
-                      {application.motivazioni?.substring(0, 150)}...
+                      {application.experienceDescription?.substring(0, 150)}...
                     </p>
                   </div>
                 </div>
@@ -495,7 +483,7 @@ export default function AdminPanel() {
                     </DialogTrigger>
                     <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
                       <DialogHeader>
-                        <DialogTitle>Candidatura: {application.nome} {application.cognome}</DialogTitle>
+                        <DialogTitle>Candidatura: {application.fullName}</DialogTitle>
                       </DialogHeader>
                       <div className="space-y-6">
                         <div className="grid grid-cols-2 gap-4">
@@ -505,15 +493,15 @@ export default function AdminPanel() {
                           </div>
                           <div>
                             <Label className="font-medium">Telefono</Label>
-                            <p className="text-sm">{application.telefono}</p>
+                            <p className="text-sm">{application.phoneNumber}</p>
                           </div>
                           <div>
-                            <Label className="font-medium">Anni Esperienza</Label>
-                            <p className="text-sm">{application.anniEsperienza}</p>
+                            <Label className="font-medium">Area Geografica</Label>
+                            <p className="text-sm">{application.geographicArea}</p>
                           </div>
                           <div>
-                            <Label className="font-medium">Settore</Label>
-                            <p className="text-sm">{application.settoreEsperienza}</p>
+                            <Label className="font-medium">Esperienza</Label>
+                            <p className="text-sm">{application.experienceDescription}</p>
                           </div>
                         </div>
                         

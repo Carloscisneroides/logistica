@@ -102,7 +102,7 @@ export const subClientStatusEnum = pgEnum("sub_client_status", ["pending_approva
 export const domainStatusEnum = pgEnum("domain_status", ["pending", "active", "ssl_pending", "ssl_active", "suspended"]);
 export const subscriptionTierEnum = pgEnum("subscription_tier", ["basic", "premium", "enterprise", "custom"]);
 export const billingCycleEnum = pgEnum("billing_cycle", ["monthly", "quarterly", "annually"]);
-export const paymentMethodEnum = pgEnum("payment_method", ["stripe", "paypal", "wire_transfer", "invoice"]);
+// Payment method enum moved to Wallet System section for unified management
 
 // Registration requests - Sistema approvazione manuale
 export const registrationRequests = pgTable("registration_requests", {
@@ -4096,3 +4096,324 @@ export type CommercialExperience = typeof commercialExperiences.$inferSelect;
 export type InsertCommercialExperience = z.infer<typeof insertCommercialExperienceSchema>;
 export type CommercialApproval = z.infer<typeof commercialApprovalSchema>;
 export type CommercialRejection = z.infer<typeof commercialRejectionSchema>;
+
+// ========================
+// YCORE WALLET SYSTEM - MODULO PAGAMENTI E CREDITO VIRTUALE
+// ========================
+
+// Enum per tipologie di pagamento
+export const paymentMethodEnum = pgEnum("payment_method", ["stripe", "bonifico", "credito_virtuale", "fidelity_card"]);
+export const transactionTypeEnum = pgEnum("transaction_type", ["ricarica", "pagamento", "rimborso", "commissione", "prelievo", "accredito_commerciale"]);
+export const transactionStatusEnum = pgEnum("transaction_status", ["pending", "completed", "failed", "cancelled", "requires_confirmation"]);
+export const bonificoStatusEnum = pgEnum("bonifico_status", ["pending", "under_review", "confirmed", "rejected", "expired"]);
+
+// Wallet principale - credito virtuale per tutti gli utenti
+export const wallets = pgTable("wallets", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  tenantId: uuid("tenant_id").references(() => tenants.id),
+  
+  // Saldi
+  creditoVirtuale: decimal("credito_virtuale", { precision: 12, scale: 2 }).notNull().default("0.00"),
+  creditoBlocco: decimal("credito_blocco", { precision: 12, scale: 2 }).notNull().default("0.00"), // Per bonifici in attesa
+  fidelityPoints: decimal("fidelity_points", { precision: 12, scale: 2 }).notNull().default("0.00"),
+  
+  // Configurazioni
+  isActive: boolean("is_active").notNull().default(true),
+  isBonificoEnabled: boolean("is_bonifico_enabled").notNull().default(true),
+  maxDailyLimit: decimal("max_daily_limit", { precision: 12, scale: 2 }).default("1000.00"),
+  
+  // Audit
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  userIdIdx: index("wallets_user_id_idx").on(table.userId),
+  tenantIdIdx: index("wallets_tenant_id_idx").on(table.tenantId),
+}));
+
+// Transazioni - tutte le operazioni di pagamento/credito
+export const transactions = pgTable("transactions", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  walletId: uuid("wallet_id").references(() => wallets.id, { onDelete: "cascade" }).notNull(),
+  tenantId: uuid("tenant_id").references(() => tenants.id),
+  
+  // Dettagli transazione
+  type: transactionTypeEnum("type").notNull(),
+  paymentMethod: paymentMethodEnum("payment_method").notNull(),
+  status: transactionStatusEnum("status").notNull().default("pending"),
+  
+  // Importi
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  commission: decimal("commission", { precision: 12, scale: 2 }).default("0.00"), // Commissioni YCORE
+  netAmount: decimal("net_amount", { precision: 12, scale: 2 }).notNull(),
+  
+  // Riferimenti esterni
+  stripePaymentIntentId: text("stripe_payment_intent_id"),
+  bonificoId: uuid("bonifico_id").references(() => bonifici.id),
+  orderId: uuid("order_id"), // Riferimento a ordini marketplace/servizi
+  
+  // Metadati
+  description: text("description").notNull(),
+  metadata: text("metadata"), // JSON per dati aggiuntivi
+  
+  // Gestione errori
+  errorMessage: text("error_message"),
+  retryCount: integer("retry_count").default(0),
+  
+  // Audit
+  processedAt: timestamp("processed_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  walletIdIdx: index("transactions_wallet_id_idx").on(table.walletId),
+  statusIdx: index("transactions_status_idx").on(table.status),
+  typeIdx: index("transactions_type_idx").on(table.type),
+  createdAtIdx: index("transactions_created_at_idx").on(table.createdAt),
+}));
+
+// Bonifici - gestione pagamenti bancari con conferma amministrativa
+export const bonifici = pgTable("bonifici", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  walletId: uuid("wallet_id").references(() => wallets.id, { onDelete: "cascade" }).notNull(),
+  tenantId: uuid("tenant_id").references(() => tenants.id),
+  
+  // Dettagli bonifico
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  bankReference: text("bank_reference"), // Riferimento bancario fornito dall'utente
+  description: text("description").notNull(),
+  
+  // Status e scadenze
+  status: bonificoStatusEnum("status").notNull().default("pending"),
+  expiresAt: timestamp("expires_at").notNull(), // Scadenza per conferma
+  
+  // Gestione amministrativa
+  reviewedBy: uuid("reviewed_by").references(() => users.id),
+  reviewedAt: timestamp("reviewed_at"),
+  reviewNotes: text("review_notes"),
+  
+  // File allegati
+  receiptUrl: text("receipt_url"), // URL ricevuta bonifico caricata dall'utente
+  adminNotesUrl: text("admin_notes_url"), // URL eventuali note admin
+  
+  // Notifiche e automazione
+  reminderSent: boolean("reminder_sent").default(false),
+  autoBlockDate: timestamp("auto_block_date"), // Data blocco automatico se non confermato
+  
+  // Audit
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  walletIdIdx: index("bonifici_wallet_id_idx").on(table.walletId),
+  statusIdx: index("bonifici_status_idx").on(table.status),
+  expiresAtIdx: index("bonifici_expires_at_idx").on(table.expiresAt),
+  createdAtIdx: index("bonifici_created_at_idx").on(table.createdAt),
+}));
+
+// Commissioni YCORE per Fidelity Card
+export const ycoreCommissions = pgTable("ycore_commissions", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  transactionId: uuid("transaction_id").references(() => transactions.id, { onDelete: "cascade" }).notNull(),
+  walletId: uuid("wallet_id").references(() => wallets.id, { onDelete: "cascade" }).notNull(),
+  tenantId: uuid("tenant_id").references(() => tenants.id),
+  
+  // Calcolo commissioni (modello attuale: €0,10 su €10,00, €0,20 su €20,00)
+  spentAmount: decimal("spent_amount", { precision: 12, scale: 2 }).notNull(),
+  commissionAmount: decimal("commission_amount", { precision: 12, scale: 2 }).notNull(),
+  commissionRate: decimal("commission_rate", { precision: 5, scale: 4 }).notNull(), // Percentuale applicata
+  
+  // Categoria spesa (per analisi AI)
+  spendingCategory: text("spending_category"), // marketplace, logistica, servizi, etc.
+  
+  // Previsioni AI
+  aiPredictedNext: decimal("ai_predicted_next", { precision: 12, scale: 2 }), // Previsione prossimo guadagno
+  aiConfidence: decimal("ai_confidence", { precision: 5, scale: 2 }), // Confidenza previsione
+  
+  // Audit
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  transactionIdIdx: index("ycore_commissions_transaction_id_idx").on(table.transactionId),
+  walletIdIdx: index("ycore_commissions_wallet_id_idx").on(table.walletId),
+  createdAtIdx: index("ycore_commissions_created_at_idx").on(table.createdAt),
+}));
+
+// Richieste bonifico commerciali - per prelievo guadagni su conto corrente
+export const commercialBonificoRequests = pgTable("commercial_bonifico_requests", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  commercialId: uuid("commercial_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  walletId: uuid("wallet_id").references(() => wallets.id, { onDelete: "cascade" }).notNull(),
+  tenantId: uuid("tenant_id").references(() => tenants.id),
+  
+  // Dettagli richiesta
+  requestedAmount: decimal("requested_amount", { precision: 12, scale: 2 }).notNull(),
+  availableAmount: decimal("available_amount", { precision: 12, scale: 2 }).notNull(), // Saldo disponibile al momento richiesta
+  
+  // Dati bancari
+  iban: text("iban").notNull(),
+  bankName: text("bank_name").notNull(),
+  accountHolder: text("account_holder").notNull(),
+  
+  // Status e gestione
+  status: bonificoStatusEnum("status").notNull().default("pending"),
+  processedBy: uuid("processed_by").references(() => users.id),
+  processedAt: timestamp("processed_at"),
+  
+  // AI pre-valutazione
+  aiRiskScore: decimal("ai_risk_score", { precision: 5, scale: 2 }), // Score rischio 0-100
+  aiRecommendation: text("ai_recommendation"), // Raccomandazione AI
+  
+  // Note e comunicazioni
+  notes: text("notes"),
+  adminNotes: text("admin_notes"),
+  
+  // Audit
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  commercialIdIdx: index("commercial_bonifico_requests_commercial_id_idx").on(table.commercialId),
+  statusIdx: index("commercial_bonifico_requests_status_idx").on(table.status),
+  createdAtIdx: index("commercial_bonifico_requests_created_at_idx").on(table.createdAt),
+}));
+
+// Audit log transazioni - logging completo per sicurezza
+export const transactionAuditLogs = pgTable("transaction_audit_logs", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  transactionId: uuid("transaction_id").references(() => transactions.id, { onDelete: "cascade" }),
+  walletId: uuid("wallet_id").references(() => wallets.id, { onDelete: "cascade" }).notNull(),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  tenantId: uuid("tenant_id").references(() => tenants.id),
+  
+  // Evento
+  action: text("action").notNull(), // created, updated, cancelled, confirmed, etc.
+  previousState: text("previous_state"), // JSON stato precedente
+  newState: text("new_state"), // JSON nuovo stato
+  
+  // Contesto sicurezza
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  sessionId: text("session_id"),
+  
+  // AI anomalie
+  aiAnomalyDetected: boolean("ai_anomaly_detected").default(false),
+  aiAnomalyReason: text("ai_anomaly_reason"),
+  aiRiskLevel: text("ai_risk_level"), // low, medium, high, critical
+  
+  // Admin override
+  adminOverride: boolean("admin_override").default(false),
+  adminOverrideReason: text("admin_override_reason"),
+  adminUserId: uuid("admin_user_id").references(() => users.id),
+  
+  // Audit
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  transactionIdIdx: index("transaction_audit_logs_transaction_id_idx").on(table.transactionId),
+  walletIdIdx: index("transaction_audit_logs_wallet_id_idx").on(table.walletId),
+  userIdIdx: index("transaction_audit_logs_user_id_idx").on(table.userId),
+  createdAtIdx: index("transaction_audit_logs_created_at_idx").on(table.createdAt),
+  aiAnomalyIdx: index("transaction_audit_logs_ai_anomaly_idx").on(table.aiAnomalyDetected),
+}));
+
+// ========================
+// YCORE WALLET SCHEMAS & TYPES
+// ========================
+
+// Wallet schemas
+export const insertWalletSchema = createInsertSchema(wallets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertTransactionSchema = createInsertSchema(transactions).omit({
+  id: true,
+  processedAt: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertBonificoSchema = createInsertSchema(bonifici).omit({
+  id: true,
+  reviewedBy: true,
+  reviewedAt: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCommercialBonificoRequestSchema = createInsertSchema(commercialBonificoRequests).omit({
+  id: true,
+  processedBy: true,
+  processedAt: true,
+  aiRiskScore: true,
+  aiRecommendation: true,
+  adminNotes: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Wallet operation schemas for API
+export const walletRechargeSchema = z.object({
+  amount: z.string().regex(/^\d+\.\d{2}$/, "Formato importo non valido (es: 100.00)"),
+  paymentMethod: z.enum(['stripe', 'bonifico']),
+  description: z.string().min(5, "Descrizione richiesta"),
+  bankReference: z.string().optional(), // Per bonifici
+});
+
+export const walletPaymentSchema = z.object({
+  amount: z.string().regex(/^\d+\.\d{2}$/, "Formato importo non valido"),
+  orderId: z.string().uuid().optional(),
+  description: z.string().min(5, "Descrizione richiesta"),
+  useCredito: z.boolean().default(true),
+  useFidelity: z.boolean().default(false),
+});
+
+export const bonificoConfirmationSchema = z.object({
+  bonificoId: z.string().uuid(),
+  action: z.enum(['confirm', 'reject']),
+  reviewNotes: z.string().min(10, "Note di revisione richieste"),
+  receiptUrl: z.string().url().optional(),
+});
+
+export const commercialBonificoRequestSchema = z.object({
+  requestedAmount: z.string().regex(/^\d+\.\d{2}$/, "Formato importo non valido"),
+  iban: z.string().min(15, "IBAN non valido").max(34, "IBAN troppo lungo"),
+  bankName: z.string().min(2, "Nome banca richiesto"),
+  accountHolder: z.string().min(2, "Intestatario richiesto"),
+  notes: z.string().optional(),
+});
+
+// AI Analysis schemas
+export const aiTransactionAnalysisSchema = z.object({
+  anomalyDetected: z.boolean(),
+  riskLevel: z.enum(['low', 'medium', 'high', 'critical']),
+  confidenceScore: z.number().min(0).max(100),
+  reasons: z.array(z.string()),
+  recommendation: z.string(),
+});
+
+// Wallet stats for dashboard
+export const walletStatsSchema = z.object({
+  totalBalance: z.string(),
+  monthlySpent: z.string(),
+  fidelityEarned: z.string(),
+  pendingTransactions: z.number(),
+  pendingBonifici: z.number(),
+});
+
+// Types export
+export type Wallet = typeof wallets.$inferSelect;
+export type InsertWallet = z.infer<typeof insertWalletSchema>;
+export type Transaction = typeof transactions.$inferSelect;
+export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
+export type Bonifico = typeof bonifici.$inferSelect;
+export type InsertBonifico = z.infer<typeof insertBonificoSchema>;
+export type YcoreCommission = typeof ycoreCommissions.$inferSelect;
+export type CommercialBonificoRequest = typeof commercialBonificoRequests.$inferSelect;
+export type InsertCommercialBonificoRequest = z.infer<typeof insertCommercialBonificoRequestSchema>;
+export type TransactionAuditLog = typeof transactionAuditLogs.$inferSelect;
+
+// API schemas types
+export type WalletRecharge = z.infer<typeof walletRechargeSchema>;
+export type WalletPayment = z.infer<typeof walletPaymentSchema>;
+export type BonificoConfirmation = z.infer<typeof bonificoConfirmationSchema>;
+export type CommercialBonificoRequestData = z.infer<typeof commercialBonificoRequestSchema>;
+export type AiTransactionAnalysis = z.infer<typeof aiTransactionAnalysisSchema>;
+export type WalletStats = z.infer<typeof walletStatsSchema>;
