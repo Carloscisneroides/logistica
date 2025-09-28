@@ -158,7 +158,7 @@ export default function Dashboard() {
     <div className="desktop-container desktop-content space-y-6">
       {/* Stats Cards */}
       <div className="desktop-section">
-        <div className="desktop-grid-uniform grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+        <div className="desktop-grid-uniform grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
           title="Spedizioni Oggi"
           value={(stats as any).todayShipments?.toString() || "0"}
@@ -196,7 +196,7 @@ export default function Dashboard() {
 
       {/* Main Dashboard Grid */}
       <div className="desktop-section">
-        <div className="desktop-grid-uniform grid-cols-1 lg:grid-cols-3">
+        <div className="desktop-grid-uniform grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Courier Modules Panel */}
         <div className="lg:col-span-2 bg-card rounded-lg border border-border">
           <div className="p-6 border-b border-border">
@@ -285,7 +285,7 @@ export default function Dashboard() {
 
       {/* Recent Activity Section */}
       <div className="desktop-section">
-        <div className="desktop-grid-uniform grid-cols-1 lg:grid-cols-2">
+        <div className="desktop-grid-uniform grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Clients */}
         <div className="bg-card rounded-lg border border-border">
           <div className="p-6 border-b border-border">
@@ -362,7 +362,7 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="p-6">
-          <div className="desktop-grid-uniform grid-cols-1 md:grid-cols-2 lg:grid-cols-4" style={{gap: '1rem'}}>
+          <div className="desktop-grid-uniform grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <CommercialCard
               name="Marco Rossi"
               role="Senior Account"

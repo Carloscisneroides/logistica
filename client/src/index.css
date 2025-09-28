@@ -144,6 +144,20 @@
 }
 
 /* YCORE INTERFACE SYSTEM - PC vs APP */
+:root {
+  /* === INTERFACE VARIABLES - FALLBACK GLOBALI === */
+  --interface-spacing: 1.5rem;
+  --interface-font-size: 14px;
+  --interface-header-height: 4rem;
+  --interface-sidebar-width: 280px;
+  --interface-content-padding: 2rem;
+  --interface-card-spacing: 1.5rem;
+  --interface-border-radius: 8px;
+  --interface-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --interface-max-width: 1440px;
+  --interface-container-padding: 2rem;
+}
+
 @layer utilities {
   /* === INTERFACE PC - Enterprise Desktop === */
   .interface-pc {
@@ -159,39 +173,45 @@
     --interface-container-padding: 2rem;
   }
 
-  /* DESKTOP CONTAINER SYSTEM - SIMMETRIA ENTERPRISE */
+  /* DESKTOP CONTAINER SYSTEM - SIMMETRIA ENTERPRISE - CON FALLBACK */
   .desktop-container {
-    max-width: var(--interface-max-width);
+    max-width: var(--interface-max-width, 1440px);
     margin: 0 auto;
-    padding-left: var(--interface-container-padding);
-    padding-right: var(--interface-container-padding);
+    padding-left: var(--interface-container-padding, 2rem);
+    padding-right: var(--interface-container-padding, 2rem);
   }
 
   .desktop-content {
-    padding: var(--interface-content-padding);
+    padding: var(--interface-content-padding, 2rem);
   }
 
   .desktop-grid-uniform {
     display: grid;
-    gap: var(--interface-card-spacing);
+    gap: var(--interface-card-spacing, 1.5rem);
   }
 
   .desktop-section {
-    margin-bottom: calc(var(--interface-spacing) * 2);
+    margin-bottom: calc(var(--interface-spacing, 1.5rem) * 2);
   }
 
-  /* RESPONSIVE BREAKPOINTS UNIFORMI */
+  /* RESPONSIVE BREAKPOINTS UNIFORMI CON FALLBACK */
   @media (min-width: 1280px) {
+    :root {
+      --interface-container-padding: 3rem;
+    }
     .desktop-container {
-      padding-left: 3rem;
-      padding-right: 3rem;
+      padding-left: var(--interface-container-padding, 3rem);
+      padding-right: var(--interface-container-padding, 3rem);
     }
   }
 
   @media (min-width: 1536px) {
+    :root {
+      --interface-container-padding: 4rem;
+    }
     .desktop-container {
-      padding-left: 4rem;
-      padding-right: 4rem;
+      padding-left: var(--interface-container-padding, 4rem);
+      padding-right: var(--interface-container-padding, 4rem);
     }
   }
 
