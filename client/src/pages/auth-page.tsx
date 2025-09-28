@@ -14,7 +14,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { insertUserSchema } from "@shared/schema";
 import { z } from "zod";
 import { Redirect } from "wouter";
-import { Loader2, Truck, Shield, Users, Zap, Download, Smartphone } from "lucide-react";
+import { Loader2, Truck, Shield, Users, Zap, Download, Smartphone, Settings2 } from "lucide-react";
 import ycoreLogo from "@assets/Copilot_20250928_191905_1759079989814.png";
 
 const loginSchema = insertUserSchema.pick({ username: true, password: true });
@@ -892,6 +892,46 @@ export default function AuthPage() {
                     "Stai utilizzando l'interfaccia enterprise per desktop e PC"
                   )}
                 </p>
+                
+                {/* Interface Mode Toggle */}
+                <div className="py-3 border-t border-border/50">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-2">
+                      <Settings2 className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">Modalità Interfaccia</span>
+                    </div>
+                    <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full">
+                      {interfaceMode === 'pc' ? 'PC' : 'APP'}
+                    </span>
+                  </div>
+                  
+                  <div className="flex space-x-2">
+                    <Button
+                      variant={interfaceMode === 'pc' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => switchInterface('pc')}
+                      className="flex-1"
+                      data-testid="button-switch-pc"
+                    >
+                      <span className="font-bold mr-1">PC</span>
+                      Desktop
+                    </Button>
+                    <Button
+                      variant={interfaceMode === 'app' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => switchInterface('app')}
+                      className="flex-1"
+                      data-testid="button-switch-app"
+                    >
+                      <Smartphone className="w-4 h-4 mr-1" />
+                      APP
+                    </Button>
+                  </div>
+                  
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Cambia modalità per testare le due esperienze grafiche
+                  </p>
+                </div>
                 
                 {!window.matchMedia('(display-mode: standalone)').matches && (
                   <div className="pt-3 border-t border-border/50">
