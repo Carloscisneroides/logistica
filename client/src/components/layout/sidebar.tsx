@@ -326,7 +326,7 @@ export function Sidebar({ className }: SidebarProps) {
         </div>
         
         {/* Navigation Menu */}
-        <nav className="flex-1 px-4 py-6 space-y-2">
+        <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-700">
           <div className="space-y-1">
             {filteredMenuItems.map((item) => {
               const Icon = item.icon;

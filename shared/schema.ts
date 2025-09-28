@@ -4073,9 +4073,26 @@ export const insertCommercialExperienceSchema = createInsertSchema(commercialExp
   createdAt: true,
 });
 
+// Commercial Application Management Schemas
+export const commercialApprovalSchema = z.object({
+  subRole: z.enum(['agente', 'responsabile'], {
+    required_error: "Il ruolo è obbligatorio",
+  }),
+  livello: z.enum(['base', 'medium', 'premium']).default('base'),
+  grado: z.enum(['1', '2', '3']).default('1'),
+  percentuale: z.string().regex(/^\d+\.\d{2}$/, "Formato percentuale non valido (es: 5.00)"),
+  notes: z.string().optional(),
+});
+
+export const commercialRejectionSchema = z.object({
+  rejectionReason: z.string().min(10, "La motivazione deve essere di almeno 10 caratteri"),
+});
+
 export type CommercialApplication = typeof commercialApplications.$inferSelect;
 export type InsertCommercialApplication = z.infer<typeof insertCommercialApplicationSchema>;
 export type CommercialProfile = typeof commercialProfiles.$inferSelect;
 export type InsertCommercialProfile = z.infer<typeof insertCommercialProfileSchema>;
 export type CommercialExperience = typeof commercialExperiences.$inferSelect;
 export type InsertCommercialExperience = z.infer<typeof insertCommercialExperienceSchema>;
+export type CommercialApproval = z.infer<typeof commercialApprovalSchema>;
+export type CommercialRejection = z.infer<typeof commercialRejectionSchema>;

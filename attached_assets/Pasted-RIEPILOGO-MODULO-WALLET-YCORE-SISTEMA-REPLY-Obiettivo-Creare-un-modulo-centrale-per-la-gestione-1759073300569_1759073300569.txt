@@ -1,0 +1,92 @@
+RIEPILOGO MODULO WALLET YCORE – SISTEMA REPLY
+🎯 Obiettivo
+Creare un modulo centrale per la gestione del Wallet Ycore, integrato con sistemi di pagamento, credito virtuale, rimborsi e fidelity card, accessibile inizialmente dall’admin system e successivamente estendibile al ruolo amministratore con restrizioni.
+
+🔧 Funzionalità principali
+1. Tipologie di pagamento supportate:
+
+Stripe: ricarica immediata del credito virtuale
+
+Bonifico bancario:
+
+Ricarica soggetta a conferma manuale da parte dell’amministrazione
+
+Scadenza e verifica obbligatoria per continuare a utilizzare Ycore
+
+Notifica automatica e blocco temporaneo se non confermato
+
+2. Modulo Amministrazione (accesso admin system):
+
+Gestione conferme bonifici
+
+Verifica ricevute e accrediti
+
+Sblocco manuale del credito
+
+Tracciamento storico delle operazioni
+
+3. Fidelity Card Ycore come strumento wallet:
+
+Credito virtuale assegnato a clienti e sottoclienti
+
+Utilizzabile per:
+
+Acquisti nel marketplace
+
+Pagamenti nei servizi logistica
+
+Rimborsi da venditori e da Ycore
+
+Valida per tutte le categorie già inserite (social media, commercialisti, sviluppatori, ecc.)
+
+4. Estensione ai commerciali:
+
+Ogni commerciale riceve i guadagni direttamente sulla fidelity card Ycore
+
+Possibilità di:
+
+Utilizzare il credito immediatamente nel sito
+
+Richiedere bonifico sul proprio conto corrente tramite modulo dedicato
+
+Dashboard con:
+
+Saldo disponibile
+
+Storico movimenti
+
+Pulsante “Richiedi bonifico”
+
+Notifiche AI su soglie raggiunte e suggerimenti di utilizzo
+
+5. Estensione futura al ruolo amministratore:
+
+Accesso limitato e controllato
+
+Visualizzazione parziale dei flussi
+
+Nessuna modifica alle logiche AI o algoritmi
+
+Logging obbligatorio di ogni azione
+
+🔐 Sicurezza
+Validazione transazioni e dati bancari
+
+Protezione CSRF e rate limiting
+
+Logging completo delle operazioni
+
+Accesso modulare per ruoli autorizzati
+
+Verifica AI su anomalie nei flussi di pagamento
+
+🤖 Supporto AI e Algoritmi
+Analisi comportamentale e rilevamento frodi
+
+Gestione automatica delle scadenze e conferme
+
+Suggerimenti per ricariche, rimborsi e conversioni
+
+Routing intelligente per flussi di pagamento e notifiche
+
+Pre-valutazione delle richieste bonifico e ottimizzazione dei tempi

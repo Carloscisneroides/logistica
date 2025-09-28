@@ -1,0 +1,97 @@
+📦 MODULO WALLET YCORE – RIEPILOGO COMPLETO PER REPLY
+🎯 Obiettivo
+Creare un modulo centrale per la gestione del Wallet Ycore, integrato con sistemi di pagamento, credito virtuale, rimborsi e fidelity card, accessibile inizialmente dall’admin system e successivamente estendibile al ruolo amministratore con restrizioni.
+
+🔧 Funzionalità principali
+1. Tipologie di pagamento supportate:
+
+Stripe: ricarica immediata del credito virtuale
+
+Bonifico bancario:
+
+Ricarica soggetta a conferma manuale da parte dell’amministrazione
+
+Scadenza e verifica obbligatoria per continuare a utilizzare Ycore
+
+Notifica automatica e blocco temporaneo se non confermato
+
+2. Modulo Amministrazione (accesso admin system):
+
+Gestione conferme bonifici
+
+Verifica ricevute e accrediti
+
+Sblocco manuale del credito
+
+Tracciamento storico delle operazioni
+
+3. Fidelity Card Ycore come strumento wallet:
+
+Credito virtuale assegnato a clienti, sottoclienti e commerciali
+
+Utilizzabile per:
+
+Acquisti nel marketplace
+
+Pagamenti nei servizi logistica
+
+Rimborsi da venditori e da Ycore
+
+Pagamento degli abbonamenti della piattaforma
+
+4. Estensione ai commerciali:
+
+Accredito automatico dei guadagni sulla fidelity card
+
+Utilizzo immediato nel sito oppure richiesta bonifico su conto corrente
+
+Dashboard con saldo, storico movimenti, e modulo “Richiedi bonifico”
+
+5. Estensione futura al ruolo amministratore:
+
+Accesso limitato e controllato
+
+Visualizzazione parziale dei flussi
+
+Nessuna modifica alle logiche AI o algoritmi
+
+Logging obbligatorio di ogni azione
+
+💰 Commissioni Ycore sulla Fidelity Card
+Modello attuale (provvisorio):
+
+€0,10 di guadagno su €10,00 di spesa
+
+€0,20 di guadagno su €20,00 di spesa
+
+🔒 Queste commissioni sono provvisorie e saranno confermate ufficialmente al momento dell’attivazione della fidelity card.
+
+Tracciamento e analisi:
+
+Dashboard admin con storico spese/guadagni
+
+Analisi AI su volumi e previsioni
+
+Reportistica per auditing e ottimizzazione
+
+🔐 Sicurezza
+Validazione transazioni e dati bancari
+
+Protezione CSRF e rate limiting
+
+Logging completo delle operazioni
+
+Accesso modulare per ruoli autorizzati
+
+Verifica AI su anomalie nei flussi di pagamento
+
+🤖 Supporto AI e Algoritmi
+Analisi comportamentale e rilevamento frodi
+
+Gestione automatica delle scadenze e conferme
+
+Suggerimenti per ricariche, rimborsi e conversioni
+
+Routing intelligente per flussi di pagamento e notifiche
+
+Pre-valutazione delle richieste bonifico e ottimizzazione dei t

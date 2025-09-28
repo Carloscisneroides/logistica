@@ -1,12 +1,92 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Users, FileText, BarChart3, Settings, Shield, MessageSquare, UserCheck } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { 
+  Users, 
+  FileText, 
+  BarChart3, 
+  Settings, 
+  Shield, 
+  MessageSquare, 
+  UserCheck, 
+  Briefcase,
+  Calendar,
+  Eye,
+  CheckCircle,
+  XCircle,
+  Download,
+  Loader2
+} from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger 
+} from "@/components/ui/dialog";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { 
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Skeleton } from "@/components/ui/skeleton";
+import { 
+  CommercialApplication,
+  CommercialProfile,
+  commercialApprovalSchema,
+  commercialRejectionSchema,
+  type CommercialApproval,
+  type CommercialRejection
+} from "@shared/schema";
 
 export default function AdminPanel() {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  // State for commercial applications management
+  const [selectedApplication, setSelectedApplication] = useState<CommercialApplication | null>(null);
+  const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
+  const [rejectionDialogOpen, setRejectionDialogOpen] = useState(false);
+
+  // React Hook Form for approval
+  const approvalForm = useForm<CommercialApproval>({
+    resolver: zodResolver(commercialApprovalSchema),
+    defaultValues: {
+      subRole: undefined,
+      livello: 'base',
+      grado: '1',
+      percentuale: '5.00',
+      notes: '',
+    },
+  });
+
+  // React Hook Form for rejection
+  const rejectionForm = useForm<CommercialRejection>({
+    resolver: zodResolver(commercialRejectionSchema),
+    defaultValues: {
+      rejectionReason: '',
+    },
+  });
 
   const { data: userStats } = useQuery({
     queryKey: ['/api/admin/user-stats'],
@@ -17,6 +97,143 @@ export default function AdminPanel() {
     queryKey: ['/api/admin/registration-requests'],
     enabled: user?.role === 'admin'
   });
+
+  // Commercial applications queries with strong typing and loading states
+  const { 
+    data: commercialApplications = [], 
+    isLoading: loadingApplications 
+  } = useQuery<CommercialApplication[]>({
+    queryKey: ['/api/commercial/applications'],
+    enabled: user?.role === 'admin'
+  });
+
+  const { 
+    data: commercialStats, 
+    isLoading: loadingStats 
+  } = useQuery<{
+    pendingApplications: number;
+    activeProfiles: number;
+    totalRevenue: number;
+  }>({
+    queryKey: ['/api/commercial/dashboard-stats'],
+    enabled: user?.role === 'admin'
+  });
+
+  const { 
+    data: commercialProfiles = [], 
+    isLoading: loadingProfiles 
+  } = useQuery<CommercialProfile[]>({
+    queryKey: ['/api/commercial/profiles'],
+    enabled: user?.role === 'admin'
+  });
+
+  // Mutations for commercial applications with strong typing
+  const approveMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: CommercialApproval }) => {
+      const response = await apiRequest("PATCH", `/api/commercial/applications/${id}/approve`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/commercial/applications'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/commercial/dashboard-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/commercial/profiles'] });
+      setApprovalDialogOpen(false);
+      setSelectedApplication(null);
+      approvalForm.reset();
+      toast({
+        title: "Candidatura approvata",
+        description: "Il nuovo commerciale è stato attivato con successo",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Errore",
+        description: error.message || "Errore nell'approvazione della candidatura",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: CommercialRejection }) => {
+      const response = await apiRequest("PATCH", `/api/commercial/applications/${id}/reject`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/commercial/applications'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/commercial/dashboard-stats'] });
+      setRejectionDialogOpen(false);
+      setSelectedApplication(null);
+      rejectionForm.reset();
+      toast({
+        title: "Candidatura rifiutata",
+        description: "Il candidato è stato notificato del rifiuto",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Errore",
+        description: error.message || "Errore nel rifiuto della candidatura",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Handlers
+  const handleApprove = (application: any) => {
+    setSelectedApplication(application);
+    setApprovalData({
+      subRole: '',
+      livello: 'base',
+      grado: '1',
+      percentuale: '5.00',
+      notes: ''
+    });
+    setApprovalDialogOpen(true);
+  };
+
+  const handleReject = (application: any) => {
+    setSelectedApplication(application);
+    setRejectionReason('');
+    setRejectionDialogOpen(true);
+  };
+
+  const submitApproval = () => {
+    if (!selectedApplication || !approvalData.subRole) {
+      toast({
+        title: "Errore",
+        description: "Seleziona un ruolo per il commerciale",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    approveMutation.mutate({
+      id: selectedApplication.id,
+      data: approvalData
+    });
+  };
+
+  const submitRejection = () => {
+    if (!selectedApplication || !rejectionReason.trim()) {
+      toast({
+        title: "Errore",
+        description: "Inserisci una motivazione per il rifiuto",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    rejectMutation.mutate({
+      id: selectedApplication.id,
+      reason: rejectionReason
+    });
+  };
+
+  // Filter pending commercial applications
+  const pendingCommercialApplications = commercialApplications?.filter(
+    (app: any) => app.status === 'pending'
+  ) || [];
 
   return (
     <div className="space-y-6 p-6">
@@ -37,7 +254,7 @@ export default function AdminPanel() {
       </div>
 
       {/* Admin Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Utenti Attivi</CardTitle>
@@ -89,10 +306,23 @@ export default function AdminPanel() {
             </p>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Candidature Commerciali</CardTitle>
+            <Briefcase className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{commercialStats?.pendingApplications || 0}</div>
+            <p className="text-xs text-muted-foreground">
+              Da valutare
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Admin Management Tools */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -144,6 +374,32 @@ export default function AdminPanel() {
             </Button>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Briefcase className="h-5 w-5" />
+              Gestione Commerciali
+            </CardTitle>
+            <CardDescription>
+              Gestisci candidature e team commerciale
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button variant="outline" className="w-full justify-start" data-testid="button-commercial-applications">
+              <UserCheck className="h-4 w-4 mr-2" />
+              Candidature Pending ({pendingCommercialApplications.length})
+            </Button>
+            <Button variant="outline" className="w-full justify-start" data-testid="button-commercial-profiles">
+              <Users className="h-4 w-4 mr-2" />
+              Profili Attivi ({commercialProfiles?.length || 0})
+            </Button>
+            <Button variant="outline" className="w-full justify-start" data-testid="button-commercial-stats">
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Performance Analytics
+            </Button>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Registration Requests Table */}
@@ -187,6 +443,177 @@ export default function AdminPanel() {
         </CardContent>
       </Card>
 
+      {/* Commercial Applications Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Briefcase className="h-5 w-5" />
+            Candidature Commerciali Pending
+          </CardTitle>
+          <CardDescription>
+            Approva o rifiuta candidature per il team commerciale
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {pendingCommercialApplications.slice(0, 5).map((application: any, index: number) => (
+              <div key={application.id} className="flex items-center justify-between p-4 border rounded-lg" data-testid={`commercial-application-${index}`}>
+                <div className="space-y-1 flex-1">
+                  <div className="flex items-center gap-4">
+                    <div>
+                      <p className="font-medium">{application.nome} {application.cognome}</p>
+                      <p className="text-sm text-muted-foreground">{application.email}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Tel: {application.telefono} | Esperienza: {application.anniEsperienza}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium">Settore: {application.settoreEsperienza}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Candidatura: {new Date(application.createdAt).toLocaleDateString()}
+                      </p>
+                      {application.cvUrl && (
+                        <Badge variant="secondary" className="text-xs">
+                          CV Allegato
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  <div className="mt-2">
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {application.motivazioni?.substring(0, 150)}...
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2 ml-4">
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button size="sm" variant="outline" data-testid={`button-view-application-${index}`}>
+                        <Eye className="h-4 w-4 mr-1" />
+                        Dettagli
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>Candidatura: {application.nome} {application.cognome}</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-6">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label className="font-medium">Email</Label>
+                            <p className="text-sm">{application.email}</p>
+                          </div>
+                          <div>
+                            <Label className="font-medium">Telefono</Label>
+                            <p className="text-sm">{application.telefono}</p>
+                          </div>
+                          <div>
+                            <Label className="font-medium">Anni Esperienza</Label>
+                            <p className="text-sm">{application.anniEsperienza}</p>
+                          </div>
+                          <div>
+                            <Label className="font-medium">Settore</Label>
+                            <p className="text-sm">{application.settoreEsperienza}</p>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <Label className="font-medium">Specializzazioni</Label>
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            {application.specializzazioni?.map((spec: string, i: number) => (
+                              <Badge key={i} variant="secondary">{spec}</Badge>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div>
+                          <Label className="font-medium">Portfolio Clienti</Label>
+                          <p className="text-sm mt-1">{application.portfolioClienti}</p>
+                        </div>
+
+                        <div>
+                          <Label className="font-medium">Motivazioni</Label>
+                          <p className="text-sm mt-1">{application.motivazioni}</p>
+                        </div>
+
+                        <div>
+                          <Label className="font-medium">Disponibilità</Label>
+                          <p className="text-sm mt-1">{application.disponibilita}</p>
+                        </div>
+
+                        <div>
+                          <Label className="font-medium">Obiettivi di Vendita</Label>
+                          <p className="text-sm mt-1">{application.obiettiviVendita}</p>
+                        </div>
+
+                        {application.cvUrl && (
+                          <div>
+                            <Label className="font-medium">CV</Label>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Button size="sm" variant="outline" asChild>
+                                <a href={application.cvUrl} target="_blank" rel="noopener noreferrer">
+                                  <Download className="h-4 w-4 mr-1" />
+                                  Scarica CV
+                                </a>
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+
+                        {application.aiAnalysis && (
+                          <div className="border rounded-lg p-4 bg-blue-50">
+                            <Label className="font-medium">Analisi AI</Label>
+                            <div className="mt-2 space-y-2">
+                              <p className="text-sm">Score CV: {application.aiAnalysis.cvScore}/100</p>
+                              <p className="text-sm">Categoria Suggerita: {application.aiAnalysis.suggestedCategory}</p>
+                              <p className="text-sm">Confidenza: {application.aiAnalysis.confidenceLevel}%</p>
+                              {application.aiAnalysis.notes?.length > 0 && (
+                                <div>
+                                  <p className="text-sm font-medium">Note:</p>
+                                  <ul className="text-sm list-disc pl-4">
+                                    {application.aiAnalysis.notes.map((note: string, i: number) => (
+                                      <li key={i}>{note}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                  
+                  <Button 
+                    size="sm" 
+                    variant="default" 
+                    onClick={() => handleApprove(application)}
+                    data-testid={`button-approve-commercial-${index}`}
+                  >
+                    <CheckCircle className="h-4 w-4 mr-1" />
+                    Approva
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="destructive" 
+                    onClick={() => handleReject(application)}
+                    data-testid={`button-reject-commercial-${index}`}
+                  >
+                    <XCircle className="h-4 w-4 mr-1" />
+                    Rifiuta
+                  </Button>
+                </div>
+              </div>
+            ))}
+            {pendingCommercialApplications.length === 0 && (
+              <p className="text-center text-muted-foreground py-8">
+                Nessuna candidatura commerciale pending al momento
+              </p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Reportistica */}
       <Card>
         <CardHeader>
@@ -212,6 +639,189 @@ export default function AdminPanel() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Approval Dialog */}
+      <Dialog open={approvalDialogOpen} onOpenChange={setApprovalDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Approva Candidatura</DialogTitle>
+          </DialogHeader>
+          {selectedApplication && (
+            <div className="space-y-4">
+              <div>
+                <p className="font-medium">{selectedApplication.nome} {selectedApplication.cognome}</p>
+                <p className="text-sm text-muted-foreground">{selectedApplication.email}</p>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="subRole">Ruolo Commerciale *</Label>
+                  <Select 
+                    value={approvalData.subRole} 
+                    onValueChange={(value) => setApprovalData({...approvalData, subRole: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleziona ruolo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="agente">Agente Commerciale</SelectItem>
+                      <SelectItem value="responsabile">Responsabile Commerciale</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="livello">Livello</Label>
+                    <Select 
+                      value={approvalData.livello} 
+                      onValueChange={(value) => setApprovalData({...approvalData, livello: value})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="base">Base</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="premium">Premium</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="grado">Grado</Label>
+                    <Select 
+                      value={approvalData.grado} 
+                      onValueChange={(value) => setApprovalData({...approvalData, grado: value})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">1</SelectItem>
+                        <SelectItem value="2">2</SelectItem>
+                        <SelectItem value="3">3</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="percentuale">Percentuale Provvigione (%)</Label>
+                  <Select 
+                    value={approvalData.percentuale} 
+                    onValueChange={(value) => setApprovalData({...approvalData, percentuale: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="2.50">2.50%</SelectItem>
+                      <SelectItem value="5.00">5.00%</SelectItem>
+                      <SelectItem value="7.50">7.50%</SelectItem>
+                      <SelectItem value="10.00">10.00%</SelectItem>
+                      <SelectItem value="12.50">12.50%</SelectItem>
+                      <SelectItem value="15.00">15.00%</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="notes">Note (opzionale)</Label>
+                  <Textarea 
+                    placeholder="Note aggiuntive per il nuovo commerciale..."
+                    value={approvalData.notes}
+                    onChange={(e) => setApprovalData({...approvalData, notes: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setApprovalDialogOpen(false)}
+                  disabled={approveMutation.isPending}
+                >
+                  Annulla
+                </Button>
+                <Button 
+                  onClick={submitApproval}
+                  disabled={approveMutation.isPending || !approvalData.subRole}
+                >
+                  {approveMutation.isPending ? (
+                    <>
+                      <Calendar className="mr-2 h-4 w-4 animate-spin" />
+                      Approvando...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      Approva Candidatura
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Rejection Dialog */}
+      <Dialog open={rejectionDialogOpen} onOpenChange={setRejectionDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Rifiuta Candidatura</DialogTitle>
+          </DialogHeader>
+          {selectedApplication && (
+            <div className="space-y-4">
+              <div>
+                <p className="font-medium">{selectedApplication.nome} {selectedApplication.cognome}</p>
+                <p className="text-sm text-muted-foreground">{selectedApplication.email}</p>
+              </div>
+              
+              <div>
+                <Label htmlFor="rejectionReason">Motivazione del rifiuto *</Label>
+                <Textarea 
+                  placeholder="Spiega i motivi del rifiuto della candidatura..."
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  className="min-h-[100px]"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Questa motivazione sarà inviata al candidato via email
+                </p>
+              </div>
+
+              <div className="flex justify-end space-x-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setRejectionDialogOpen(false)}
+                  disabled={rejectMutation.isPending}
+                >
+                  Annulla
+                </Button>
+                <Button 
+                  variant="destructive"
+                  onClick={submitRejection}
+                  disabled={rejectMutation.isPending || !rejectionReason.trim()}
+                >
+                  {rejectMutation.isPending ? (
+                    <>
+                      <Calendar className="mr-2 h-4 w-4 animate-spin" />
+                      Rifiutando...
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="mr-2 h-4 w-4" />
+                      Rifiuta Candidatura
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
