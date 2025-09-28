@@ -237,17 +237,40 @@ export default function AuthPage() {
 
   const handleInstallApp = async () => {
     if (!deferredPrompt) {
-      // Fallback for browsers that don't support beforeinstallprompt
-      alert('Per installare l\'app, usa il menu del browser Chrome e seleziona "Installa app"');
+      // Better Chrome detection and PWA install guidance
+      const isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
+      const isMobile = /Android|iPhone|iPad/.test(navigator.userAgent);
+      
+      if (isChrome) {
+        if (isMobile) {
+          alert('Tocca i 3 punti (⋮) in alto a destra, poi "Installa app" o "Aggiungi alla schermata Home"');
+        } else {
+          alert('Clicca l\'icona "Installa" nella barra degli indirizzi oppure Menu Chrome → "Installa YCORE"');
+        }
+      } else {
+        alert('Per la migliore esperienza PWA, usa Google Chrome e cerca l\'opzione "Installa app"');
+      }
       return;
     }
 
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    
-    if (outcome === 'accepted') {
-      setDeferredPrompt(null);
-      setShowPWAInstall(false);
+    try {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      
+      if (outcome === 'accepted') {
+        setDeferredPrompt(null);
+        setShowPWAInstall(false);
+        alert('🎉 YCORE installato con successo!');
+      }
+    } catch (error) {
+      console.log('PWA install error:', error);
+      // Fallback to manual instructions
+      const isMobile = /Android|iPhone|iPad/.test(navigator.userAgent);
+      if (isMobile) {
+        alert('Tocca i 3 punti (⋮) in alto a destra, poi "Installa app"');
+      } else {
+        alert('Cerca l\'icona "Installa" nella barra degli indirizzi di Chrome');
+      }
     }
   };
 
@@ -660,7 +683,7 @@ export default function AuthPage() {
                       {registerForm.watch("fiscalType") === "partita_iva" && (
                         <FormField
                           control={registerForm.control}
-                          name="partitaIVA"
+                          name="fiscalId"
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Partita IVA *</FormLabel>
@@ -676,7 +699,7 @@ export default function AuthPage() {
                       {registerForm.watch("fiscalType") === "codice_fiscale" && (
                         <FormField
                           control={registerForm.control}
-                          name="codiceFiscale"
+                          name="fiscalId"
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Codice Fiscale *</FormLabel>
