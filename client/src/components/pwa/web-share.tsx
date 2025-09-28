@@ -22,9 +22,10 @@ export function WebShare({
 
   const handleShare = async () => {
     // Check if Web Share API is supported
-    if (typeof navigator !== 'undefined' && navigator.share) {
+    const canShare = typeof navigator !== 'undefined' && 'share' in navigator;
+    if (canShare) {
       try {
-        await navigator.share({
+        await (navigator as any).share({
           title,
           text,
           url: currentUrl,
@@ -48,7 +49,11 @@ export function WebShare({
 
   const fallbackShare = async () => {
     try {
-      await navigator.clipboard.writeText(currentUrl);
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(currentUrl);
+      } else {
+        throw new Error('Clipboard not available');
+      }
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
       
@@ -78,7 +83,7 @@ export function WebShare({
     >
       {copied ? (
         <Check className="w-4 h-4 mr-2 text-green-500" />
-      ) : (typeof navigator !== 'undefined' && navigator.share) ? (
+      ) : (typeof navigator !== 'undefined' && 'share' in navigator) ? (
         <Share2 className="w-4 h-4 mr-2" />
       ) : (
         <Copy className="w-4 h-4 mr-2" />

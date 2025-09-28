@@ -59,6 +59,11 @@ import RatesCarriersPage from "@/pages/rates-carriers-page";
 import GlobalLogisticsPage from "@/pages/global-logistics-page";
 import NotFound from "@/pages/not-found";
 import CommercialRegistration from "@/pages/commercial-registration";
+import SplashScreen from "@/components/pwa/splash-screen";
+import BottomNavigation from "@/components/pwa/bottom-navigation";
+import { useDeviceInterface } from "@/hooks/use-device-interface";
+import { useToast } from "@/hooks/use-toast";
+import { useEffect } from "react";
 
 function MainLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -247,6 +252,22 @@ function Router() {
 }
 
 function App() {
+  const { toast } = useToast();
+
+  // PWA Install Feedback Listener
+  useEffect(() => {
+    const handleAppInstalled = () => {
+      toast({
+        title: "🎉 App Installata!",
+        description: "YCORE è stata installata con successo sul dispositivo",
+        duration: 5000,
+      });
+    };
+
+    window.addEventListener('appinstalled', handleAppInstalled);
+    return () => window.removeEventListener('appinstalled', handleAppInstalled);
+  }, [toast]);
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
