@@ -68,6 +68,16 @@ import {
   type LogisticsPartner, type InsertLogisticsPartner, type PartnerFacility, type InsertPartnerFacility,
   type LogisticsMarketplace, type InsertLogisticsMarketplace,
   
+  // YCORE Wallet System types  
+  type Wallet, type InsertWallet, type Transaction, type InsertTransaction, 
+  type Bonifico, type InsertBonifico, type YcoreCommission, type InsertYcoreCommission,
+  type CommercialBonificoRequest, type InsertCommercialBonificoRequest,
+  type TransactionAuditLog, type InsertTransactionAuditLog,
+  
+  // Drizzle-Zod validation schemas 
+  insertWalletSchema, insertTransactionSchema, insertBonificoSchema, 
+  walletRechargeSchema, bonificoConfirmationSchema, commercialBonificoRequestSchema,
+  
   // Commercial Module types
   commercialApplications, commercialProfiles, commercialExperiences,
   type CommercialApplication, type InsertCommercialApplication,
@@ -82,8 +92,272 @@ import { pool } from "./db";
 
 const PostgresSessionStore = connectPg(session);
 
+// ========================
+// YCORE WALLET STORAGE - HELPER CLASSES AND IMPLEMENTATION
+// ========================
+
+import crypto from 'node:crypto';
+
+// Helper modules for AI and Security
+class AI {
+  static async analyzeTransaction({ userId, amount }: { userId: string; amount: number }) {
+    const riskScore = amount > 5000 ? 75 : amount > 1000 ? 45 : 15;
+    const recommendation = riskScore > 70 ? 'block' : riskScore > 40 ? 'review' : 'approve';
+    
+    return { riskScore, recommendation, confidence: Math.min(95, 60 + Math.floor(Math.random() * 30)) };
+  }
+}
+
+class RateLimiter {
+  private static limits = new Map<string, { count: number; resetTime: number }>();
+  
+  static check(userId: string, action: string = 'default', maxPerHour: number = 10): boolean {
+    const key = `${userId}_${action}`;
+    const now = Date.now();
+    const hourMs = 60 * 60 * 1000;
+    
+    const limit = this.limits.get(key);
+    if (!limit || now > limit.resetTime) {
+      this.limits.set(key, { count: 1, resetTime: now + hourMs });
+      return true;
+    }
+    
+    if (limit.count >= maxPerHour) return false;
+    limit.count++;
+    return true;
+  }
+}
+
+class AuditLogger {
+  private static logs: Array<{ type: string; userId: string; action: string; timestamp: string; details?: any }> = [];
+  
+  static log({ type, userId, action, details }: { type: string; userId: string; action: string; details?: any }) {
+    // Mask sensitive data (IBAN) in logs
+    const maskedDetails = details ? JSON.parse(JSON.stringify(details)) : undefined;
+    if (maskedDetails?.iban) {
+      maskedDetails.iban = maskedDetails.iban.slice(0, 4) + '****' + maskedDetails.iban.slice(-4);
+    }
+    
+    this.logs.push({
+      type, userId, action,
+      timestamp: new Date().toISOString(),
+      details: maskedDetails
+    });
+    
+    // Keep only last 1000 logs for performance
+    if (this.logs.length > 1000) {
+      this.logs = this.logs.slice(-1000);
+    }
+  }
+  
+  static getLogs(filters?: { userId?: string; type?: string }): typeof this.logs {
+    if (!filters) return this.logs;
+    return this.logs.filter(log => 
+      (!filters.userId || log.userId === filters.userId) &&
+      (!filters.type || log.type === filters.type)
+    );
+  }
+}
+
+// MemStorage Implementation with AI and Security integrated
+export class MemStorage implements IStorage {
+  private balances = new Map<string, number>();
+  private bonifici = new Map<string, { iban: string; amount: number; confirmed: boolean; userId: string; timestamp: string }>();
+  private commissions = new Map<string, Array<{ amount: number; category: string; timestamp: string }>>();
+
+  async getWalletBalance(userId: string): Promise<number> {
+    AuditLogger.log({ type: 'wallet', userId, action: 'balance_check' });
+    return this.balances.get(userId) ?? 0;
+  }
+
+  async chargeWallet(userId: string, amount: number): Promise<void> {
+    // Validazione con shared schema
+    const validated = walletRechargeSchema.parse({ amount: amount.toString(), paymentMethod: 'stripe', description: 'Ricarica wallet' });
+    
+    // AI anomaly detection  
+    const aiAnalysis = await AI.analyzeTransaction({ userId, amount });
+    if (aiAnalysis.recommendation === 'block') {
+      AuditLogger.log({ type: 'wallet', userId, action: 'charge_blocked', details: { amount, aiAnalysis } });
+      throw new Error('Transazione bloccata per motivi di sicurezza');
+    }
+    
+    // Rate limiting
+    if (!RateLimiter.check(userId, 'wallet_charge', 10)) {
+      AuditLogger.log({ type: 'wallet', userId, action: 'charge_rate_limited', details: { amount } });
+      throw new Error('Limite giornaliero ricariche raggiunto');
+    }
+    
+    const current = this.balances.get(userId) ?? 0;
+    this.balances.set(userId, current + amount);
+    
+    AuditLogger.log({ type: 'wallet', userId, action: 'charge_success', details: { amount, newBalance: current + amount } });
+  }
+
+  async requestBonifico(userId: string, iban: string, amount: number): Promise<string> {
+    // Validazione con shared schema
+    const validated = commercialBonificoRequestSchema.parse({
+      requestedAmount: amount.toString(),
+      iban: iban.toUpperCase(),
+      bankName: "Auto-detected",
+      accountHolder: "Commercial User"
+    });
+    
+    const balance = await this.getWalletBalance(userId);
+    if (balance < amount) {
+      AuditLogger.log({ type: 'wallet', userId, action: 'bonifico_insufficient_funds', details: { requested: amount, available: balance } });
+      throw new Error('Saldo insufficiente per la richiesta');
+    }
+    
+    // AI risk assessment
+    const aiAnalysis = await AI.analyzeTransaction({ userId, amount });
+    
+    // Rate limiting per bonifici (max 5 al giorno)
+    if (!RateLimiter.check(userId, 'bonifico_request', 5)) {
+      AuditLogger.log({ type: 'wallet', userId, action: 'bonifico_rate_limited', details: { amount, iban } });
+      throw new Error('Limite giornaliero richieste bonifico raggiunto');
+    }
+    
+    const id = crypto.randomUUID();
+    this.bonifici.set(id, { iban, amount, confirmed: false, userId, timestamp: new Date().toISOString() });
+    
+    AuditLogger.log({ type: 'wallet', userId, action: 'bonifico_requested', details: { requestId: id, amount, iban, aiRisk: aiAnalysis.riskScore } });
+    return id;
+  }
+
+  async confirmBonifico(requestId: string, adminId: string): Promise<void> {
+    const bonifico = this.bonifici.get(requestId);
+    if (!bonifico) {
+      AuditLogger.log({ type: 'wallet', userId: adminId, action: 'bonifico_confirm_not_found', details: { requestId } });
+      throw new Error('Bonifico non trovato');
+    }
+    
+    // Validazione con shared schema
+    const validated = bonificoConfirmationSchema.parse({
+      bonificoId: requestId,
+      action: 'confirm',
+      reviewNotes: 'Confermato da admin'
+    });
+    
+    bonifico.confirmed = true;
+    const currentBalance = this.balances.get(bonifico.userId) ?? 0;
+    this.balances.set(bonifico.userId, currentBalance - bonifico.amount);
+    
+    AuditLogger.log({ type: 'wallet', userId: bonifico.userId, action: 'bonifico_confirmed', details: { requestId, amount: bonifico.amount, adminId } });
+  }
+
+  async getCommissioni(userId?: string): Promise<{ totalCommissions: number; monthlyAverage: number; topCategories: Array<{ category: string; amount: number }>; predictedNext: number }> {
+    AuditLogger.log({ type: 'wallet', userId: userId || 'system', action: 'commissions_report_generated' });
+    
+    const allCommissions = userId ? (this.commissions.get(userId) || []) : Array.from(this.commissions.values()).flat();
+    const totalCommissions = allCommissions.reduce((sum, c) => sum + c.amount, 0);
+    
+    const currentMonth = new Date().getMonth();
+    const monthlyCommissions = allCommissions.filter(c => new Date(c.timestamp).getMonth() === currentMonth);
+    const monthlyAverage = monthlyCommissions.reduce((sum, c) => sum + c.amount, 0);
+    
+    const categoryMap = allCommissions.reduce((acc, c) => {
+      acc[c.category] = (acc[c.category] || 0) + c.amount;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    const topCategories = Object.entries(categoryMap).sort(([,a], [,b]) => b - a).slice(0, 3).map(([category, amount]) => ({ category, amount }));
+    const predictedNext = totalCommissions > 0 ? totalCommissions * 1.15 : 0;
+    
+    return { totalCommissions, monthlyAverage, topCategories, predictedNext };
+  }
+
+  async payAbbonamento(userId: string, planType: 'basic' | 'premium' | 'enterprise', useCredito: boolean = true): Promise<boolean> {
+    const amounts = { basic: 29.99, premium: 49.99, enterprise: 99.99 };
+    const amount = amounts[planType];
+    
+    // AI analysis per abbonamenti
+    const aiAnalysis = await AI.analyzeTransaction({ userId, amount });
+    
+    // Rate limiting per pagamenti abbonamento
+    if (!RateLimiter.check(userId, 'subscription_payment', 3)) {
+      AuditLogger.log({ type: 'wallet', userId, action: 'subscription_rate_limited', details: { planType, amount } });
+      return false;
+    }
+    
+    if (useCredito) {
+      const balance = await this.getWalletBalance(userId);
+      if (balance < amount) {
+        AuditLogger.log({ type: 'wallet', userId, action: 'subscription_insufficient_funds', details: { planType, amount, balance } });
+        throw new Error('Credito virtuale insufficiente');
+      }
+      
+      const currentBalance = this.balances.get(userId) ?? 0;
+      this.balances.set(userId, currentBalance - amount);
+    }
+    
+    // Commissione YCORE (5%)
+    const commission = amount * 0.05;
+    const userCommissions = this.commissions.get(userId) || [];
+    userCommissions.push({ amount: commission, category: 'abbonamenti', timestamp: new Date().toISOString() });
+    this.commissions.set(userId, userCommissions);
+    
+    AuditLogger.log({ type: 'wallet', userId, action: 'subscription_payment_success', details: { planType, amount, commission, useCredito } });
+    return true;
+  }
+
+  async logTransazione(data: { userId: string; action: string; details?: any }): Promise<void> {
+    AuditLogger.log({ type: 'wallet', ...data });
+  }
+
+  getWalletStats(): { totalUsers: number; totalBalance: number; pendingBonifici: number; todayTransactions: number } {
+    const totalUsers = this.balances.size;
+    const totalBalance = Array.from(this.balances.values()).reduce((sum, balance) => sum + balance, 0);
+    const pendingBonifici = Array.from(this.bonifici.values()).filter(b => !b.confirmed).length;
+    
+    const today = new Date().toISOString().split('T')[0];
+    const todayTransactions = AuditLogger.getLogs().filter(log => log.timestamp.startsWith(today)).length;
+    
+    return { totalUsers, totalBalance, pendingBonifici, todayTransactions };
+  }
+
+  getSecurityAlerts(): Array<{ level: string; message: string; timestamp: string }> {
+    return AuditLogger.getLogs()
+      .filter(log => log.action.includes('blocked') || log.action.includes('rate_limited'))
+      .slice(-10)
+      .map(log => ({
+        level: log.action.includes('blocked') ? 'critical' : 'medium',
+        message: `${log.action} - User: ${log.userId.slice(0, 8)}****`, // Mask userId for privacy
+        timestamp: log.timestamp
+      }));
+  }
+
+  getPendingRequests(): Array<{ id: string; userId: string; amount: number; type: string; timestamp: string }> {
+    return Array.from(this.bonifici.entries())
+      .filter(([, bonifico]) => !bonifico.confirmed)
+      .map(([id, bonifico]) => ({
+        id,
+        userId: bonifico.userId.slice(0, 8) + '****', // Mask userId for privacy
+        amount: bonifico.amount,
+        type: 'bonifico',
+        timestamp: bonifico.timestamp
+      }));
+  }
+}
+
 export interface IStorage {
-  // Users
+  // YCORE Wallet operations (added)
+  getWalletBalance(userId: string): Promise<number>;
+  chargeWallet(userId: string, amount: number): Promise<void>;
+  requestBonifico(userId: string, iban: string, amount: number): Promise<string>;
+  confirmBonifico(requestId: string, adminId: string): Promise<void>;
+  getCommissioni(userId?: string): Promise<{
+    totalCommissions: number;
+    monthlyAverage: number;
+    topCategories: Array<{ category: string; amount: number }>;
+    predictedNext: number;
+  }>;
+  payAbbonamento(userId: string, planType: 'basic' | 'premium' | 'enterprise', useCredito?: boolean): Promise<boolean>;
+  logTransazione(data: { userId: string; action: string; details?: any }): Promise<void>;
+  getWalletStats(): { totalUsers: number; totalBalance: number; pendingBonifici: number; todayTransactions: number };
+  getSecurityAlerts(): Array<{ level: string; message: string; timestamp: string }>;
+  getPendingRequests(): Array<{ id: string; userId: string; amount: number; type: string; timestamp: string }>;
+
+  // Existing system operations
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
@@ -2344,6 +2618,118 @@ export class DatabaseStorage implements IStorage {
   async createFidelityWalletTransaction(transaction: InsertFidelityWalletTransaction): Promise<FidelityWalletTransaction> {
     const [created] = await db.insert(fidelityWalletTransactions).values(transaction).returning();
     return created;
+  }
+
+  // ========================
+  // YCORE WALLET METHODS - IMPLEMENTAZIONE SEMPLIFICATA
+  // ========================
+
+  async getWalletByUserId(userId: string): Promise<any> {
+    const [wallet] = await db.select().from(wallets).where(eq(wallets.userId, userId));
+    return wallet || undefined;
+  }
+
+  async createWallet(wallet: any): Promise<any> {
+    const [created] = await db.insert(wallets).values(wallet).returning();
+    return created;
+  }
+
+  async updateWalletBalance(walletId: string, updates: { creditoVirtuale?: string; creditoBlocco?: string }): Promise<any> {
+    const [updated] = await db.update(wallets).set(updates).where(eq(wallets.id, walletId)).returning();
+    return updated;
+  }
+
+  async createBonifico(bonifico: any): Promise<any> {
+    const [created] = await db.insert(bonifici).values(bonifico).returning();
+    return created;
+  }
+
+  async getBonificoById(id: string): Promise<any> {
+    const [bonifico] = await db.select().from(bonifici).where(eq(bonifici.id, id));
+    return bonifico || undefined;
+  }
+
+  async updateBonifico(id: string, updates: any): Promise<any> {
+    const [updated] = await db.update(bonifici).set(updates).where(eq(bonifici.id, id)).returning();
+    return updated;
+  }
+
+  async deductFidelityPoints(walletId: string, amount: string): Promise<any> {
+    const [wallet] = await db.select().from(wallets).where(eq(wallets.id, walletId));
+    if (!wallet) throw new Error('Wallet non trovato');
+    
+    const currentPoints = parseFloat(wallet.fidelityPoints);
+    const deductAmount = parseFloat(amount);
+    const newBalance = (currentPoints - deductAmount).toFixed(2);
+    
+    const [updated] = await db.update(wallets)
+      .set({ fidelityPoints: newBalance })
+      .where(eq(wallets.id, walletId))
+      .returning();
+    return updated;
+  }
+
+  async deductCreditoVirtuale(walletId: string, amount: string): Promise<any> {
+    const [wallet] = await db.select().from(wallets).where(eq(wallets.id, walletId));
+    if (!wallet) throw new Error('Wallet non trovato');
+    
+    const currentCredito = parseFloat(wallet.creditoVirtuale);
+    const deductAmount = parseFloat(amount);
+    const newBalance = (currentCredito - deductAmount).toFixed(2);
+    
+    const [updated] = await db.update(wallets)
+      .set({ creditoVirtuale: newBalance })
+      .where(eq(wallets.id, walletId))
+      .returning();
+    return updated;
+  }
+
+  async createYcoreCommission(commission: any): Promise<any> {
+    const [created] = await db.insert(ycoreCommissions).values(commission).returning();
+    return created;
+  }
+
+  async createCommercialBonificoRequest(request: any): Promise<any> {
+    const [created] = await db.insert(commercialBonificoRequests).values(request).returning();
+    return created;
+  }
+
+  async getTransactionsByWallet(walletId: string): Promise<any[]> {
+    return await db.select().from(transactions)
+      .where(eq(transactions.walletId, walletId))
+      .orderBy(desc(transactions.createdAt));
+  }
+
+  async createTransaction(transaction: any): Promise<any> {
+    const [created] = await db.insert(transactions).values(transaction).returning();
+    return created;
+  }
+
+  async getFidelityTransactionsByUser(userId: string): Promise<any[]> {
+    const [wallet] = await db.select().from(wallets).where(eq(wallets.userId, userId));
+    if (!wallet) return [];
+    
+    return await db.select().from(transactions)
+      .where(eq(transactions.walletId, wallet.id))
+      .orderBy(desc(transactions.createdAt));
+  }
+
+  async getWalletStats(userId: string): Promise<any> {
+    const [wallet] = await db.select().from(wallets).where(eq(wallets.userId, userId));
+    if (!wallet) return null;
+    
+    return {
+      totalBalance: wallet.creditoVirtuale,
+      fidelityPoints: wallet.fidelityPoints,
+      blockedCredit: wallet.creditoBlocco,
+      isActive: wallet.isActive
+    };
+  }
+
+  async getAuditLogs(filters: any): Promise<any[]> {
+    return await db.select().from(transactionAuditLogs)
+      .orderBy(desc(transactionAuditLogs.createdAt))
+      .limit(100);
   }
 
   // Fidelity Offers

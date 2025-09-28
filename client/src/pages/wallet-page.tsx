@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
+import RoleProtected from "@/components/role-protected";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -7,12 +9,13 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Wallet, CreditCard, Plus, ArrowUpRight, ArrowDownLeft, DollarSign, Receipt, Zap, Shield, TrendingUp } from "lucide-react";
+import { Wallet, CreditCard, Plus, ArrowUpRight, ArrowDownLeft, DollarSign, Receipt, Zap, Shield, TrendingUp, Settings, Headphones, UserCheck, Bell, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export default function WalletPage() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [topUpAmount, setTopUpAmount] = useState("");
   const [showTopUpDialog, setShowTopUpDialog] = useState(false);
 
@@ -75,14 +78,18 @@ export default function WalletPage() {
 
   return (
     <div className="container mx-auto py-6 space-y-6" data-testid="wallet-page">
+      {/* Role-based Content */}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100" data-testid="page-title">
-            Wallet YCore
+            Wallet YCore - {user?.role === 'admin' ? 'Pannello Admin' : user?.role === 'merchant' ? 'Area Merchant' : user?.role === 'staff' ? 'Console Staff' : 'Sistema Creator'}
           </h1>
           <p className="text-gray-600 dark:text-gray-400" data-testid="page-description">
-            Gestione saldo, rimborsi automatici e pagamenti sicuri
+            {user?.role === 'admin' ? 'Gestione completa wallet e amministrazione' : 
+             user?.role === 'merchant' ? 'Gestione saldo, rimborsi e pagamenti' :
+             user?.role === 'staff' ? 'Operazioni supporto e monitoraggio' :
+             'Configurazione sistema e sicurezza'}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -219,6 +226,86 @@ export default function WalletPage() {
         </Card>
       </div>
 
+      {/* Role-specific Content */}
+      <RoleProtected allowedRoles={["admin"]}>
+        <Card className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950 dark:to-orange-950 border-red-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-red-700 dark:text-red-300">
+              <Shield className="h-5 w-5" />
+              Pannello Amministratore Wallet
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="text-center p-4 bg-white dark:bg-gray-800 rounded-lg">
+                <p className="text-2xl font-bold text-red-600">€{walletData?.system_total_balance?.toFixed(2) || '0.00'}</p>
+                <p className="text-sm text-gray-600">Saldo Sistema Totale</p>
+              </div>
+              <div className="text-center p-4 bg-white dark:bg-gray-800 rounded-lg">
+                <p className="text-2xl font-bold text-orange-600">{walletData?.pending_admin_approvals || 0}</p>
+                <p className="text-sm text-gray-600">Approvazioni Pendenti</p>
+              </div>
+              <div className="text-center p-4 bg-white dark:bg-gray-800 rounded-lg">
+                <p className="text-2xl font-bold text-purple-600">{walletData?.active_users_count || 0}</p>
+                <p className="text-sm text-gray-600">Utenti Attivi</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </RoleProtected>
+
+      <RoleProtected allowedRoles={["system_creator"]}>
+        <Card className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950 dark:to-indigo-950 border-purple-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-purple-700 dark:text-purple-300">
+              <Settings className="h-5 w-5" />
+              Sistema Creator - Configurazioni Avanzate
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Button variant="outline" className="h-20 flex flex-col" data-testid="button-security-config">
+                <Shield className="h-6 w-6 mb-2" />
+                <span>Configurazione Sicurezza</span>
+              </Button>
+              <Button variant="outline" className="h-20 flex flex-col" data-testid="button-audit-logs">
+                <FileText className="h-6 w-6 mb-2" />
+                <span>Audit Logs Sistema</span>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </RoleProtected>
+
+      <RoleProtected allowedRoles={["staff"]}>
+        <Card className="bg-gradient-to-r from-green-50 to-teal-50 dark:from-green-950 dark:to-teal-950 border-green-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
+              <Headphones className="h-5 w-5" />
+              Console Supporto Staff
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Button variant="outline" className="h-16 flex items-center gap-3" data-testid="button-pending-support">
+                <Bell className="h-5 w-5" />
+                <div className="text-left">
+                  <p className="font-medium">Richieste Pendenti</p>
+                  <p className="text-sm text-gray-600">{walletData?.pending_support_tickets || 0} ticket</p>
+                </div>
+              </Button>
+              <Button variant="outline" className="h-16 flex items-center gap-3" data-testid="button-user-assistance">
+                <UserCheck className="h-5 w-5" />
+                <div className="text-left">
+                  <p className="font-medium">Assistenza Utenti</p>
+                  <p className="text-sm text-gray-600">Supporto Operativo</p>
+                </div>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </RoleProtected>
+
       {/* Transactions */}
       <Tabs defaultValue="all" className="space-y-4">
         <TabsList data-testid="tabs-transactions">
@@ -231,9 +318,15 @@ export default function WalletPage() {
         <TabsContent value="all" className="space-y-4">
           <Card data-testid="card-transactions">
             <CardHeader>
-              <CardTitle>Cronologia Transazioni</CardTitle>
+              <CardTitle>
+                {user?.role === 'admin' ? 'Cronologia Transazioni Sistema' : 
+                 user?.role === 'staff' ? 'Transazioni Monitoraggio' :
+                 'Cronologia Transazioni'}
+              </CardTitle>
               <CardDescription>
-                Tutte le operazioni del tuo wallet con rimborsi automatici
+                {user?.role === 'admin' ? 'Tutte le transazioni sistema con controllo completo' : 
+                 user?.role === 'staff' ? 'Monitoraggio operazioni per supporto utenti' :
+                 'Tutte le operazioni del tuo wallet con rimborsi automatici'}
               </CardDescription>
             </CardHeader>
             <CardContent>

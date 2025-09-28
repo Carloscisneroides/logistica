@@ -122,6 +122,12 @@ const menuItems = [
     icon: FileText,
   },
   {
+    title: "Wallet YCore",
+    href: "/wallet",
+    icon: CreditCard,
+    roles: ["admin", "merchant", "staff", "system_creator"],
+  },
+  {
     title: "Rettifiche & Supplementi",
     href: "/corrections",
     icon: Edit,
