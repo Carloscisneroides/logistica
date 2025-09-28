@@ -1,0 +1,111 @@
+Foglio Tecnico – YCore
+Titolo: Architettura Operativa & Commerciale con AI Integrata e Sicurezza Avanzata Autore: Ylenia Sacco – Founder & CEO Data: 28 Settembre 2025 Versione: 1.0 – Struttura Sidebar & Fix Neon DB
+
+🧭 Struttura Sidebar – Organizzazione Business
+🔹 SPEDIZIONI → Logistica Magazzini (Operativo)
+Magazzini multipli
+
+Stoccaggio per zona/scaffale
+
+Movimentazione interna
+
+Ricezione da fornitori
+
+Magazzini partner (Italia + estero)
+
+Rete corrieri privati e trasportatori
+
+Shipment Tracking AI
+
+Sottocategoria: Elenco Spedizioni
+
+Stati real-time:
+
+In lavorazione
+
+Spedito
+
+In transito
+
+Consegnato
+
+In giacenza
+
+Disponibile per ritiro
+
+In restituzione al mittente
+
+In ritardo (se superati i tempi previsti)
+
+🔹 ECOMMERCE → Magazzini + Fornitori (Commerciale)
+Inventario dinamico
+
+KPI fornitori e performance analytics
+
+Ordini di approvvigionamento
+
+Documenti e contratti
+
+Magazzini partner a consumo ridotto
+
+💰 Wallet System
+Dashboard saldo con statistiche
+
+Rimborsi automatici da cancellazioni spedizioni
+
+Ricariche tramite Stripe sicure
+
+Cronologia transazioni completa
+
+Gestione prelievi
+
+🔧 Fix Critico – Architettura Neon DB
+🔹 Problemi Identificati
+Schema Drift → colonne mancanti
+
+Errori 500 → svuotamento UI
+
+Route gaps → nuove pagine non collegate
+
+Listino corriere → tasto non connesso alle API
+
+🔹 Piano di Intervento
+Fase 1 – Sblocco Urgente (MemStorage)
+
+Forzatura Rates & Carriers su MemStorage
+
+Implementazione API routes mancanti
+
+Collegamento tasto “Nuovo Listino”
+
+Fase 2 – Allineamento Database
+
+Aggiunta colonne via migration
+
+Ripristino connessione stabile Neon DB
+
+Logging antifrode su ogni operazione
+
+Backup automatico prima di ogni push
+
+🤖 AI Integrata
+AI antifrode su spedizioni, fornitori, wallet
+
+AI corriere per selezione dinamica e scoring
+
+ETA predittivo con analisi storica e real-time
+
+AI inventario per suggerimenti di riordino
+
+Confidence scoring su tracking e stabilità schema
+
+🔐 Sicurezza Avanzata
+Logging su ogni evento utente
+
+Watermark invisibili su documenti e contratti
+
+Stripe antifrode nativo + compatibilità futura (PayPal, bonifico, wallet)
+
+Protezione IP e conferibilità in SRL innovativa
+
+Ambienti separati per merchant e logistiche

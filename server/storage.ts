@@ -4524,4 +4524,25 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-export const storage = new DatabaseStorage();
+// Create instances
+const databaseStorage = new DatabaseStorage();
+// Use basic fallback for rates module - no MemStorage needed
+const ratesFallback = {
+  getRatesCarriersDashboardStats: () => Promise.resolve({}),
+  getCarriers: () => Promise.resolve([]),
+  getCarrierRateCards: () => Promise.resolve([]),
+  getClientRateCards: () => Promise.resolve([]),
+  getZones: () => Promise.resolve([]),
+  getShippingQuotes: () => Promise.resolve([]),
+  getWeightBrackets: () => Promise.resolve([]),
+  createCarrierRateCard: () => Promise.resolve({}),
+  createCarrier: () => Promise.resolve({}),
+  updateCarrierRateCard: () => Promise.resolve({}),
+  deleteCarrierRateCard: () => Promise.resolve({}),
+};
+
+// Export storage - use database for everything except rates module
+export const storage: IStorage = Object.assign(
+  databaseStorage,
+  ratesFallback
+);

@@ -13,7 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertWarehouseSchema, insertInventoryItemSchema, type InsertWarehouse, type InsertInventoryItem, type Warehouse, type InventoryItem } from "@shared/schema";
+import { insertWarehouseSchema, insertInventorySchema, type InsertWarehouse, type InsertInventory, type Warehouse, type Inventory } from "@shared/schema";
 import { Warehouse as WarehouseIcon, Package, ShoppingCart, BarChart3, AlertTriangle, CheckCircle, Clock, MapPin, Zap, Search, Plus, Edit, Trash2, Eye, Download, Upload, Filter, SortAsc, Building, Users, Activity, TrendingUp, Archive, Globe, DollarSign, Boxes, Tag, Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -25,7 +25,7 @@ export default function EcommerceWarehousesPage() {
   const [isWarehouseDialogOpen, setIsWarehouseDialogOpen] = useState(false);
   const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
   const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
-  const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
+  const [editingItem, setEditingItem] = useState<Inventory | null>(null);
 
   // Form setup
   const warehouseForm = useForm<InsertWarehouse>({
@@ -40,8 +40,8 @@ export default function EcommerceWarehousesPage() {
     },
   });
 
-  const itemForm = useForm<InsertInventoryItem>({
-    resolver: zodResolver(insertInventoryItemSchema),
+  const itemForm = useForm<InsertInventory>({
+    resolver: zodResolver(insertInventorySchema),
     defaultValues: {
       name: "",
       sku: "",
@@ -94,7 +94,7 @@ export default function EcommerceWarehousesPage() {
   });
 
   const createItemMutation = useMutation({
-    mutationFn: (data: InsertInventoryItem) =>
+    mutationFn: (data: InsertInventory) =>
       apiRequest('/api/inventory', { method: 'POST', body: data }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
@@ -110,7 +110,7 @@ export default function EcommerceWarehousesPage() {
     warehouse.location.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const filteredInventory = inventory.filter((item: InventoryItem) =>
+  const filteredInventory = inventory.filter((item: Inventory) =>
     item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     item.sku.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -129,7 +129,7 @@ export default function EcommerceWarehousesPage() {
     }
   };
 
-  const handleCreateItem = (data: InsertInventoryItem) => {
+  const handleCreateItem = (data: InsertInventory) => {
     if (!selectedWarehouse) {
       toast({ title: "Seleziona un magazzino eCommerce prima", variant: "destructive" });
       return;
@@ -413,7 +413,7 @@ export default function EcommerceWarehousesPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredInventory.map((item: InventoryItem) => (
+                        {filteredInventory.map((item: Inventory) => (
                           <TableRow key={item.id} data-testid={`row-product-${item.id}`}>
                             <TableCell className="font-medium">{item.name}</TableCell>
                             <TableCell>{item.sku}</TableCell>

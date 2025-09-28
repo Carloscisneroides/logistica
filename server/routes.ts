@@ -32,7 +32,9 @@ import {
   // Listini & Corrieri imports
   insertCarrierSchema, insertZoneSchema, insertZoneOverlaySchema,
   insertWeightBracketSchema, insertTonneBracketSchema, insertCarrierRateCardSchema,
-  insertClientRateCardSchema, insertShippingQuoteSchema
+  insertClientRateCardSchema, insertShippingQuoteSchema,
+  // Warehouse & Inventory imports
+  insertWarehouseSchema, insertInventorySchema, insertWarehouseZoneSchema
 } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
@@ -4872,6 +4874,175 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
     } catch (error) {
       console.error("Error fetching rates & carriers dashboard stats:", error);
       res.status(500).json({ error: "Failed to fetch dashboard stats" });
+    }
+  });
+
+  // ======== WAREHOUSE & ZONE MANAGEMENT API ROUTES ========
+
+  // Warehouses
+  app.get("/api/warehouses", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const warehouses = await storage.getWarehousesByTenant(user.tenantId);
+      res.json(warehouses);
+    } catch (error) {
+      console.error("Error fetching warehouses:", error);
+      res.status(500).json({ error: "Failed to fetch warehouses" });
+    }
+  });
+
+  app.post("/api/warehouses", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const validatedData = insertWarehouseSchema.parse({
+        ...req.body,
+        tenantId: user.tenantId
+      });
+
+      const warehouse = await storage.createWarehouse(validatedData);
+      res.status(201).json(warehouse);
+    } catch (error) {
+      console.error("Error creating warehouse:", error);
+      res.status(500).json({ error: "Failed to create warehouse" });
+    }
+  });
+
+  app.patch("/api/warehouses/:id", isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const warehouse = await storage.getWarehouse(id);
+      if (!warehouse || warehouse.tenantId !== user.tenantId) {
+        return res.status(404).json({ error: "Warehouse not found" });
+      }
+
+      const updated = await storage.updateWarehouse(id, req.body);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating warehouse:", error);
+      res.status(500).json({ error: "Failed to update warehouse" });
+    }
+  });
+
+  // Warehouse Stats
+  app.get("/api/warehouses/stats/:tenantId", isAuthenticated, async (req, res) => {
+    try {
+      const { tenantId } = req.params;
+      const user = req.user;
+      
+      if (user.tenantId !== tenantId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const stats = await storage.getWarehouseStats(tenantId);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching warehouse stats:", error);
+      res.status(500).json({ error: "Failed to fetch warehouse stats" });
+    }
+  });
+
+  // Inventory  
+  app.get("/api/inventory", isAuthenticated, async (req, res) => {
+    try {
+      const { warehouseId } = req.query;
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      if (warehouseId) {
+        const inventory = await storage.getInventoryByWarehouse(warehouseId as string);
+        res.json(inventory);
+      } else {
+        const inventory = await storage.getInventoryByTenant(user.tenantId);
+        res.json(inventory);
+      }
+    } catch (error) {
+      console.error("Error fetching inventory:", error);
+      res.status(500).json({ error: "Failed to fetch inventory" });
+    }
+  });
+
+  app.post("/api/inventory", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const validatedData = insertInventorySchema.parse({
+        ...req.body,
+        tenantId: user.tenantId
+      });
+
+      const item = await storage.createInventoryItem(validatedData);
+      res.status(201).json(item);
+    } catch (error) {
+      console.error("Error creating inventory item:", error);
+      res.status(500).json({ error: "Failed to create inventory item" });
+    }
+  });
+
+  // Warehouse Zones
+  app.get("/api/warehouses/:warehouseId/zones", isAuthenticated, async (req, res) => {
+    try {
+      const { warehouseId } = req.params;
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      // Verify warehouse belongs to tenant
+      const warehouse = await storage.getWarehouse(warehouseId);
+      if (!warehouse || warehouse.tenantId !== user.tenantId) {
+        return res.status(404).json({ error: "Warehouse not found" });
+      }
+
+      const zones = await storage.getWarehouseZonesByWarehouse(warehouseId);
+      res.json(zones);
+    } catch (error) {
+      console.error("Error fetching warehouse zones:", error);
+      res.status(500).json({ error: "Failed to fetch warehouse zones" });
+    }
+  });
+
+  app.post("/api/warehouses/:warehouseId/zones", isAuthenticated, async (req, res) => {
+    try {
+      const { warehouseId } = req.params;
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      // Verify warehouse belongs to tenant
+      const warehouse = await storage.getWarehouse(warehouseId);
+      if (!warehouse || warehouse.tenantId !== user.tenantId) {
+        return res.status(404).json({ error: "Warehouse not found" });
+      }
+
+      const validatedData = insertWarehouseZoneSchema.parse({
+        ...req.body,
+        warehouseId
+      });
+
+      const zone = await storage.createWarehouseZone(validatedData);
+      res.status(201).json(zone);
+    } catch (error) {
+      console.error("Error creating warehouse zone:", error);
+      res.status(500).json({ error: "Failed to create warehouse zone" });
     }
   });
 

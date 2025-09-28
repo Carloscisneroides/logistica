@@ -13,7 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertWarehouseSchema, insertInventoryItemSchema, type InsertWarehouse, type InsertInventoryItem, type Warehouse, type InventoryItem } from "@shared/schema";
+import { insertWarehouseSchema, insertInventorySchema, insertWarehouseZoneSchema, type InsertWarehouse, type InsertInventory, type InsertWarehouseZone, type Warehouse, type Inventory, type WarehouseZone } from "@shared/schema";
 import { Warehouse as WarehouseIcon, Package, Truck, QrCode, BarChart3, AlertTriangle, CheckCircle, Clock, MapPin, Zap, Search, Plus, Edit, Trash2, Eye, Download, Upload, Filter, SortAsc, Building, Users, Activity, TrendingUp, Archive, Globe, ShoppingCart, Boxes } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -25,7 +25,9 @@ export default function LogisticsWarehousesPage() {
   const [isWarehouseDialogOpen, setIsWarehouseDialogOpen] = useState(false);
   const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
   const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
-  const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
+  const [editingItem, setEditingItem] = useState<Inventory | null>(null);
+  const [selectedItemForZones, setSelectedItemForZones] = useState<Inventory | null>(null);
+  const [isZonesDialogOpen, setIsZonesDialogOpen] = useState(false);
 
   // Form setup
   const warehouseForm = useForm<InsertWarehouse>({
@@ -40,8 +42,8 @@ export default function LogisticsWarehousesPage() {
     },
   });
 
-  const itemForm = useForm<InsertInventoryItem>({
-    resolver: zodResolver(insertInventoryItemSchema),
+  const itemForm = useForm<InsertInventory>({
+    resolver: zodResolver(insertInventorySchema),
     defaultValues: {
       name: "",
       sku: "",
@@ -51,6 +53,23 @@ export default function LogisticsWarehousesPage() {
       location: "",
       min_threshold: 0,
       max_threshold: 0,
+      is_active: true,
+    },
+  });
+
+  const zoneForm = useForm<InsertWarehouseZone>({
+    resolver: zodResolver(insertWarehouseZoneSchema),
+    defaultValues: {
+      name: "",
+      code: "",
+      type: "storage",
+      level: 1,
+      row: "",
+      column: "",
+      capacity: 100,
+      qr_code: "",
+      rfid_tag: "",
+      temperature_controlled: false,
       is_active: true,
     },
   });
@@ -67,6 +86,12 @@ export default function LogisticsWarehousesPage() {
 
   const { data: stats } = useQuery({
     queryKey: ['/api/warehouses/stats', { type: 'logistics' }],
+  });
+
+  // Zone queries
+  const { data: zones = [], isLoading: loadingZones } = useQuery({
+    queryKey: ['/api/warehouses', selectedItemForZones?.warehouseId, 'zones'],
+    enabled: !!selectedItemForZones?.warehouseId && isZonesDialogOpen
   });
 
   // Mutations
@@ -94,7 +119,7 @@ export default function LogisticsWarehousesPage() {
   });
 
   const createItemMutation = useMutation({
-    mutationFn: (data: InsertInventoryItem) =>
+    mutationFn: (data: InsertInventory) =>
       apiRequest('/api/inventory', { method: 'POST', body: data }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
@@ -104,13 +129,25 @@ export default function LogisticsWarehousesPage() {
     },
   });
 
+  // Zone mutations
+  const createZoneMutation = useMutation({
+    mutationFn: (data: InsertWarehouseZone) => 
+      apiRequest(`/api/warehouses/${selectedItemForZones?.warehouseId}/zones`, { method: 'POST', body: data }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/warehouses', selectedItemForZones?.warehouseId, 'zones'] });
+      setIsZonesDialogOpen(false);
+      zoneForm.reset();
+      toast({ title: "Zona magazzino creata con successo" });
+    },
+  });
+
   // Filter functions
   const filteredWarehouses = warehouses.filter((warehouse: Warehouse) =>
     warehouse.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     warehouse.location.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const filteredInventory = inventory.filter((item: InventoryItem) =>
+  const filteredInventory = inventory.filter((item: Inventory) =>
     item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     item.sku.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -129,12 +166,12 @@ export default function LogisticsWarehousesPage() {
     }
   };
 
-  const handleCreateItem = (data: InsertInventoryItem) => {
+  const handleCreateItem = (data: InsertInventory) => {
     if (!selectedWarehouse) {
       toast({ title: "Seleziona un magazzino logistico prima", variant: "destructive" });
       return;
     }
-    createItemMutation.mutate({ ...data, warehouse_id: selectedWarehouse });
+    createItemMutation.mutate({ ...data, warehouseId: selectedWarehouse });
   };
 
   const openEditWarehouse = (warehouse: Warehouse) => {
@@ -250,7 +287,7 @@ export default function LogisticsWarehousesPage() {
 
       {/* Main Content */}
       <Tabs defaultValue="warehouses" className="space-y-4">
-        <TabsList data-testid="tabs-logistics">
+        <TabsList data-testid="tabs-logistics" className="grid w-full grid-cols-5">
           <TabsTrigger value="warehouses" data-testid="tab-warehouses">
             <WarehouseIcon className="h-4 w-4 mr-2" />
             Magazzini
@@ -259,9 +296,17 @@ export default function LogisticsWarehousesPage() {
             <Package className="h-4 w-4 mr-2" />
             Inventario
           </TabsTrigger>
-          <TabsTrigger value="analytics" data-testid="tab-analytics">
-            <BarChart3 className="h-4 w-4 mr-2" />
-            Analytics
+          <TabsTrigger value="suppliers" data-testid="tab-suppliers">
+            <Truck className="h-4 w-4 mr-2" />
+            Ricezione Fornitori
+          </TabsTrigger>
+          <TabsTrigger value="partners" data-testid="tab-partners">
+            <Globe className="h-4 w-4 mr-2" />
+            Partner Network
+          </TabsTrigger>
+          <TabsTrigger value="ai-tracking" data-testid="tab-ai-tracking">
+            <Zap className="h-4 w-4 mr-2" />
+            AI Tracking
           </TabsTrigger>
         </TabsList>
 
@@ -408,7 +453,7 @@ export default function LogisticsWarehousesPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredInventory.map((item: InventoryItem) => (
+                        {filteredInventory.map((item: Inventory) => (
                           <TableRow key={item.id} data-testid={`row-item-${item.id}`}>
                             <TableCell className="font-medium">{item.name}</TableCell>
                             <TableCell>{item.sku}</TableCell>
@@ -432,6 +477,18 @@ export default function LogisticsWarehousesPage() {
                                 <Button size="sm" variant="outline">
                                   <QrCode className="h-3 w-3" />
                                 </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => {
+                                    setSelectedItemForZones(item);
+                                    setIsZonesDialogOpen(true);
+                                  }}
+                                  data-testid={`button-zones-${item.id}`}
+                                >
+                                  <Building className="h-3 w-3 mr-1" />
+                                  Zone
+                                </Button>
                               </div>
                             </TableCell>
                           </TableRow>
@@ -445,30 +502,272 @@ export default function LogisticsWarehousesPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="analytics" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card data-testid="card-movements">
-              <CardHeader>
-                <CardTitle>Movimenti Logistici</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-gray-500">
-                  Grafici movimenti in arrivo...
-                </div>
-              </CardContent>
-            </Card>
 
-            <Card data-testid="card-performance">
-              <CardHeader>
-                <CardTitle>Performance Magazzini</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-gray-500">
-                  Metriche performance in arrivo...
+        {/* Suppliers Reception Tab */}
+        <TabsContent value="suppliers" className="space-y-4">
+          <Card data-testid="suppliers-reception-section">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Truck className="h-5 w-5 text-blue-600" />
+                Ricezione da Fornitori
+              </CardTitle>
+              <CardDescription>
+                Gestione ricezione merci e movimentazione interna da fornitori
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Ordini in Arrivo</p>
+                      <p className="text-2xl font-bold">12</p>
+                    </div>
+                    <Clock className="h-8 w-8 text-blue-500" />
+                  </div>
+                </Card>
+                <Card className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Ricevute Oggi</p>
+                      <p className="text-2xl font-bold">8</p>
+                    </div>
+                    <CheckCircle className="h-8 w-8 text-green-500" />
+                  </div>
+                </Card>
+                <Card className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">In Verifica</p>
+                      <p className="text-2xl font-bold">3</p>
+                    </div>
+                    <AlertTriangle className="h-8 w-8 text-orange-500" />
+                  </div>
+                </Card>
+              </div>
+              
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Ordine</TableHead>
+                    <TableHead>Fornitore</TableHead>
+                    <TableHead>Articoli</TableHead>
+                    <TableHead>Data Prevista</TableHead>
+                    <TableHead>Stato</TableHead>
+                    <TableHead>Azioni</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow>
+                    <TableCell className="font-medium">#ORD-2024-001</TableCell>
+                    <TableCell>Fornitore Italia SRL</TableCell>
+                    <TableCell>24 articoli</TableCell>
+                    <TableCell>Oggi 14:30</TableCell>
+                    <TableCell><Badge>In Arrivo</Badge></TableCell>
+                    <TableCell>
+                      <Button size="sm" variant="outline">Ricevi</Button>
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Partner Network Tab */}
+        <TabsContent value="partners" className="space-y-4">
+          <Card data-testid="partner-network-section">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Globe className="h-5 w-5 text-green-600" />
+                Magazzini Partner & Rete Logistica
+              </CardTitle>
+              <CardDescription>
+                Gestione magazzini partner Italia/estero e rete corrieri privati
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Tabs defaultValue="warehouses-network" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="warehouses-network">Magazzini Partner</TabsTrigger>
+                  <TabsTrigger value="courier-network">Rete Corrieri</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="warehouses-network" className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <Card className="p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <Badge variant="default">🇮🇹 Italia</Badge>
+                        <Badge variant="outline">Attivo</Badge>
+                      </div>
+                      <h4 className="font-semibold">LogiCenter Milano</h4>
+                      <p className="text-sm text-gray-600">Via Milano 123, Milano</p>
+                      <p className="text-xs text-gray-500 mt-2">Capacità: 85%</p>
+                    </Card>
+                    
+                    <Card className="p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <Badge variant="default">🇩🇪 Germania</Badge>
+                        <Badge variant="outline">Attivo</Badge>
+                      </div>
+                      <h4 className="font-semibold">EuroLogistics Berlin</h4>
+                      <p className="text-sm text-gray-600">Berliner Str. 45, Berlin</p>
+                      <p className="text-xs text-gray-500 mt-2">Capacità: 67%</p>
+                    </Card>
+
+                    <Card className="p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <Badge variant="default">🇨🇳 Cina</Badge>
+                        <Badge variant="outline">Attivo</Badge>
+                      </div>
+                      <h4 className="font-semibold">China Hub Shenzhen</h4>
+                      <p className="text-sm text-gray-600">Shenzhen Industrial Zone</p>
+                      <p className="text-xs text-gray-500 mt-2">Capacità: 92%</p>
+                    </Card>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="courier-network" className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Card className="p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-semibold">Corrieri Privati Attivi</h4>
+                        <Badge variant="default">12</Badge>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span>Express Logistics</span>
+                          <Badge variant="outline">Rating 4.8</Badge>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>FastTrack Couriers</span>
+                          <Badge variant="outline">Rating 4.6</Badge>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>Speed Delivery</span>
+                          <Badge variant="outline">Rating 4.9</Badge>
+                        </div>
+                      </div>
+                    </Card>
+                    
+                    <Card className="p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-semibold">Performance Oggi</h4>
+                        <TrendingUp className="h-5 w-5 text-green-500" />
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span>Consegne Completate</span>
+                          <span className="font-semibold">147</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>Tempo Medio</span>
+                          <span className="font-semibold">2.3h</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>Successo Rate</span>
+                          <span className="font-semibold text-green-600">98.2%</span>
+                        </div>
+                      </div>
+                    </Card>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* AI Tracking Tab */}
+        <TabsContent value="ai-tracking" className="space-y-4">
+          <Card data-testid="ai-tracking-section">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Zap className="h-5 w-5 text-purple-600" />
+                AI Shipment Tracking
+              </CardTitle>
+              <CardDescription>
+                Tracking intelligente con AI predittiva e analisi real-time
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <Card className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Spedizioni Tracked</p>
+                      <p className="text-2xl font-bold">342</p>
+                    </div>
+                    <Activity className="h-8 w-8 text-blue-500" />
+                  </div>
+                </Card>
+                <Card className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">ETA Accuracy</p>
+                      <p className="text-2xl font-bold">96.8%</p>
+                    </div>
+                    <CheckCircle className="h-8 w-8 text-green-500" />
+                  </div>
+                </Card>
+                <Card className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Anomalie Detect</p>
+                      <p className="text-2xl font-bold">7</p>
+                    </div>
+                    <AlertTriangle className="h-8 w-8 text-orange-500" />
+                  </div>
+                </Card>
+                <Card className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">AI Confidence</p>
+                      <p className="text-2xl font-bold">94.2%</p>
+                    </div>
+                    <Zap className="h-8 w-8 text-purple-500" />
+                  </div>
+                </Card>
+              </div>
+              
+              <Card className="p-4">
+                <h4 className="font-semibold mb-4">Tracking AI in Tempo Reale</h4>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                      <div>
+                        <p className="font-medium">#TRK-2024-003421</p>
+                        <p className="text-sm text-gray-600">Milano → Roma • ETA: 14:30</p>
+                      </div>
+                    </div>
+                    <Badge variant="default">In Transito</Badge>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 bg-yellow-500 rounded-full animate-pulse"></div>
+                      <div>
+                        <p className="font-medium">#TRK-2024-003422</p>
+                        <p className="text-sm text-gray-600">Napoli → Palermo • ETA: 16:45</p>
+                      </div>
+                    </div>
+                    <Badge variant="secondary">Ritardo Predetto</Badge>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                      <div>
+                        <p className="font-medium">#TRK-2024-003423</p>
+                        <p className="text-sm text-gray-600">Torino → Milano • ETA: 12:15</p>
+                      </div>
+                    </div>
+                    <Badge variant="outline">Ottimizzato AI</Badge>
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              </Card>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 
@@ -715,6 +1014,213 @@ export default function LogisticsWarehousesPage() {
               </DialogFooter>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Zone Management Dialog */}
+      <Dialog open={isZonesDialogOpen} onOpenChange={setIsZonesDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle data-testid="zone-dialog-title">
+              Gestione Zone - {selectedItemForZones?.name}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Create New Zone Form */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Aggiungi Nuova Zona</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Form {...zoneForm}>
+                  <form onSubmit={zoneForm.handleSubmit(handleCreateZone)} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={zoneForm.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Nome Zona</FormLabel>
+                            <FormControl>
+                              <Input placeholder="es. Scaffale A1" {...field} data-testid="input-zone-name" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={zoneForm.control}
+                        name="code"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Codice Zona</FormLabel>
+                            <FormControl>
+                              <Input placeholder="es. A1-01" {...field} data-testid="input-zone-code" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-4">
+                      <FormField
+                        control={zoneForm.control}
+                        name="level"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Livello</FormLabel>
+                            <FormControl>
+                              <Input type="number" min="1" {...field} data-testid="input-zone-level" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={zoneForm.control}
+                        name="row"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Fila</FormLabel>
+                            <FormControl>
+                              <Input placeholder="es. A" {...field} data-testid="input-zone-row" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={zoneForm.control}
+                        name="column"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Colonna</FormLabel>
+                            <FormControl>
+                              <Input placeholder="es. 01" {...field} data-testid="input-zone-column" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={zoneForm.control}
+                        name="capacity"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Capacità (%)</FormLabel>
+                            <FormControl>
+                              <Input type="number" min="0" max="100" {...field} data-testid="input-zone-capacity" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={zoneForm.control}
+                        name="temperature_controlled"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                            <div>
+                              <FormLabel>Temperatura Controllata</FormLabel>
+                            </div>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                                data-testid="switch-temperature-controlled"
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="flex justify-end gap-2">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={() => setIsZonesDialogOpen(false)}
+                        data-testid="button-cancel-zone"
+                      >
+                        Annulla
+                      </Button>
+                      <Button 
+                        type="submit" 
+                        disabled={createZoneMutation.isPending}
+                        data-testid="button-create-zone"
+                      >
+                        {createZoneMutation.isPending ? "Creando..." : "Crea Zona"}
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
+
+            {/* Existing Zones List */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Zone Esistenti</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loadingZones ? (
+                  <div className="text-center py-8" data-testid="loading-zones">
+                    Caricamento zone...
+                  </div>
+                ) : zones.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground" data-testid="no-zones">
+                    Nessuna zona configurata per questo magazzino
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {zones.map((zone: WarehouseZone) => (
+                      <Card key={zone.id} className="border">
+                        <CardContent className="p-4">
+                          <div className="flex justify-between items-start mb-2">
+                            <h4 className="font-semibold" data-testid={`zone-name-${zone.id}`}>
+                              {zone.name}
+                            </h4>
+                            <Badge variant={zone.is_active ? "default" : "secondary"}>
+                              {zone.is_active ? "Attiva" : "Inattiva"}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground mb-2">
+                            Codice: {zone.code}
+                          </p>
+                          <p className="text-sm text-muted-foreground mb-2">
+                            Posizione: L{zone.level} - {zone.row}{zone.column}
+                          </p>
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="text-sm">Capacità: {zone.capacity}%</div>
+                            {zone.temperature_controlled && (
+                              <Badge variant="outline" className="text-xs">
+                                🌡️ Temp. Controllata
+                              </Badge>
+                            )}
+                          </div>
+                          {zone.qr_code && (
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <QrCode className="h-3 w-3" />
+                              QR Code disponibile
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
