@@ -4,9 +4,10 @@ import {
   Truck, 
   ShoppingCart, 
   Users, 
-  Settings,
-  Bot
+  Plus,
+  MoreHorizontal
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useDeviceInterface } from "@/hooks/use-device-interface";
 import { cn } from "@/lib/utils";
 
@@ -24,23 +25,16 @@ const bottomNavItems = [
     icon: Truck,
   },
   {
-    id: "ecommerce",
-    label: "Shop",
-    href: "/ecommerce-page",
-    icon: ShoppingCart,
-  },
-  {
     id: "clients",
     label: "Clienti", 
     href: "/clients",
     icon: Users,
   },
   {
-    id: "ai",
-    label: "AI",
-    href: "#",
-    icon: Bot,
-    isAction: true,
+    id: "more",
+    label: "Altro",
+    href: "/ecommerce-page",
+    icon: MoreHorizontal,
   },
 ];
 
@@ -51,47 +45,40 @@ export function BottomNavigation() {
   if (!isApp) return null;
 
   return (
-    <nav className="bottom-nav" data-testid="bottom-navigation">
-      {bottomNavItems.map((item) => {
-        const Icon = item.icon;
-        const isActive = item.href === "/" ? location === "/" : location.startsWith(item.href);
-        
-        if (item.isAction) {
+    <>
+      {/* FAB - Floating Action Button */}
+      <div className="fixed bottom-20 right-4 z-50">
+        <Button
+          size="lg"
+          className="h-14 w-14 rounded-full bg-primary shadow-lg hover:shadow-xl ripple-effect tap-scale"
+          data-testid="fab-new-shipment"
+        >
+          <Plus className="w-6 h-6" />
+        </Button>
+      </div>
+      
+      {/* Bottom Navigation */}
+      <nav className="bottom-nav" data-testid="bottom-navigation">
+        {bottomNavItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = item.href === "/" ? location === "/" : location.startsWith(item.href);
+
           return (
-            <button
+            <Link
               key={item.id}
+              href={item.href}
               className={cn(
                 "bottom-nav-item ripple-effect tap-scale",
-                "active:bg-primary/20"
+                isActive && "active"
               )}
               data-testid={`bottom-nav-${item.id}`}
-              onClick={() => {
-                // Trigger AI Assistant
-                const aiButton = document.querySelector('[data-testid="ai-assistant-trigger"]') as HTMLButtonElement;
-                if (aiButton) aiButton.click();
-              }}
             >
               <Icon className="bottom-nav-icon" />
               <span className="bottom-nav-label">{item.label}</span>
-            </button>
+            </Link>
           );
-        }
-
-        return (
-          <Link
-            key={item.id}
-            href={item.href}
-            className={cn(
-              "bottom-nav-item ripple-effect tap-scale",
-              isActive && "active"
-            )}
-            data-testid={`bottom-nav-${item.id}`}
-          >
-            <Icon className="bottom-nav-icon" />
-            <span className="bottom-nav-label">{item.label}</span>
-          </Link>
-        );
-      })}
-    </nav>
+        })}
+      </nav>
+    </>
   );
 }

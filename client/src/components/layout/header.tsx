@@ -1,12 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Bell, Plus, Menu, Crown, User, LogOut } from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Bell, Plus, Menu, Crown, User, LogOut, ArrowLeft, Search, LayoutDashboard, Settings } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { GlobalAIAssistant } from "@/components/ai/global-ai-assistant";
 import { useAuth } from "@/hooks/use-auth";
 import { useDeviceInterface } from "@/hooks/use-device-interface";
+import { useLocation } from "wouter";
 import ycoreLogo from "@assets/Copilot_20250928_191905_1759079989814.png";
 
 interface HeaderProps {
@@ -19,6 +21,8 @@ export function Header({ title, onMenuToggle }: HeaderProps) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const { user, logoutMutation } = useAuth();
   const { isApp, isPC } = useDeviceInterface();
+  const [location] = useLocation();
+  const canGoBack = isApp && location !== "/";
 
   const { data: languages } = useQuery({
     queryKey: ["/api/languages"],
@@ -28,31 +32,92 @@ export function Header({ title, onMenuToggle }: HeaderProps) {
     <header className={`bg-card border-b border-border ${isApp ? 'px-4 py-3' : 'px-6 py-4'}`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Button
-            variant="ghost"
-            size={isApp ? "sm" : "sm"}
-            className={isApp ? "block" : "lg:hidden"}
-            onClick={onMenuToggle}
-            data-testid="button-menu-toggle"
-          >
-            <Menu className={isApp ? "w-6 h-6" : "w-5 h-5"} />
-          </Button>
+          {/* Mobile: Back button or Menu */}
+          {isApp ? (
+            canGoBack ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => window.history.back()}
+                data-testid="button-back"
+              >
+                <ArrowLeft className="w-6 h-6" />
+              </Button>
+            ) : (
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    data-testid="button-menu-toggle"
+                  >
+                    <Menu className="w-6 h-6" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-[280px]">
+                  <div className="flex flex-col space-y-4 pt-6">
+                    <div className="flex items-center space-x-2 pb-4 border-b">
+                      <img src={ycoreLogo} alt="YCORE" className="h-8 w-8" />
+                      <span className="font-semibold text-lg">YCORE</span>
+                    </div>
+                    <Button variant="ghost" className="justify-start" data-testid="link-dashboard">
+                      <LayoutDashboard className="w-5 h-5 mr-3" />
+                      Dashboard
+                    </Button>
+                    <Button variant="ghost" className="justify-start" data-testid="link-settings">
+                      <Settings className="w-5 h-5 mr-3" />
+                      Impostazioni
+                    </Button>
+                    <div className="pt-4 border-t">
+                      <Button
+                        variant="ghost"
+                        className="justify-start w-full text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => logoutMutation.mutate()}
+                        data-testid="button-logout-mobile"
+                      >
+                        <LogOut className="w-5 h-5 mr-3" />
+                        Logout
+                      </Button>
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            )
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="lg:hidden"
+              onClick={onMenuToggle}
+              data-testid="button-menu-toggle"
+            >
+              <Menu className="w-5 h-5" />
+            </Button>
+          )}
           
-          {/* YCORE Brand Integration - Responsive */}
-          <div className="flex items-center space-x-4">
-            <div className={`flex items-center ${isApp ? 'space-x-2' : 'space-x-3'}`}>
-              <img 
-                src={ycoreLogo} 
-                alt="YCORE Logo" 
-                className={isApp ? "h-7 w-7 object-contain" : "h-8 w-8 object-contain"}
-                data-testid="img-ycore-logo"
-              />
-              {!isApp && <div className="w-px h-8 bg-border/50"></div>}
-              <h1 className={`${isApp ? 'text-lg' : 'text-xl'} font-semibold text-foreground ${isApp ? 'truncate' : ''}`} data-testid="text-page-title">
-                {isApp ? title.length > 15 ? title.substring(0, 15) + '...' : title : title}
+          {/* Title - Mobile Centered */}
+          {isApp ? (
+            <div className="flex-1 flex justify-center">
+              <h1 className="text-lg font-semibold text-foreground truncate max-w-[180px]" data-testid="text-page-title">
+                {title}
               </h1>
             </div>
-          </div>
+          ) : (
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-3">
+                <img 
+                  src={ycoreLogo} 
+                  alt="YCORE Logo" 
+                  className="h-8 w-8 object-contain"
+                  data-testid="img-ycore-logo"
+                />
+                <div className="w-px h-8 bg-border/50"></div>
+                <h1 className="text-xl font-semibold text-foreground" data-testid="text-page-title">
+                  {title}
+                </h1>
+              </div>
+            </div>
+          )}
           {!isApp && (
             <Badge 
               variant="secondary" 
@@ -65,49 +130,57 @@ export function Header({ title, onMenuToggle }: HeaderProps) {
           )}
         </div>
         
-        <div className={`flex items-center ${isApp ? 'space-x-2' : 'space-x-4'}`}>
-          {/* Language Selector - Hidden on App mode for space */}
+        <div className={`flex items-center ${isApp ? 'space-x-1' : 'space-x-4'}`}>
+          {/* Desktop: Full feature set */}
           {!isApp && (
-            <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
-              <SelectTrigger className="w-[140px]" data-testid="select-language">
-                <SelectValue placeholder="Lingua" />
-              </SelectTrigger>
-            <SelectContent>
-              {Array.isArray(languages) ? languages.map((lang: any) => (
-                <SelectItem key={lang.code} value={lang.code}>
-                  <span className="flex items-center space-x-2">
-                    <span>{lang.flag}</span>
-                    <span>{lang.name}</span>
+            <>
+              <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
+                <SelectTrigger className="w-[140px]" data-testid="select-language">
+                  <SelectValue placeholder="Lingua" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.isArray(languages) ? languages.map((lang: any) => (
+                    <SelectItem key={lang.code} value={lang.code}>
+                      <span className="flex items-center space-x-2">
+                        <span>{lang.flag}</span>
+                        <span>{lang.name}</span>
+                      </span>
+                    </SelectItem>
+                  )) : (
+                    <SelectItem value="it">
+                      <span className="flex items-center space-x-2">
+                        <span>🇮🇹</span>
+                        <span>Italiano</span>
+                      </span>
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+              <GlobalAIAssistant variant="header" />
+              <div className="relative">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  data-testid="button-notifications"
+                >
+                  <Bell className="w-5 h-5" />
+                  <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    3
                   </span>
-                </SelectItem>
-              )) : (
-                <SelectItem value="it">
-                  <span className="flex items-center space-x-2">
-                    <span>🇮🇹</span>
-                    <span>Italiano</span>
-                  </span>
-                </SelectItem>
-              )}
-            </SelectContent>
-            </Select>
+                </Button>
+              </div>
+            </>
           )}
           
-          {/* AI Assistant Globale */}
-          <GlobalAIAssistant variant="header" />
-
-          {/* Notifications */}
-          <div className="relative">
-            <Button 
-              variant="ghost" 
-              size="sm"
-              data-testid="button-notifications"
-            >
-              <Bell className="w-5 h-5" />
-              <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                3
-              </span>
-            </Button>
-          </div>
+          {/* Mobile: Compact actions */}
+          {isApp && (
+            <>
+              <Button variant="ghost" size="sm" data-testid="button-search-mobile">
+                <Search className="w-5 h-5" />
+              </Button>
+              <GlobalAIAssistant variant="header" />
+            </>
+          )}
           
           {/* User Menu */}
           <div className="relative">
