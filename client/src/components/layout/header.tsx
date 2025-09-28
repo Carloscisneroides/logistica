@@ -1,11 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Bell, Plus, Menu, Crown } from "lucide-react";
+import { Bell, Plus, Menu, Crown, User, LogOut } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { GlobalAIAssistant } from "@/components/ai/global-ai-assistant";
-import ycoreLogo from "../../assets/ycore-logo.png";
+import { useAuth } from "@/hooks/use-auth";
+import ycoreLogo from "@assets/Copilot_20250928_191905_1759079989814.png";
 
 interface HeaderProps {
   title: string;
@@ -14,6 +15,8 @@ interface HeaderProps {
 
 export function Header({ title, onMenuToggle }: HeaderProps) {
   const [selectedLanguage, setSelectedLanguage] = useState("it");
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const { user, logoutMutation } = useAuth();
 
   const { data: languages } = useQuery({
     queryKey: ["/api/languages"],
@@ -33,17 +36,20 @@ export function Header({ title, onMenuToggle }: HeaderProps) {
             <Menu className="w-5 h-5" />
           </Button>
           
-          {/* YCORE Logo */}
-          <div className="flex items-center space-x-3">
-            <img 
-              src={ycoreLogo} 
-              alt="YCORE Logo" 
-              className="h-8 w-8 object-contain"
-              data-testid="img-ycore-logo"
-            />
-            <h1 className="text-2xl font-bold text-foreground" data-testid="text-page-title">
-              {title}
-            </h1>
+          {/* YCORE Brand Integration */}
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
+              <img 
+                src={ycoreLogo} 
+                alt="YCORE Logo" 
+                className="h-8 w-8 object-contain"
+                data-testid="img-ycore-logo"
+              />
+              <div className="w-px h-8 bg-border/50"></div>
+              <h1 className="text-xl font-semibold text-foreground" data-testid="text-page-title">
+                {title}
+              </h1>
+            </div>
           </div>
           <Badge 
             variant="secondary" 
@@ -97,6 +103,45 @@ export function Header({ title, onMenuToggle }: HeaderProps) {
             </Button>
           </div>
           
+          {/* User Menu */}
+          <div className="relative">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => setUserMenuOpen(!userMenuOpen)}
+              className="flex items-center space-x-2"
+              data-testid="button-user-menu"
+            >
+              <User className="w-5 h-5" />
+              <span className="hidden md:block">{user?.username || "Admin"}</span>
+            </Button>
+            
+            {userMenuOpen && (
+              <div className="absolute right-0 mt-2 w-48 bg-card border border-border rounded-lg shadow-lg z-50">
+                <div className="p-2">
+                  <div className="px-3 py-2 border-b border-border">
+                    <p className="text-sm font-medium text-foreground">{user?.username || "Admin"}</p>
+                    <p className="text-xs text-muted-foreground">Utente autorizzato</p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start mt-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => {
+                      logoutMutation.mutate();
+                      setUserMenuOpen(false);
+                    }}
+                    disabled={logoutMutation.isPending}
+                    data-testid="button-logout"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    {logoutMutation.isPending ? "Disconnessione..." : "Logout"}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Quick Actions */}
           <Button 
             className="bg-primary text-primary-foreground hover:bg-primary/90"

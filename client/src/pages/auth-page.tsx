@@ -14,6 +14,7 @@ import { insertUserSchema } from "@shared/schema";
 import { z } from "zod";
 import { Redirect } from "wouter";
 import { Loader2, Truck, Shield, Users, Zap } from "lucide-react";
+import ycoreLogo from "@assets/Copilot_20250928_191905_1759079989814.png";
 
 const loginSchema = insertUserSchema.pick({ username: true, password: true });
 // Validazione Partita IVA italiana (11 cifre)
@@ -236,89 +237,119 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-blue-950 dark:to-indigo-950 flex relative overflow-hidden">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-indigo-600/20 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-purple-400/20 to-pink-600/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-cyan-400/10 to-blue-600/10 rounded-full blur-3xl animate-ping"></div>
+      </div>
+      
       {/* Left side - Forms */}
-      <div className="flex-1 flex items-center justify-center p-8 lg:w-1/2">
-        <div className="w-full max-w-md space-y-6">
-          <div className="flex flex-col items-center justify-center mb-8">
-            <div className="flex items-center space-x-2 mb-2">
-              <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-                <Truck className="w-6 h-6 text-primary-foreground" />
-              </div>
-              <span className="text-2xl font-bold text-foreground">YCore</span>
+      <div className="flex-1 flex items-center justify-center p-8 lg:w-1/2 relative z-10">
+        <div className="w-full max-w-md space-y-8">
+          {/* Modern Logo Section */}
+          <div className="text-center space-y-4">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-white/20 dark:bg-black/20 backdrop-blur-xl rounded-2xl border border-white/30 dark:border-white/10 shadow-2xl">
+              <img 
+                src={ycoreLogo} 
+                alt="YCORE Logo" 
+                className="w-10 h-10 object-contain"
+              />
             </div>
-            <div className="text-xs text-muted-foreground/60 text-center">
-              © 2025 YCore SRL Innovativa - Proprietà riservata
+            <div className="space-y-2">
+              <h1 className="text-3xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                YCORE
+              </h1>
+              <p className="text-sm text-muted-foreground/80 font-medium">
+                Il Motore Digitale del Business Moderno
+              </p>
             </div>
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-2xl text-center">
-                {isLogin ? "Accedi" : "Registrati"}
-              </CardTitle>
-              <CardDescription className="text-center">
+          {/* Glassmorphism Card */}
+          <div className="bg-white/70 dark:bg-black/40 backdrop-blur-xl rounded-3xl border border-white/50 dark:border-white/10 shadow-2xl shadow-blue-500/10 p-8">
+            <div className="text-center space-y-3 mb-8">
+              <h2 className="text-2xl font-bold text-foreground">
+                {isLogin ? "Bentornato" : "Crea Account"}
+              </h2>
+              <p className="text-muted-foreground">
                 {isLogin 
-                  ? "Inserisci le tue credenziali per accedere alla piattaforma"
-                  : "Crea un nuovo account per iniziare"
+                  ? "Accedi al tuo ecosistema digitale"
+                  : "Inizia la trasformazione digitale"
                 }
-              </CardDescription>
+              </p>
+            </div>
               
-              {/* Disclaimer legale per demo riservata */}
-              <div className="mt-4 p-3 bg-muted/30 rounded-lg border-l-4 border-amber-500">
-                <div className="text-xs text-muted-foreground space-y-1">
-                  <div className="font-semibold text-amber-600">⚠️ DEMO RISERVATA</div>
-                  <div>Questa è una demo tecnica riservata per partner autorizzati.</div>
-                  <div><strong>NON AUTORIZZATA</strong> alla riproduzione, copia o distribuzione.</div>
-                  <div>Accesso limitato a Reply, AWS e partner tecnici fidati.</div>
-                  <div className="text-[10px] mt-2 border-t border-muted pt-2">
-                    Sistema protetto da logging antifrode e tracciamento accessi.
-                    <br />Tutti gli accessi sono registrati e monitorati.
+              {/* Elite Demo Notice */}
+              <div className="mt-6 p-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/50 dark:to-orange-950/50 rounded-2xl border border-amber-200/50 dark:border-amber-800/50">
+                <div className="text-center space-y-2">
+                  <div className="flex items-center justify-center space-x-2">
+                    <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
+                    <span className="text-sm font-semibold text-amber-700 dark:text-amber-300">DEMO RISERVATA</span>
+                    <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
                   </div>
+                  <p className="text-xs text-amber-600 dark:text-amber-400">
+                    Accesso limitato ai partner autorizzati Reply/AWS
+                  </p>
+                  <p className="text-[10px] text-amber-600/70 dark:text-amber-400/70">
+                    Sistema protetto con tracciamento avanzato
+                  </p>
                 </div>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
+            </div>
+            
+            <div className="space-y-6">
               {isLogin ? (
-                <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="username">Username</Label>
-                    <Input
-                      id="username"
-                      type="text"
-                      {...loginForm.register("username")}
-                      data-testid="input-username"
-                    />
-                    {loginForm.formState.errors.username && (
-                      <p className="text-sm text-destructive">
-                        {loginForm.formState.errors.username.message}
-                      </p>
-                    )}
+                <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-6">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="username" className="text-sm font-medium text-foreground/80">Username</Label>
+                      <Input
+                        id="username"
+                        type="text"
+                        {...loginForm.register("username")}
+                        className="h-12 border-2 border-border/50 focus:border-primary/80 rounded-xl bg-background/50 backdrop-blur-sm transition-all duration-200 focus:ring-2 focus:ring-primary/20"
+                        placeholder="Inserisci il tuo username"
+                        data-testid="input-username"
+                      />
+                      {loginForm.formState.errors.username && (
+                        <p className="text-sm text-red-500 flex items-center space-x-1">
+                          <span>•</span>
+                          <span>{loginForm.formState.errors.username.message}</span>
+                        </p>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="password" className="text-sm font-medium text-foreground/80">Password</Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        {...loginForm.register("password")}
+                        className="h-12 border-2 border-border/50 focus:border-primary/80 rounded-xl bg-background/50 backdrop-blur-sm transition-all duration-200 focus:ring-2 focus:ring-primary/20"
+                        placeholder="Inserisci la tua password"
+                        data-testid="input-password"
+                      />
+                      {loginForm.formState.errors.password && (
+                        <p className="text-sm text-red-500 flex items-center space-x-1">
+                          <span>•</span>
+                          <span>{loginForm.formState.errors.password.message}</span>
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      {...loginForm.register("password")}
-                      data-testid="input-password"
-                    />
-                    {loginForm.formState.errors.password && (
-                      <p className="text-sm text-destructive">
-                        {loginForm.formState.errors.password.message}
-                      </p>
-                    )}
-                  </div>
+                  
                   <Button 
                     type="submit" 
-                    className="w-full"
+                    className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-xl shadow-lg shadow-blue-500/25 transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]"
                     disabled={loginMutation.isPending}
                     data-testid="button-login"
                   >
                     {loginMutation.isPending && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                     )}
-                    Accedi
+                    {loginMutation.isPending ? "Accesso..." : "Accedi al Sistema"}
                   </Button>
                 </form>
               ) : (
@@ -632,8 +663,9 @@ export default function AuthPage() {
               {!isPrivateDemo && (
                 <div className="text-center">
                   <Button
-                    variant="link"
+                    variant="ghost"
                     onClick={() => setIsLogin(!isLogin)}
+                    className="text-muted-foreground hover:text-foreground transition-colors duration-200 font-medium"
                     data-testid="button-switch-mode"
                   >
                     {isLogin 
@@ -655,83 +687,82 @@ export default function AuthPage() {
                   </div>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
         </div>
       </div>
 
-      {/* Right side - Hero */}
-      <div className="flex-1 bg-primary text-primary-foreground p-8 flex flex-col justify-center">
-        <div className="max-w-md mx-auto space-y-8">
-          <h1 className="text-4xl font-bold">
-            Piattaforma SaaS Modulare per Spedizioni
-          </h1>
-          <p className="text-xl text-primary-foreground/90">
-            Gestisci le tue spedizioni con AI routing, integrazione multi-corriere e fatturazione automatica.
-          </p>
-          
-          <div className="space-y-6">
-            <div className="flex items-start space-x-3">
-              <Shield className="w-6 h-6 mt-1 text-accent" />
-              <div>
-                <h3 className="font-semibold">Multi-Tenant Sicuro</h3>
-                <p className="text-sm text-primary-foreground/80">
-                  Architettura scalabile con separazione completa dei dati
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-start space-x-3">
-              <Zap className="w-6 h-6 mt-1 text-accent" />
-              <div>
-                <h3 className="font-semibold">AI Routing Intelligente</h3>
-                <p className="text-sm text-primary-foreground/80">
-                  Selezione automatica del corriere più conveniente
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-start space-x-3">
-              <Users className="w-6 h-6 mt-1 text-accent" />
-              <div>
-                <h3 className="font-semibold">Gestione Team Commerciali</h3>
-                <p className="text-sm text-primary-foreground/80">
-                  Provvigioni automatiche e dashboard dedicate
-                </p>
-              </div>
-            </div>
-          </div>
-          
-        </div>
-      </div>
 
       {/* Right side - YCORE Brand Hero Section */}
-      <div className="hidden lg:flex lg:flex-1 relative overflow-hidden bg-gradient-to-br from-primary via-primary/90 to-accent">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_40%,rgba(255,255,255,0.1),transparent_50%)]"></div>
-        <div className="relative flex items-center justify-center p-12">
-          <div className="max-w-2xl text-center space-y-8">
-            {/* Main Brand Title */}
-            <div className="space-y-4">
-              <h1 className="text-5xl lg:text-6xl font-black tracking-tight text-white">
-                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-white to-blue-100">
-                  YCORE
-                </span>
-              </h1>
-              <h2 className="text-2xl lg:text-3xl font-bold text-blue-100">
-                Il Motore Digitale del Business Moderno
-              </h2>
+      <div className="hidden lg:flex lg:flex-1 relative overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-800">
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-white/10 rounded-full blur-xl animate-pulse"></div>
+          <div className="absolute bottom-1/3 right-1/3 w-24 h-24 bg-yellow-300/20 rounded-full blur-lg animate-pulse delay-1000"></div>
+          <div className="absolute top-1/2 right-1/4 w-16 h-16 bg-cyan-300/30 rounded-full blur-md animate-ping delay-500"></div>
+        </div>
+        
+        {/* Main Content */}
+        <div className="relative flex items-center justify-center p-12 z-10">
+          <div className="max-w-3xl text-center space-y-10">
+            {/* Hero Logo and Brand */}
+            <div className="space-y-6">
+              <div className="flex justify-center">
+                <div className="w-24 h-24 bg-white/20 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl flex items-center justify-center">
+                  <img 
+                    src={ycoreLogo} 
+                    alt="YCORE Logo" 
+                    className="w-16 h-16 object-contain"
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <h1 className="text-6xl lg:text-7xl font-black tracking-tight">
+                  <span className="block text-transparent bg-clip-text bg-gradient-to-r from-white via-blue-100 to-cyan-200">
+                    YCORE
+                  </span>
+                </h1>
+                <h2 className="text-2xl lg:text-3xl font-bold text-white/90">
+                  Il Motore Digitale del Business Moderno
+                </h2>
+              </div>
             </div>
             
-            {/* Core Value Proposition */}
-            <div className="space-y-6">
-              <p className="text-lg text-blue-50/90 leading-relaxed font-medium">
+            {/* Value Proposition */}
+            <div className="space-y-8">
+              <p className="text-xl text-white/80 leading-relaxed font-medium max-w-2xl mx-auto">
                 Un ecosistema <span className="text-yellow-300 font-bold">modulare</span>, <span className="text-yellow-300 font-bold">intelligente</span> e <span className="text-yellow-300 font-bold">sicuro</span> che trasforma il modo in cui le aziende operano, vendono e crescono.
               </p>
               
-              <div className="bg-black/20 backdrop-blur-sm rounded-xl p-6 border border-white/20">
-                <p className="text-white text-lg font-semibold leading-relaxed">
+              <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-8 border border-white/20 shadow-2xl">
+                <p className="text-white text-xl font-semibold leading-relaxed">
                   YCORE non è solo una piattaforma: è il <span className="text-yellow-300">cuore operativo</span> che connette persone, processi e opportunità in <span className="text-cyan-300">tempo reale</span>.
                 </p>
+              </div>
+              
+              {/* Innovation Features */}
+              <div className="grid grid-cols-3 gap-6 mt-12">
+                <div className="text-center space-y-2">
+                  <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                    <span className="text-2xl">🚀</span>
+                  </div>
+                  <h3 className="text-white font-semibold">Innovazione</h3>
+                  <p className="text-white/70 text-sm">Tecnologie all'avanguardia</p>
+                </div>
+                <div className="text-center space-y-2">
+                  <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                    <span className="text-2xl">🔒</span>
+                  </div>
+                  <h3 className="text-white font-semibold">Sicurezza</h3>
+                  <p className="text-white/70 text-sm">Enterprise-grade</p>
+                </div>
+                <div className="text-center space-y-2">
+                  <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                    <span className="text-2xl">⚡</span>
+                  </div>
+                  <h3 className="text-white font-semibold">Velocità</h3>
+                  <p className="text-white/70 text-sm">Performance ottimali</p>
+                </div>
               </div>
             </div>
             
