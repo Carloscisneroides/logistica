@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useDeviceInterface } from "@/hooks/use-device-interface";
+import { useTranslation } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,7 +15,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { insertUserSchema } from "@shared/schema";
 import { z } from "zod";
 import { Redirect } from "wouter";
-import { Loader2, Truck, Shield, Users, Zap, Download, Smartphone, Settings2, Check } from "lucide-react";
+import { Loader2, Truck, Shield, Users, Zap, Download, Smartphone, Settings2, Check, Globe, Bot } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ycoreLogo from "@assets/Copilot_20250928_191905_1759079989814.png";
 
@@ -190,6 +191,7 @@ type RegisterData = z.infer<typeof registerSchema>;
 export default function AuthPage() {
   const { user, isLoading, loginMutation, registerMutation } = useAuth();
   const { interfaceMode, isApp, isPC, keyboardOpen, safeArea, componentPolicy } = useDeviceInterface();
+  const { t, setLanguage, getLanguages, getCurrentLanguage } = useTranslation();
   // **PRIVATE DEMO MODE** - Disabilita registrazione pubblica
   const [isLogin, setIsLogin] = useState(true);
   const [registrationStep, setRegistrationStep] = useState(1); // 1=Account, 2=Business, 3=Compliance
@@ -393,23 +395,40 @@ export default function AuthPage() {
             <img src={ycoreLogo} alt="YCORE" className="w-10 h-10" />
             <h1 className="text-2xl font-bold">YCORE</h1>
           </div>
-          <p className="text-primary-foreground/80 text-sm">Il Motore del Business Moderno</p>
+          <p className="text-primary-foreground/80 text-sm">{t('tagline')}</p>
+          {/* Language Switcher - Mobile Login */}
+          <div className="flex justify-center mt-4">
+            <button
+              onClick={() => {
+                const current = getCurrentLanguage();
+                const langs = getLanguages();
+                const currentIndex = langs.findIndex(l => l.code === current);
+                const nextIndex = (currentIndex + 1) % langs.length;
+                setLanguage(langs[nextIndex].code);
+              }}
+              className="flex items-center gap-2 px-3 py-1 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
+              data-testid="mobile-login-language-switcher"
+            >
+              <Globe className="w-4 h-4" />
+              <span className="text-sm">{getLanguages().find(l => l.code === getCurrentLanguage())?.flag} {getCurrentLanguage().toUpperCase()}</span>
+            </button>
+          </div>
         </div>
         <div className="flex-1 px-6 py-8 space-y-6">
           <div className="space-y-2">
-            <h2 className="text-2xl font-bold text-center">Accesso</h2>
-            <p className="text-muted-foreground text-center text-sm">Inserisci le tue credenziali</p>
+            <h2 className="text-2xl font-bold text-center">{t('login')}</h2>
+            <p className="text-muted-foreground text-center text-sm">{t('enterCredentials')}</p>
           </div>
           <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-6">
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="username" className="text-base font-medium">Username</Label>
+                <Label htmlFor="username" className="text-base font-medium">{t('username')}</Label>
                 <Input
                   id="username"
                   type="text"
                   {...loginForm.register("username")}
                   className="h-14 text-base rounded-xl border-2 border-border/50 focus:border-primary transition-all"
-                  placeholder="Inserisci username"
+                  placeholder={t('enterUsername')}
                   data-testid="input-username"
                 />
                 {loginForm.formState.errors.username && (
@@ -417,13 +436,13 @@ export default function AuthPage() {
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-base font-medium">Password</Label>
+                <Label htmlFor="password" className="text-base font-medium">{t('password')}</Label>
                 <Input
                   id="password"
                   type="password"
                   {...loginForm.register("password")}
                   className="h-14 text-base rounded-xl border-2 border-border/50 focus:border-primary transition-all"
-                  placeholder="Inserisci password"
+                  placeholder={t('enterPassword')}
                   data-testid="input-password"
                 />
                 {loginForm.formState.errors.password && (
@@ -438,22 +457,31 @@ export default function AuthPage() {
               data-testid="button-login"
             >
               {loginMutation.isPending ? (
-                <><Loader2 className="w-5 h-5 mr-2 animate-spin" />Accesso...</>
-              ) : ("Accedi")}
+                <><Loader2 className="w-5 h-5 mr-2 animate-spin" />{t('loading')}</>
+              ) : (t('login'))}
             </Button>
           </form>
-          <div className="mt-8 p-4 bg-amber-50 dark:bg-amber-950/50 rounded-xl border border-amber-200 dark:border-amber-800">
-            <div className="text-center space-y-2">
-              <div className="flex items-center justify-center space-x-2">
-                <Shield className="w-4 h-4 text-amber-600" />
-                <span className="text-sm font-semibold text-amber-700 dark:text-amber-300">DEMO RISERVATA</span>
+          {/* AI Security + Demo Notice */}
+          <div className="space-y-3">
+            <div className="mt-8 p-4 bg-amber-50 dark:bg-amber-950/50 rounded-xl border border-amber-200 dark:border-amber-800">
+              <div className="text-center space-y-2">
+                <div className="flex items-center justify-center space-x-2">
+                  <Shield className="w-4 h-4 text-amber-600" />
+                  <span className="text-sm font-semibold text-amber-700 dark:text-amber-300">{t('demoReserved')}</span>
+                </div>
+                <p className="text-xs text-amber-600 dark:text-amber-400">{t('authorizedPartners')}</p>
               </div>
-              <p className="text-xs text-amber-600 dark:text-amber-400">Partner autorizzati</p>
+            </div>
+            
+            {/* AI Security Indicator */}
+            <div className="flex items-center justify-center space-x-2 p-2 bg-blue-50 dark:bg-blue-950/50 rounded-lg">
+              <Bot className="w-4 h-4 text-blue-600" />
+              <span className="text-xs text-blue-600 dark:text-blue-400">AI Sicurezza Attiva</span>
             </div>
           </div>
           {showPWAInstall && !pwaInstalled && (
             <Button onClick={handleInstallApp} className="w-full h-12 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-xl" data-testid="button-install-pwa">
-              <Download className="w-5 h-5 mr-2" />Installa YCORE App
+              <Download className="w-5 h-5 mr-2" />{t('installApp')}
             </Button>
           )}
         </div>

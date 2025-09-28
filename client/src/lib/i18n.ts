@@ -44,6 +44,18 @@ export const translations = {
     success: "Successo",
     error: "Errore",
     
+    // Auth
+    login: "Accesso",
+    username: "Username",
+    password: "Password",
+    enterCredentials: "Inserisci le tue credenziali",
+    enterUsername: "Inserisci il tuo username",
+    enterPassword: "Inserisci la tua password",
+    tagline: "Il Motore del Business Moderno",
+    demoReserved: "DEMO RISERVATA",
+    authorizedPartners: "Accesso limitato ai partner autorizzati",
+    installApp: "Installa YCORE App",
+    
     // Dashboard
     todayShipments: "Spedizioni Oggi",
     activeClients: "Clienti Attivi",
@@ -88,6 +100,18 @@ export const translations = {
     loading: "Loading...",
     success: "Success",
     error: "Error",
+    
+    // Auth
+    login: "Login",
+    username: "Username",
+    password: "Password",
+    enterCredentials: "Enter your credentials",
+    enterUsername: "Enter your username",
+    enterPassword: "Enter your password",
+    tagline: "The Engine of Modern Business",
+    demoReserved: "DEMO RESERVED",
+    authorizedPartners: "Access limited to authorized partners",
+    installApp: "Install YCORE App",
     
     // Dashboard
     todayShipments: "Today's Shipments",

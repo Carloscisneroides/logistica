@@ -7,17 +7,31 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useDeviceInterface } from "@/hooks/use-device-interface";
+import { useTranslation } from "@/lib/i18n";
 import { useState } from "react";
-import { Plus, Loader2, Users, Building, UserCheck } from "lucide-react";
+import { Plus, Loader2, Users, Building, UserCheck, Search, ChevronRight, MapPin, Calendar } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
 export default function Clients() {
   const { toast } = useToast();
+  const { isApp } = useDeviceInterface();
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const { data: clients, isLoading } = useQuery({
     queryKey: ["/api/clients"],
+  });
+
+  const clientsList = clients || [];
+  const filteredClients = clientsList.filter((client: any) => {
+    const matchesSearch = client.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                         client.email?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === "all" || client.status === statusFilter || client.type === statusFilter;
+    return matchesSearch && matchesStatus;
   });
 
   const addClientMutation = useMutation({
@@ -111,10 +125,135 @@ export default function Clients() {
 
   if (isLoading) {
     return (
-      <div className="p-6">
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className={isApp ? "content-app flex items-center justify-center h-64" : "p-6"}>
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // MOBILE CLIENTS
+  if (isApp) {
+    return (
+      <div className="content-app space-y-4">
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-bold">{t('clients') || 'Clienti'}</h1>
+          <Button size="sm" className="bg-primary text-primary-foreground" onClick={() => setIsAddDialogOpen(true)}>
+            <Plus className="w-4 h-4" />
+          </Button>
         </div>
+        
+        {/* Search - Mobile */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+          <Input
+            placeholder="Cerca clienti..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 h-12 rounded-xl"
+            data-testid="search-clients"
+          />
+        </div>
+        
+        {/* Filter Chips - Mobile */}
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          <Button 
+            variant={statusFilter === "all" ? "default" : "outline"} 
+            size="sm" 
+            onClick={() => setStatusFilter("all")}
+            className="min-w-fit"
+          >
+            Tutti
+          </Button>
+          <Button 
+            variant={statusFilter === "merchant" ? "default" : "outline"} 
+            size="sm" 
+            onClick={() => setStatusFilter("merchant")}
+            className="min-w-fit"
+          >
+            Merchant
+          </Button>
+          <Button 
+            variant={statusFilter === "platform" ? "default" : "outline"} 
+            size="sm" 
+            onClick={() => setStatusFilter("platform")}
+            className="min-w-fit"
+          >
+            Platform
+          </Button>
+        </div>
+        
+        {/* Clients List - Mobile */}
+        <div className="space-y-2">
+          {filteredClients.length > 0 ? (
+            filteredClients.map((client: any) => (
+              <div key={client.id} className="list-item" data-testid={`client-card-${client.id}`}>
+                <div className="flex items-center space-x-3 flex-1">
+                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                    {getClientTypeIcon(client.type)}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-medium text-sm">{client.name}</h3>
+                      <Badge 
+                        variant={client.isActive ? "default" : "secondary"}
+                        className="text-xs px-2 py-1"
+                      >
+                        {client.isActive ? "Attivo" : "Inattivo"}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{client.email}</p>
+                    <div className="flex items-center space-x-4 mt-1">
+                      <span className="text-xs text-muted-foreground">
+                        {getClientTypeLabel(client.type)}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        €{parseFloat(client.currentBalance || 0).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight className="chevron" />
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-8">
+              <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground">Nessun cliente trovato</p>
+            </div>
+          )}
+        </div>
+        
+        {/* Add Client Dialog - Mobile Optimized */}
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogContent className="w-[95vw] max-w-md mx-4">
+            <DialogHeader>
+              <DialogTitle>Nuovo Cliente</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleAddClient} className="space-y-4">
+              <Input name="name" placeholder="Nome cliente" required className="h-12" />
+              <Input name="email" type="email" placeholder="Email" required className="h-12" />
+              <Select name="type" defaultValue="merchant" required>
+                <SelectTrigger className="h-12">
+                  <SelectValue placeholder="Tipo cliente" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="merchant">Merchant</SelectItem>
+                  <SelectItem value="platform">Piattaforma</SelectItem>
+                  <SelectItem value="sub_client">Sotto-cliente</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="flex gap-2 pt-2">
+                <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)} className="flex-1 h-12">
+                  Annulla
+                </Button>
+                <Button type="submit" disabled={addClientMutation.isPending} className="flex-1 h-12">
+                  {addClientMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Aggiungi
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
