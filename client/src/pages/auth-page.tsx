@@ -329,15 +329,9 @@ export default function AuthPage() {
           {/* Glassmorphism Card */}
           <div className="bg-white/70 dark:bg-black/40 backdrop-blur-xl rounded-3xl border border-white/50 dark:border-white/10 shadow-2xl shadow-blue-500/10 p-8">
             <div className="text-center space-y-3 mb-8">
-              <h2 className="text-2xl font-bold text-foreground">
-                {isLogin ? "Bentornato" : "Crea Account"}
+              <h2 className="text-xl font-bold text-foreground">
+                {isLogin ? "Accesso" : "Registrazione"}
               </h2>
-              <p className="text-muted-foreground">
-                {isLogin 
-                  ? "Accedi al tuo ecosistema digitale"
-                  : "Inizia la trasformazione digitale"
-                }
-              </p>
             </div>
               
               {/* Elite Demo Notice */}
