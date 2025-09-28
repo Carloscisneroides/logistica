@@ -3890,6 +3890,125 @@ export const logisticsMarketplace = pgTable("logistics_marketplace", {
 }));
 
 // ========================
+// COMMERCIAL APPLICATIONS & PROFILES
+// ========================
+
+// Commercial Applications - Richieste di iscrizione commerciali
+export const commercialApplications = pgTable("commercial_applications", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").references(() => tenants.id),
+  
+  // Dati personali
+  fullName: text("full_name").notNull(),
+  email: text("email").notNull(),
+  phoneNumber: text("phone_number").notNull(),
+  geographicArea: text("geographic_area").notNull(),
+  
+  // Esperienza professionale
+  experienceDescription: text("experience_description"),
+  workSectors: text("work_sectors").array(), // ["ristorazione", "benessere", "retail", "logistica"]
+  cvUrl: text("cv_url"),
+  cvStorageKey: text("cv_storage_key"),
+  
+  // Specializzazione
+  specializedClientTypes: text("specialized_client_types").array(), // ["ristorazione", "servizi", "logistica", "ecommerce"]
+  
+  // Portafoglio clienti esistente
+  hasActiveClients: boolean("has_active_clients").default(false),
+  estimatedClientsCount: integer("estimated_clients_count"),
+  clientsSector: text("clients_sector"),
+  clientsGeographicArea: text("clients_geographic_area"),
+  clientsDocumentationUrl: text("clients_documentation_url"),
+  clientsDocumentationStorageKey: text("clients_documentation_storage_key"),
+  
+  // Disponibilità
+  preferredTimeSlots: text("preferred_time_slots").array(), // ["mattina", "pomeriggio", "sera", "weekend"]
+  preferredContactMethod: text("preferred_contact_method"), // "telefono", "email", "video_call"
+  
+  // Status e gestione
+  status: moduleStatusEnum("status").notNull().default("pending"), // pending, validation, active, rejected
+  reviewedBy: uuid("reviewed_by").references(() => users.id),
+  reviewedAt: timestamp("reviewed_at"),
+  rejectionReason: text("rejection_reason"),
+  
+  // AI Analysis
+  aiAnalysis: json("ai_analysis").$type<{
+    cvScore: number;
+    suggestedCategory: string;
+    suggestedAssignment: string;
+    confidenceLevel: number;
+    notes: string[];
+  }>(),
+  
+  // Audit
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  emailIdx: unique("commercial_applications_email_idx").on(table.email),
+  statusIdx: index("commercial_applications_status_idx").on(table.status),
+  tenantIdx: index("commercial_applications_tenant_idx").on(table.tenantId),
+}));
+
+// Commercial Profiles - Profili attivi commerciali 
+export const commercialProfiles = pgTable("commercial_profiles", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").references(() => tenants.id),
+  userId: uuid("user_id").references(() => users.id),
+  applicationId: uuid("application_id").references(() => commercialApplications.id),
+  
+  // Dati dal modulo di iscrizione
+  fullName: text("full_name").notNull(),
+  email: text("email").notNull(),
+  phoneNumber: text("phone_number").notNull(),
+  geographicArea: text("geographic_area").notNull(),
+  specializedClientTypes: text("specialized_client_types").array(),
+  
+  // Sistema commerciale
+  subRole: subRoleEnum("sub_role").notNull().default("agente"),
+  livello: livelloEnum("livello").notNull().default("base"),
+  grado: gradoEnum("grado").notNull().default("1"),
+  percentuale: decimal("percentuale", { precision: 5, scale: 2 }).notNull().default("5.00"),
+  aiSupport: boolean("ai_support").notNull().default(true),
+  
+  // Performance tracking
+  totalClients: integer("total_clients").notNull().default(0),
+  totalRevenue: decimal("total_revenue", { precision: 12, scale: 2 }).notNull().default("0.00"),
+  monthsActive: integer("months_active").notNull().default(0),
+  
+  // Status
+  status: moduleStatusEnum("status").notNull().default("active"),
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  userIdx: unique("commercial_profiles_user_idx").on(table.userId),
+  emailIdx: unique("commercial_profiles_email_idx").on(table.email),
+  tenantIdx: index("commercial_profiles_tenant_idx").on(table.tenantId),
+  subRoleIdx: index("commercial_profiles_subrole_idx").on(table.subRole),
+  livelloIdx: index("commercial_profiles_livello_idx").on(table.livello),
+}));
+
+// Commercial Experiences - Esperienze lavorative dettagliate
+export const commercialExperiences = pgTable("commercial_experiences", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  profileId: uuid("profile_id").references(() => commercialProfiles.id, { onDelete: "cascade" }),
+  
+  company: text("company").notNull(),
+  role: text("role").notNull(),
+  sector: text("sector"), // settore di riferimento
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date"),
+  description: text("description"),
+  achievements: text("achievements").array(), // risultati ottenuti
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  profileIdx: index("commercial_experiences_profile_idx").on(table.profileId),
+}));
+
+// ========================
 // INSERT SCHEMAS & TYPES per tutti i 4 MODULI
 // ========================
 
@@ -3925,3 +4044,38 @@ export type PartnerFacility = typeof partnerFacilities.$inferSelect;
 export type InsertPartnerFacility = z.infer<typeof insertPartnerFacilitySchemaNew>;
 export type LogisticsMarketplace = typeof logisticsMarketplace.$inferSelect;
 export type InsertLogisticsMarketplace = z.infer<typeof insertLogisticsMarketplaceSchemaNew>;
+
+// ========================
+// COMMERCIAL MODULE SCHEMAS & TYPES
+// ========================
+
+// Commercial Applications
+export const insertCommercialApplicationSchema = createInsertSchema(commercialApplications).omit({
+  id: true,
+  status: true,
+  reviewedBy: true, 
+  reviewedAt: true,
+  rejectionReason: true,
+  aiAnalysis: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCommercialProfileSchema = createInsertSchema(commercialProfiles).omit({
+  id: true,
+  status: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCommercialExperienceSchema = createInsertSchema(commercialExperiences).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type CommercialApplication = typeof commercialApplications.$inferSelect;
+export type InsertCommercialApplication = z.infer<typeof insertCommercialApplicationSchema>;
+export type CommercialProfile = typeof commercialProfiles.$inferSelect;
+export type InsertCommercialProfile = z.infer<typeof insertCommercialProfileSchema>;
+export type CommercialExperience = typeof commercialExperiences.$inferSelect;
+export type InsertCommercialExperience = z.infer<typeof insertCommercialExperienceSchema>;
