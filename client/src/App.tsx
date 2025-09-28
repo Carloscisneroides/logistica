@@ -55,6 +55,7 @@ import WalletPage from "@/pages/wallet-page";
 import RatesCarriersPage from "@/pages/rates-carriers-page";
 import GlobalLogisticsPage from "@/pages/global-logistics-page";
 import NotFound from "@/pages/not-found";
+import CommercialRegistration from "@/pages/commercial-registration";
 
 function MainLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -79,6 +80,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/auth" component={AuthPage} />
+      <Route path="/registrazione-commerciale" component={CommercialRegistration} />
       <ProtectedRoute path="/" component={() => (
         <MainLayout>
           <Dashboard />
