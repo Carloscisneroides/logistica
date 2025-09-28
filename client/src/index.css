@@ -123,6 +123,15 @@
   .status-inactive {
     @apply bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200;
   }
+
+  /* Mobile Menu Items - Touch-Optimized */
+  .mobile-menu-item {
+    @apply flex items-center space-x-3 w-full p-4 rounded-xl text-left transition-all duration-200 hover:bg-accent hover:text-accent-foreground active:scale-[0.98] min-h-[48px] text-base font-medium text-foreground;
+  }
+
+  .mobile-menu-item:focus {
+    @apply outline-none ring-2 ring-ring ring-offset-2;
+  }
   
   .status-pending {
     @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200;

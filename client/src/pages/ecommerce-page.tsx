@@ -404,10 +404,10 @@ export function EcommercePage() {
                         <h3 className="font-medium text-sm">{order.orderNumber}</h3>
                         {getStatusBadge(order.status)}
                       </div>
-                      <p className="text-sm text-muted-foreground">Cliente #{order.customerId}</p>
+                      <p className="text-sm text-muted-foreground">Ordine #{order.id}</p>
                       <div className="flex items-center space-x-4 mt-1">
                         <span className="text-xs text-muted-foreground">
-                          {new Date(order.createdAt).toLocaleDateString()}
+                          {order.status || 'Nuovo'}
                         </span>
                         <span className="text-xs font-medium text-green-600">
                           €{order.totalAmount}
@@ -439,15 +439,15 @@ export function EcommercePage() {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
-                        <h3 className="font-medium text-sm">{customer.name}</h3>
+                        <h3 className="font-medium text-sm">{customer.email || 'Cliente'}</h3>
                         <Badge variant="outline" className="text-xs px-2 py-1">
                           Cliente
                         </Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground">{customer.email}</p>
+                      <p className="text-sm text-muted-foreground">Cliente eCommerce</p>
                       <div className="flex items-center space-x-4 mt-1">
                         <span className="text-xs text-muted-foreground">
-                          {new Date(customer.createdAt).toLocaleDateString()}
+                          Attivo
                         </span>
                       </div>
                     </div>
@@ -697,7 +697,7 @@ export function EcommercePage() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {stats.topProducts.map((product, index) => (
+                      {stats?.topProducts?.map((product, index) => (
                         <div key={product.id} className="flex items-center justify-between p-3 border rounded-lg">
                           <div className="flex items-center space-x-3">
                             <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">

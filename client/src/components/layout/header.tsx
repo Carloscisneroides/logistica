@@ -54,24 +54,47 @@ export function Header({ title, onMenuToggle }: HeaderProps) {
                     <Menu className="w-6 h-6" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="left" className="w-[280px]">
-                  <div className="flex flex-col space-y-4 pt-6">
-                    <div className="flex items-center space-x-2 pb-4 border-b">
-                      <img src={ycoreLogo} alt="YCORE" className="h-8 w-8" />
-                      <span className="font-semibold text-lg">YCORE</span>
+                <SheetContent side="left" className="w-[320px] sm:w-[280px]">
+                  <div className="flex flex-col h-full">
+                    {/* Header Logo */}
+                    <div className="flex items-center space-x-3 pb-6 border-b border-border">
+                      <img src={ycoreLogo} alt="YCORE" className="h-10 w-10" />
+                      <div>
+                        <span className="font-bold text-xl text-primary">YCORE</span>
+                        <p className="text-xs text-muted-foreground">Business Platform</p>
+                      </div>
                     </div>
-                    <Button variant="ghost" className="justify-start" data-testid="link-dashboard">
-                      <LayoutDashboard className="w-5 h-5 mr-3" />
-                      Dashboard
-                    </Button>
-                    <Button variant="ghost" className="justify-start" data-testid="link-settings">
-                      <Settings className="w-5 h-5 mr-3" />
-                      Impostazioni
-                    </Button>
-                    <div className="pt-4 border-t">
+                    
+                    {/* Navigation Menu - Mobile Optimized */}
+                    <div className="flex-1 py-6 space-y-2">
+                      <a href="/" className="mobile-menu-item" data-testid="link-dashboard">
+                        <LayoutDashboard className="w-5 h-5" />
+                        <span>Dashboard</span>
+                      </a>
+                      <a href="/clients" className="mobile-menu-item" data-testid="link-clients">
+                        <User className="w-5 h-5" />
+                        <span>Clienti</span>
+                      </a>
+                      <a href="/shipments" className="mobile-menu-item" data-testid="link-shipments">
+                        <Plus className="w-5 h-5" />
+                        <span>Spedizioni</span>
+                      </a>
+                      <a href="/ecommerce" className="mobile-menu-item" data-testid="link-ecommerce">
+                        <Plus className="w-5 h-5" />
+                        <span>eCommerce</span>
+                      </a>
+                      <div className="my-4 border-t border-border"></div>
+                      <a href="/settings" className="mobile-menu-item" data-testid="link-settings">
+                        <Settings className="w-5 h-5" />
+                        <span>Impostazioni</span>
+                      </a>
+                    </div>
+                    
+                    {/* Bottom Section */}
+                    <div className="pt-4 border-t border-border">
                       <Button
                         variant="ghost"
-                        className="justify-start w-full text-destructive hover:text-destructive hover:bg-destructive/10"
+                        className="w-full h-12 justify-start text-destructive hover:text-destructive hover:bg-destructive/10 rounded-xl"
                         onClick={() => logoutMutation.mutate()}
                         data-testid="button-logout-mobile"
                       >

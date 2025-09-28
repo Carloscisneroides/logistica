@@ -191,7 +191,7 @@ type RegisterData = z.infer<typeof registerSchema>;
 export default function AuthPage() {
   const { user, isLoading, loginMutation, registerMutation } = useAuth();
   const { interfaceMode, isApp, isPC, keyboardOpen, safeArea, componentPolicy } = useDeviceInterface();
-  const { t, setLanguage, getLanguages, getCurrentLanguage } = useTranslation();
+  const { t, setLanguage, currentLanguage, languages } = useTranslation();
   // **PRIVATE DEMO MODE** - Disabilita registrazione pubblica
   const [isLogin, setIsLogin] = useState(true);
   const [registrationStep, setRegistrationStep] = useState(1); // 1=Account, 2=Business, 3=Compliance
@@ -400,17 +400,16 @@ export default function AuthPage() {
           <div className="flex justify-center mt-4">
             <button
               onClick={() => {
-                const current = getCurrentLanguage();
-                const langs = getLanguages();
-                const currentIndex = langs.findIndex(l => l.code === current);
-                const nextIndex = (currentIndex + 1) % langs.length;
-                setLanguage(langs[nextIndex].code);
+                const current = currentLanguage;
+                const currentIndex = languages.findIndex(l => l.code === current);
+                const nextIndex = (currentIndex + 1) % languages.length;
+                setLanguage(languages[nextIndex].code);
               }}
               className="flex items-center gap-2 px-3 py-1 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
               data-testid="mobile-login-language-switcher"
             >
               <Globe className="w-4 h-4" />
-              <span className="text-sm">{getLanguages().find(l => l.code === getCurrentLanguage())?.flag} {getCurrentLanguage().toUpperCase()}</span>
+              <span className="text-sm">{languages.find(l => l.code === currentLanguage)?.flag} {currentLanguage.toUpperCase()}</span>
             </button>
           </div>
         </div>
