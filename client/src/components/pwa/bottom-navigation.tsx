@@ -38,11 +38,17 @@ const bottomNavItems = [
   },
 ];
 
-export function BottomNavigation() {
+interface BottomNavigationProps {
+  navigationState?: any; // YCORE Navigation State
+}
+
+export function BottomNavigation({ navigationState }: BottomNavigationProps) {
   const [location] = useLocation();
   const { isApp } = useDeviceInterface();
 
+  // ARCHITETTURA YLENIA SACCO - Visibilità controllata
   if (!isApp) return null;
+  if (navigationState && !navigationState.isBottomNavVisible) return null;
 
   return (
     <>

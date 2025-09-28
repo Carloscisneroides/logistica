@@ -22,6 +22,9 @@ import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/layout/sidebar";
 import { BottomNavigation } from "@/components/pwa/bottom-navigation";
 import { SplashScreen } from "@/components/pwa/splash-screen";
+import { MobileNavigationDebug } from "@/components/debug/mobile-navigation-debug";
+import { MobileHeaderMenu } from "@/components/pwa/mobile-header-menu";
+import { MobileNavigationProvider, useMobileNavigationContext } from "@/contexts/mobile-navigation-context";
 import { useState } from "react";
 
 // Pages
@@ -65,21 +68,60 @@ import { useEffect } from "react";
 function MainLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { isApp, isPC } = useDeviceInterface();
+  
+  // Gestione sicura del Context
+  let navigationState;
+  try {
+    navigationState = useMobileNavigationContext();
+  } catch (error) {
+    // Fallback se Context non disponibile
+    navigationState = null;
+  }
 
+  // ===== ARCHITETTURA UNIFICATA YLENIA SACCO =====
+  if (isApp) {
+    // MODALITÀ MOBILE - Gestione centralizzata menu
+    return (
+      <div className="flex h-screen overflow-hidden bg-background">
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <Header 
+            title="YCORE" 
+            mobileMode={true}
+            navigationState={navigationState}
+          />
+          <main className="flex-1 overflow-auto pb-[80px]">
+            {children}
+          </main>
+        </div>
+        {/* Bottom Navigation con visibilità controllata */}
+        <BottomNavigation navigationState={navigationState} />
+        {/* Mobile Header Menu - Appare sopra tutto quando attivo */}
+        {navigationState && (
+          <MobileHeaderMenu 
+            isOpen={navigationState.isHeaderMenuOpen}
+            onClose={navigationState.closeAllMenus}
+          />
+        )}
+        {/* Debug overlay in development */}
+        <MobileNavigationDebug />
+      </div>
+    );
+  }
+
+  // MODALITÀ DESKTOP - Logica tradizionale
   return (
-    <div className={`flex h-screen overflow-hidden bg-background transition-page ${isApp ? 'pb-[70px]' : ''}`}>
+    <div className="flex h-screen overflow-hidden bg-background">
       <Sidebar className={sidebarOpen ? "" : "hidden lg:block"} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header 
           title="Dashboard" 
+          mobileMode={false}
           onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
         />
-        <main className={`flex-1 overflow-auto ${isApp ? 'pb-4' : ''}`}>
+        <main className="flex-1 overflow-auto">
           {children}
         </main>
       </div>
-      {/* Bottom Navigation for Mobile */}
-      <BottomNavigation />
     </div>
   );
 }
@@ -269,9 +311,11 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AuthProvider>
-          <SplashScreen />
-          <Router />
-          <Toaster />
+          <MobileNavigationProvider>
+            <SplashScreen />
+            <Router />
+            <Toaster />
+          </MobileNavigationProvider>
         </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>

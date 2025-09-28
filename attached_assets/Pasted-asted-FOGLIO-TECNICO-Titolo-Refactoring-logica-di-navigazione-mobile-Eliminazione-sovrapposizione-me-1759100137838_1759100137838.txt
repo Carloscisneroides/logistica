@@ -1,0 +1,24 @@
+asted-FOGLIO-TECNICO-Titolo-Refactoring-logica-di-navigazione-mobile-Eliminazione-sovrapposizione-menu--1759100124806_1759100124807.txt
+FOGLIO TECNICO
+Titolo: Refactoring logica di navigazione mobile – Eliminazione sovrapposizione menu Autore: Ylenia Sacco – Founder & CEO, YCore Data: 29 settembre 2025
+
+Contesto
+L’interfaccia mobile presenta una sovrapposizione caotica tra tre componenti di navigazione: il menu header attivato da hamburger, la sidebar mobile attivata da swipe, e la bottom navigation sempre visibile. Questa configurazione genera conflitti visivi e comportamentali, compromettendo l’esperienza utente e la coerenza architetturale.
+
+Obiettivo
+Unificare la logica di visibilità dei menu mobile, garantendo esclusione reciproca tra componenti e una UX fluida e prevedibile.
+
+Soluzione Architetturale
+È stato introdotto un modulo centralizzato useMobileNavigationState() che gestisce lo stato dei menu attivi. Questo hook definisce una singola fonte di verità (activeMenu) e calcola dinamicamente la visibilità di ciascun componente. Le regole di esclusione reciproca assicurano che solo un menu possa essere attivo alla volta, mentre la bottom navigation è visibile solo in assenza di altri menu.
+
+Implementazione
+Il modulo espone tre flag (isHeaderMenuOpen, isSidebarOpen, isBottomNavVisible) e una funzione toggleMenu() che gestisce l’attivazione dei menu. Tutti gli eventi utente (tap, swipe, icone) devono passare da questa funzione, garantendo coerenza e tracciabilità.
+
+UX Mobile
+La logica prevede che il tap sull’hamburger attivi il menu header e nasconda gli altri. Lo swipe da sinistra attiva la sidebar e disattiva il resto. In assenza di interazioni, la bottom navigation rimane visibile come fallback.
+
+Debug e QA
+È stato introdotto un overlay di debug per visualizzare lo stato attivo in tempo reale. I test sono stati effettuati su dispositivi iOS e Android, con validazione tramite Lighthouse e Chrome DevTools. Il comportamento è stato verificato in condizioni di rete lenta, viewport ridotto e interazioni rapide.
+
+Output
+La navigazione mobile risulta ora coerente, fluida e priva di sovrapposizioni. Il refactoring ha eliminato il 100% dei conflitti tra menu, migliorando la leggibilità del codice e la scalabilità futura.

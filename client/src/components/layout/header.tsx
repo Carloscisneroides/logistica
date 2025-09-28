@@ -14,9 +14,11 @@ import ycoreLogo from "@assets/Copilot_20250928_191905_1759079989814.png";
 interface HeaderProps {
   title: string;
   onMenuToggle?: () => void;
+  mobileMode?: boolean;
+  navigationState?: any; // YCORE Navigation State per mobile
 }
 
-export function Header({ title, onMenuToggle }: HeaderProps) {
+export function Header({ title, onMenuToggle, mobileMode = false, navigationState }: HeaderProps) {
   const [selectedLanguage, setSelectedLanguage] = useState("it");
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -30,92 +32,36 @@ export function Header({ title, onMenuToggle }: HeaderProps) {
   });
 
   return (
-    <header className={`bg-card border-b border-border ${isApp ? 'px-4 py-3' : 'px-0 py-4'}`}>
-      <div className={`flex items-center justify-between ${!isApp ? 'desktop-container' : ''}`}>
+    <header className={`bg-card border-b border-border ${mobileMode ? 'px-4 py-3' : 'px-0 py-4'}`}>
+      <div className={`flex items-center justify-between ${!mobileMode ? 'desktop-container' : ''}`}>
         <div className="flex items-center space-x-4">
-          {/* Mobile: Back button or Menu */}
-          {isApp ? (
-            canGoBack ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => window.history.back()}
-                data-testid="button-back"
-              >
-                <ArrowLeft className="w-6 h-6" />
-              </Button>
-            ) : (
-              <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-                <SheetTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    data-testid="button-menu-toggle"
-                  >
-                    <Menu className="w-6 h-6" />
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="left" className="mobile-menu-content" onCloseMenu={() => setMobileMenuOpen(false)}>
-                  <div className="flex flex-col h-full">
-                    {/* Header Logo */}
-                    <div className="flex items-center space-x-3 pb-6 border-b border-border">
-                      <img src={ycoreLogo} alt="YCORE" className="h-10 w-10" />
-                      <div>
-                        <span className="font-bold text-xl text-primary">YCORE</span>
-                        <p className="text-xs text-muted-foreground">Business Platform</p>
-                      </div>
-                    </div>
-                    
-                    {/* Navigation Menu - Mobile Optimized */}
-                    <div className="flex-1 py-6 space-y-2">
-                      <a href="/" className="mobile-menu-item" data-testid="link-dashboard">
-                        <LayoutDashboard className="w-5 h-5" />
-                        <span>Dashboard</span>
-                      </a>
-                      <a href="/clients" className="mobile-menu-item" data-testid="link-clients">
-                        <User className="w-5 h-5" />
-                        <span>Clienti</span>
-                      </a>
-                      <a href="/shipments" className="mobile-menu-item" data-testid="link-shipments">
-                        <Plus className="w-5 h-5" />
-                        <span>Spedizioni</span>
-                      </a>
-                      <a href="/ecommerce" className="mobile-menu-item" data-testid="link-ecommerce">
-                        <Plus className="w-5 h-5" />
-                        <span>eCommerce</span>
-                      </a>
-                      <div className="my-4 border-t border-border"></div>
-                      <a href="/settings" className="mobile-menu-item" data-testid="link-settings">
-                        <Settings className="w-5 h-5" />
-                        <span>Impostazioni</span>
-                      </a>
-                    </div>
-                    
-                    {/* Bottom Section */}
-                    <div className="pt-4 border-t border-border">
-                      <Button
-                        variant="ghost"
-                        className="w-full h-12 justify-start text-destructive hover:text-destructive hover:bg-destructive/10 rounded-xl"
-                        onClick={() => logoutMutation.mutate()}
-                        data-testid="button-logout-mobile"
-                      >
-                        <LogOut className="w-5 h-5 mr-3" />
-                        Logout
-                      </Button>
-                    </div>
-                  </div>
-                </SheetContent>
-              </Sheet>
-            )
-          ) : (
+          {/* ARCHITETTURA YLENIA SACCO - GESTIONE CENTRALIZZATA */}
+          {mobileMode && navigationState ? (
+            /* MOBILE MODE: Menu hamburger con stato centralizzato */
             <Button
               variant="ghost"
               size="sm"
-              className="lg:hidden"
+              onClick={() => navigationState.toggleMenu('header')}
+              data-testid="button-mobile-menu-toggle"
+              className={navigationState.isHeaderMenuOpen ? 'bg-accent' : ''}
+            >
+              <Menu className="w-6 h-6" />
+            </Button>
+          ) : mobileMode ? (
+            /* MOBILE FALLBACK: Solo logo */
+            <div className="flex items-center space-x-3">
+              <img src={ycoreLogo} alt="YCORE" className="h-8 w-8" />
+              <span className="font-bold text-lg text-primary">{title}</span>
+            </div>
+          ) : (
+            /* DESKTOP MODE: Menu toggle tradizionale */
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={onMenuToggle}
               data-testid="button-menu-toggle"
             >
-              <Menu className="w-5 h-5" />
+              <Menu className="w-6 h-6" />
             </Button>
           )}
           
