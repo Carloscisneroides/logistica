@@ -6,9 +6,11 @@ import { CommercialCard } from "@/components/commercial/commercial-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Truck, Users, Euro, Puzzle, Bot, Crown, Clock, ArrowUp } from "lucide-react";
+import { useDeviceInterface } from "@/hooks/use-device-interface";
+import { Truck, Users, Euro, Puzzle, Bot, Crown, Clock, ArrowUp, ChevronRight, Package, TrendingUp, DollarSign } from "lucide-react";
 
 export default function Dashboard() {
+  const { isApp } = useDeviceInterface();
   const { data: dashboardData, isLoading } = useQuery({
     queryKey: ["/api/dashboard/stats"],
   });
@@ -51,6 +53,107 @@ export default function Dashboard() {
   const activeModules = modules.filter((m: any) => m.status === "active");
   const pendingCorrections = corrections?.filter((c: any) => c.status === "pending").length || 0;
 
+  if (isApp) {
+    // MOBILE APP-NATIVE DASHBOARD
+    return (
+      <div className="content-app space-y-4">
+        {/* Quick Stats - Mobile Scroll */}
+        <div className="flex gap-3 overflow-x-auto pb-2">
+          <div className="min-w-[140px] bg-card border rounded-lg p-3 list-item">
+            <div className="flex items-center justify-between mb-2">
+              <Package className="h-5 w-5 text-primary" />
+            </div>
+            <div className="text-xl font-bold">24</div>
+            <p className="text-xs text-muted-foreground">Spedizioni</p>
+          </div>
+          <div className="min-w-[140px] bg-card border rounded-lg p-3 list-item">
+            <div className="flex items-center justify-between mb-2">
+              <Users className="h-5 w-5 text-green-600" />
+            </div>
+            <div className="text-xl font-bold">128</div>
+            <p className="text-xs text-muted-foreground">Clienti</p>
+          </div>
+          <div className="min-w-[140px] bg-card border rounded-lg p-3 list-item">
+            <div className="flex items-center justify-between mb-2">
+              <TrendingUp className="h-5 w-5 text-blue-600" />
+            </div>
+            <div className="text-xl font-bold">€2.4k</div>
+            <p className="text-xs text-muted-foreground">Ricavi</p>
+          </div>
+        </div>
+        
+        {/* Quick Actions - Mobile List */}
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold">Azioni Rapide</h2>
+          <div className="space-y-2">
+            <div className="list-item" data-testid="quick-action-shipment">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                  <Truck className="w-5 h-5 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-medium">Nuova Spedizione</h3>
+                  <p className="text-sm text-muted-foreground">Crea spedizione rapida</p>
+                </div>
+              </div>
+              <ChevronRight className="chevron" />
+            </div>
+            <div className="list-item" data-testid="quick-action-client">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-green-500/10 rounded-lg flex items-center justify-center">
+                  <Users className="w-5 h-5 text-green-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-medium">Aggiungi Cliente</h3>
+                  <p className="text-sm text-muted-foreground">Registra nuovo cliente</p>
+                </div>
+              </div>
+              <ChevronRight className="chevron" />
+            </div>
+            <div className="list-item" data-testid="quick-action-ecommerce">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-purple-500/10 rounded-lg flex items-center justify-center">
+                  <Puzzle className="w-5 h-5 text-purple-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-medium">eCommerce</h3>
+                  <p className="text-sm text-muted-foreground">Gestisci marketplace</p>
+                </div>
+              </div>
+              <ChevronRight className="chevron" />
+            </div>
+          </div>
+        </div>
+        
+        {/* Recent Activity - Mobile */}
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold">Attività Recente</h2>
+          <div className="space-y-2">
+            <div className="list-item">
+              <div className="flex items-center space-x-3">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Spedizione SP001 consegnata</p>
+                  <p className="text-xs text-muted-foreground">2 ore fa</p>
+                </div>
+              </div>
+            </div>
+            <div className="list-item">
+              <div className="flex items-center space-x-3">
+                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Nuovo cliente registrato</p>
+                  <p className="text-xs text-muted-foreground">5 ore fa</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // DESKTOP DASHBOARD
   return (
     <div className="p-6 space-y-6">
       {/* Stats Cards */}
