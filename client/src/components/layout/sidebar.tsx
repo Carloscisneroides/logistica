@@ -283,7 +283,20 @@ export function Sidebar({ className }: SidebarProps) {
   const { hasRole, canAccess } = useRolePermissions();
 
   const filteredMenuItems = menuItems.filter(item => {
-    // Check role permission
+    // System creator and admin should see most items except specific client/commerciale areas
+    if (user?.role === 'system_creator') {
+      // Hide only client-specific and commerciale-specific areas
+      if (item.clientType || (item as any).subRole) return false;
+      return true;
+    }
+    
+    if (user?.role === 'admin') {
+      // Hide only client-specific and commerciale-specific areas
+      if (item.clientType || (item as any).subRole) return false;
+      return true;
+    }
+    
+    // Check role permission for other roles
     if (item.roles && !item.roles.includes(user?.role || "")) return false;
     
     // Check clientType for client users
