@@ -68,14 +68,14 @@ export function Header({ title, onMenuToggle }: HeaderProps) {
               <SelectValue placeholder="Lingua" />
             </SelectTrigger>
             <SelectContent>
-              {languages?.map((lang: any) => (
+              {Array.isArray(languages) ? languages.map((lang: any) => (
                 <SelectItem key={lang.code} value={lang.code}>
                   <span className="flex items-center space-x-2">
                     <span>{lang.flag}</span>
                     <span>{lang.name}</span>
                   </span>
                 </SelectItem>
-              )) || (
+              )) : (
                 <SelectItem value="it">
                   <span className="flex items-center space-x-2">
                     <span>🇮🇹</span>
