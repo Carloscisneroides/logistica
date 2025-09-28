@@ -577,17 +577,17 @@ export default function AuthPage() {
 
       {/* Form di login CENTRATO SOTTO */}
       <div className="flex items-center justify-center p-8 relative z-10">
-        <div className="w-full max-w-md space-y-8">
+        <div className="w-full max-w-lg space-y-12">
           {/* Glassmorphism Card */}
-          <div className="bg-white/70 dark:bg-black/40 backdrop-blur-xl rounded-3xl border border-white/50 dark:border-white/10 shadow-2xl shadow-blue-500/10 p-8">
-            <div className="text-center space-y-3 mb-8">
+          <div className="bg-white/70 dark:bg-black/40 backdrop-blur-xl rounded-3xl border border-white/50 dark:border-white/10 shadow-2xl shadow-blue-500/10 p-10">
+            <div className="text-center space-y-4 mb-10">
               <h2 className="text-xl font-bold text-foreground">
                 {isLogin ? "Accesso" : "Registrazione"}
               </h2>
             </div>
               
               {/* Elite Demo Notice */}
-              <div className="mt-6 p-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/50 dark:to-orange-950/50 rounded-2xl border border-amber-200/50 dark:border-amber-800/50">
+              <div className="mt-8 p-5 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/50 dark:to-orange-950/50 rounded-2xl border border-amber-200/50 dark:border-amber-800/50">
                 <div className="text-center space-y-2">
                   <div className="flex items-center justify-center space-x-2">
                     <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
@@ -604,15 +604,15 @@ export default function AuthPage() {
               </div>
             </div>
             
-            <div className="space-y-6">
+            <div className="space-y-8">
               {isLogin ? (
                 <form 
                   onSubmit={loginForm.handleSubmit(onLoginSubmit)} 
-                  className={`space-y-6 ${isApp ? 'form-keyboard-adaptive form-mobile' : ''}`}
+                  className={`space-y-8 ${isApp ? 'form-keyboard-adaptive form-mobile' : ''}`}
                   data-keyboard-open={keyboardOpen ? '1' : '0'}
                 >
-                  <div className="space-y-4">
-                    <div className="space-y-2">
+                  <div className="space-y-6">
+                    <div className="space-y-3">
                       <Label htmlFor="username" className="text-sm font-medium text-foreground/80">Username</Label>
                       <Input
                         id="username"
@@ -630,7 +630,7 @@ export default function AuthPage() {
                       )}
                     </div>
                     
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       <Label htmlFor="password" className="text-sm font-medium text-foreground/80">Password</Label>
                       <Input
                         id="password"

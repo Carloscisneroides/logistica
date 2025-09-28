@@ -21,7 +21,7 @@ const SheetOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SheetPrimitive.Overlay
     className={cn(
-      "fixed inset-0 z-50 bg-black/60 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:duration-200 data-[state=open]:duration-200",
+      "fixed inset-0 z-40 bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:duration-300 data-[state=open]:duration-300",
       className
     )}
     {...props}
@@ -31,14 +31,14 @@ const SheetOverlay = React.forwardRef<
 SheetOverlay.displayName = SheetPrimitive.Overlay.displayName
 
 const sheetVariants = cva(
-  "fixed z-50 gap-4 bg-background shadow-xl transition-all ease-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-200 data-[state=open]:duration-300",
+  "fixed z-50 gap-4 bg-background shadow-2xl transition-all ease-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-400",
   {
     variants: {
       side: {
         top: "inset-x-0 top-0 border-b p-6 data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top",
         bottom:
           "inset-x-0 bottom-0 border-t p-6 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
-        left: "inset-y-0 left-0 h-full w-[280px] max-w-[280px] border-r p-4 data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left",
+        left: "inset-y-0 left-0 h-full w-[85vw] max-w-[320px] sm:w-[280px] border-r p-4 data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left",
         right:
           "inset-y-0 right-0 h-full w-[280px] max-w-[280px] border-l p-4 data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right",
       },
@@ -80,66 +80,62 @@ const SheetContent = React.forwardRef<
     };
   }, [isMobileMenu]);
 
-  // Enhanced swipe-to-close functionality for mobile menu
+  // Simple swipe-to-close for mobile menu (non-intrusive)
   React.useEffect(() => {
     if (!isMobileMenu || side !== 'left' || !onCloseMenu) return;
     
     let startX = 0;
+    let startY = 0;
     let isDragging = false;
-    let currentTransform = 0;
     
-    const handlePointerStart = (e: PointerEvent) => {
-      startX = e.clientX;
-      isDragging = true;
-      e.preventDefault();
-    };
-    
-    const handlePointerMove = (e: PointerEvent) => {
-      if (!isDragging) return;
-      
-      const deltaX = startX - e.clientX;
-      currentTransform = Math.max(0, deltaX); // Only allow leftward drag
-      
-      const panel = e.currentTarget as HTMLElement;
-      requestAnimationFrame(() => {
-        panel.style.transform = `translateX(-${currentTransform}px)`;
-        panel.style.transition = 'none';
-      });
-    };
-    
-    const handlePointerEnd = (e: PointerEvent) => {
-      if (!isDragging) return;
+    const handleTouchStart = (e: TouchEvent) => {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
       isDragging = false;
+    };
+    
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!startX || !startY) return;
       
-      const panel = e.currentTarget as HTMLElement;
-      const threshold = Math.max(120, panel.offsetWidth * 0.3);
+      const currentX = e.touches[0].clientX;
+      const currentY = e.touches[0].clientY;
       
-      if (currentTransform > threshold) {
-        // Close menu
+      const diffX = startX - currentX;
+      const diffY = Math.abs(startY - currentY);
+      
+      // Only consider horizontal swipe if more horizontal than vertical
+      if (Math.abs(diffX) > diffY && Math.abs(diffX) > 50) {
+        isDragging = true;
+      }
+    };
+    
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (!isDragging || !startX) return;
+      
+      const endX = e.changedTouches[0].clientX;
+      const diffX = startX - endX;
+      
+      // Close on significant leftward swipe
+      if (diffX > 100) {
         onCloseMenu();
-      } else {
-        // Reset position
-        requestAnimationFrame(() => {
-          panel.style.transform = '';
-          panel.style.transition = '';
-        });
       }
       
-      currentTransform = 0;
+      // Reset
+      startX = 0;
+      startY = 0;
+      isDragging = false;
     };
     
     const panel = document.querySelector('.mobile-menu-content') as HTMLElement;
     if (panel) {
-      panel.addEventListener('pointerdown', handlePointerStart);
-      panel.addEventListener('pointermove', handlePointerMove);
-      panel.addEventListener('pointerup', handlePointerEnd);
-      panel.addEventListener('pointercancel', handlePointerEnd);
+      panel.addEventListener('touchstart', handleTouchStart, { passive: true });
+      panel.addEventListener('touchmove', handleTouchMove, { passive: true });
+      panel.addEventListener('touchend', handleTouchEnd, { passive: true });
       
       return () => {
-        panel.removeEventListener('pointerdown', handlePointerStart);
-        panel.removeEventListener('pointermove', handlePointerMove);
-        panel.removeEventListener('pointerup', handlePointerEnd);
-        panel.removeEventListener('pointercancel', handlePointerEnd);
+        panel.removeEventListener('touchstart', handleTouchStart);
+        panel.removeEventListener('touchmove', handleTouchMove);
+        panel.removeEventListener('touchend', handleTouchEnd);
       };
     }
   }, [isMobileMenu, side, onCloseMenu]);
