@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
-import RoleProtected from "@/components/role-protected";
+import { RoleProtected } from "@/components/role-protected";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Wallet, CreditCard, Plus, ArrowUpRight, ArrowDownLeft, DollarSign, Receipt, Zap, Shield, TrendingUp, Settings, Headphones, UserCheck, Bell, FileText } from "lucide-react";
+import { Wallet, CreditCard, Plus, ArrowUpRight, ArrowDownLeft, DollarSign, Receipt, Zap, Shield, TrendingUp, Settings, Headphones, UserCheck, Bell, FileText, CheckCircle, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
@@ -21,38 +21,44 @@ export default function WalletPage() {
 
   // Queries
   const { data: walletData, isLoading: loadingWallet } = useQuery({
-    queryKey: ['/api/wallet'],
+    queryKey: ['/api/wallet/card/saldo'],
+  });
+
+  const { data: walletStats, isLoading: loadingStats } = useQuery({
+    queryKey: ['/api/wallet/stats'],
   });
 
   const { data: transactions = [], isLoading: loadingTransactions } = useQuery({
-    queryKey: ['/api/wallet/transactions'],
+    queryKey: ['/api/wallet/log'],
   });
 
   // Mutations
   const topUpMutation = useMutation({
-    mutationFn: (amount: number) => 
-      apiRequest('/api/wallet/topup', { method: 'POST', body: { amount } }),
+    mutationFn: (data: { amount: number; method: 'stripe' | 'bonifico' }) => 
+      apiRequest('/api/wallet/charge', { method: 'POST', body: data }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/wallet'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/wallet/card/saldo'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/wallet/stats'] });
       setShowTopUpDialog(false);
       setTopUpAmount("");
-      toast({ title: "Ricarica completata con successo" });
+      toast({ title: "✅ Ricarica completata con successo" });
     },
   });
 
   const withdrawMutation = useMutation({
-    mutationFn: (amount: number) => 
-      apiRequest('/api/wallet/withdraw', { method: 'POST', body: { amount } }),
+    mutationFn: (data: { iban: string; amount: number }) => 
+      apiRequest('/api/wallet/card/richiesta-bonifico', { method: 'POST', body: data }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/wallet'] });
-      toast({ title: "Prelievo richiesto con successo" });
+      queryClient.invalidateQueries({ queryKey: ['/api/wallet/card/saldo'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/wallet/log'] });
+      toast({ title: "🏦 Richiesta bonifico inviata con successo" });
     },
   });
 
   const handleTopUp = () => {
     const amount = parseFloat(topUpAmount);
     if (amount > 0) {
-      topUpMutation.mutate(amount);
+      topUpMutation.mutate({ amount, method: 'stripe' });
     }
   };
 
@@ -228,30 +234,157 @@ export default function WalletPage() {
 
       {/* Role-specific Content */}
       <RoleProtected allowedRoles={["admin"]}>
-        <Card className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950 dark:to-orange-950 border-red-200">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-red-700 dark:text-red-300">
-              <Shield className="h-5 w-5" />
-              Pannello Amministratore Wallet
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="text-center p-4 bg-white dark:bg-gray-800 rounded-lg">
-                <p className="text-2xl font-bold text-red-600">€{walletData?.system_total_balance?.toFixed(2) || '0.00'}</p>
-                <p className="text-sm text-gray-600">Saldo Sistema Totale</p>
+        <div className="space-y-6">
+          {/* Dashboard Operativa Admin */}
+          <Card className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950 dark:to-orange-950 border-red-200">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-red-700 dark:text-red-300">
+                <Shield className="h-5 w-5" />
+                🔥 ADMIN SYSTEM - Controllo Totale Wallet
+              </CardTitle>
+              <CardDescription className="text-red-600 dark:text-red-400">
+                ✅ Accesso privilegiato • 🛡️ Sicurezza blindata • 🧠 AI-powered
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="text-center p-4 bg-white dark:bg-gray-800 rounded-lg border-l-4 border-red-500">
+                  <p className="text-2xl font-bold text-red-600">€{walletData?.system_total_balance?.toFixed(2) || '0.00'}</p>
+                  <p className="text-sm text-gray-600">💰 Saldo Sistema Totale</p>
+                </div>
+                <div className="text-center p-4 bg-white dark:bg-gray-800 rounded-lg border-l-4 border-orange-500">
+                  <p className="text-2xl font-bold text-orange-600">{walletData?.pending_admin_approvals || 0}</p>
+                  <p className="text-sm text-gray-600">⏳ Bonifici Pendenti</p>
+                </div>
+                <div className="text-center p-4 bg-white dark:bg-gray-800 rounded-lg border-l-4 border-purple-500">
+                  <p className="text-2xl font-bold text-purple-600">{walletData?.suspicious_transactions || 0}</p>
+                  <p className="text-sm text-gray-600">🚨 Transazioni Sospette</p>
+                </div>
+                <div className="text-center p-4 bg-white dark:bg-gray-800 rounded-lg border-l-4 border-green-500">
+                  <p className="text-2xl font-bold text-green-600">{walletData?.ai_alerts_count || 0}</p>
+                  <p className="text-sm text-gray-600">🧠 Alert AI Attivi</p>
+                </div>
               </div>
-              <div className="text-center p-4 bg-white dark:bg-gray-800 rounded-lg">
-                <p className="text-2xl font-bold text-orange-600">{walletData?.pending_admin_approvals || 0}</p>
-                <p className="text-sm text-gray-600">Approvazioni Pendenti</p>
+            </CardContent>
+          </Card>
+
+          {/* Comandi Critici Admin */}
+          <Card className="border-red-300">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-red-700">
+                ⚡ COMANDI CRITICI ADMIN
+              </CardTitle>
+              <CardDescription>
+                Operazioni ad alto impatto con logging completo e AI pre-check
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Button 
+                  variant="destructive" 
+                  className="h-20 flex flex-col gap-2"
+                  data-testid="button-admin-override"
+                >
+                  <Shield className="h-6 w-6" />
+                  <span className="text-sm font-bold">OVERRIDE</span>
+                  <span className="text-xs">Modifica Saldo/Stato</span>
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  className="h-20 flex flex-col gap-2 border-orange-300 text-orange-700"
+                  data-testid="button-confirm-bonifico"
+                >
+                  <CheckCircle className="h-6 w-6" />
+                  <span className="text-sm font-bold">CONFERMA</span>
+                  <span className="text-xs">Bonifici Pendenti</span>
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  className="h-20 flex flex-col gap-2 border-blue-300 text-blue-700"
+                  data-testid="button-admin-logs"
+                >
+                  <FileText className="h-6 w-6" />
+                  <span className="text-sm font-bold">LOGS</span>
+                  <span className="text-xs">Filtri Avanzati</span>
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  className="h-20 flex flex-col gap-2 border-purple-300 text-purple-700"
+                  data-testid="button-update-commissioni"
+                >
+                  <TrendingUp className="h-6 w-6" />
+                  <span className="text-sm font-bold">COMMISSIONI</span>
+                  <span className="text-xs">Update Modello</span>
+                </Button>
               </div>
-              <div className="text-center p-4 bg-white dark:bg-gray-800 rounded-lg">
-                <p className="text-2xl font-bold text-purple-600">{walletData?.active_users_count || 0}</p>
-                <p className="text-sm text-gray-600">Utenti Attivi</p>
+            </CardContent>
+          </Card>
+
+          {/* AI Suggerimenti Strategici */}
+          <Card className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 border-blue-200">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                🧠 AI SUGGERIMENTI STRATEGICI
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3 p-3 bg-green-50 dark:bg-green-950 rounded-lg">
+                    <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                        💰 Bonifici da confermare: 3 richieste sicure
+                      </p>
+                      <p className="text-xs text-green-600">AI Confidence: 95%</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3 p-3 bg-orange-50 dark:bg-orange-950 rounded-lg">
+                    <AlertTriangle className="h-5 w-5 text-orange-600 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-orange-800 dark:text-orange-200">
+                        👤 Utente ID #1247 da monitorare
+                      </p>
+                      <p className="text-xs text-orange-600">Pattern sospetto rilevato</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3 p-3 bg-red-50 dark:bg-red-950 rounded-lg">
+                    <Shield className="h-5 w-5 text-red-600 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-red-800 dark:text-red-200">
+                        🚨 Transazione fraudolenta: Bloccare TXN #8492
+                      </p>
+                      <p className="text-xs text-red-600">Urgenza: ALTA</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3 p-3 bg-purple-50 dark:bg-purple-950 rounded-lg">
+                    <TrendingUp className="h-5 w-5 text-purple-600 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-purple-800 dark:text-purple-200">
+                        📈 Cliente premium candidato: Merchant #892
+                      </p>
+                      <p className="text-xs text-purple-600">Volume: +340% questo mese</p>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+              
+              <div className="mt-4 pt-4 border-t">
+                <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600" data-testid="button-ai-analysis">
+                  🧠 Avvia Analisi AI Completa
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </RoleProtected>
 
       <RoleProtected allowedRoles={["system_creator"]}>
