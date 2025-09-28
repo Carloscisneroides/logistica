@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useDeviceInterface } from "@/hooks/use-device-interface";
 import { Button } from "@/components/ui/button";
@@ -193,6 +193,7 @@ export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const isPrivateDemo = true; // Modalità demo privata attiva
   const [showPWAInstall, setShowPWAInstall] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   const loginForm = useForm<LoginData>({
     resolver: zodResolver(loginSchema),
@@ -218,6 +219,37 @@ export default function AuthPage() {
       message: ""
     },
   });
+
+  // PWA Install Handler
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowPWAInstall(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallApp = async () => {
+    if (!deferredPrompt) {
+      // Fallback for browsers that don't support beforeinstallprompt
+      alert('Per installare l\'app, usa il menu del browser Chrome e seleziona "Installa app"');
+      return;
+    }
+
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+      setShowPWAInstall(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -775,11 +807,7 @@ export default function AuthPage() {
                     </p>
                     
                     <button
-                      onClick={() => {
-                        // Trigger PWA install prompt
-                        const event = new CustomEvent('show-pwa-install');
-                        window.dispatchEvent(event);
-                      }}
+                      onClick={handleInstallApp}
                       className="pwa-install-button w-full justify-center"
                       data-testid="button-install-pwa"
                     >
