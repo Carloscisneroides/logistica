@@ -27,6 +27,7 @@ import {
   Headphones,
   ShoppingCart,
   Store,
+  TrendingUp,
   CreditCard,
   Ship,
   Plane,
