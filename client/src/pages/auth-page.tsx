@@ -716,10 +716,8 @@ export default function AuthPage() {
                 </div>
                 
                 <div className="text-left">
-                  <h1 className="text-5xl lg:text-6xl font-black tracking-tight">
-                    <span className="block text-transparent bg-clip-text bg-gradient-to-r from-white via-blue-100 to-cyan-200">
-                      YCORE
-                    </span>
+                  <h1 className="text-5xl lg:text-6xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-blue-100 to-cyan-200">
+                    YCORE
                   </h1>
                 </div>
               </div>
