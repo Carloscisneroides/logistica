@@ -66,7 +66,13 @@ import {
   type Inventory, type InsertInventory, type InventoryMovement, type InsertInventoryMovement,
   type Supplier, type InsertSupplier, type SupplierOrder, type InsertSupplierOrder,
   type LogisticsPartner, type InsertLogisticsPartner, type PartnerFacility, type InsertPartnerFacility,
-  type LogisticsMarketplace, type InsertLogisticsMarketplace
+  type LogisticsMarketplace, type InsertLogisticsMarketplace,
+  
+  // Commercial Module types
+  commercialApplications, commercialProfiles, commercialExperiences,
+  type CommercialApplication, type InsertCommercialApplication,
+  type CommercialProfile, type InsertCommercialProfile,
+  type CommercialExperience, type InsertCommercialExperience
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, not, desc, sql, isNull } from "drizzle-orm";
@@ -951,6 +957,85 @@ export interface IStorage {
   createShippingQuote(quote: InsertShippingQuote): Promise<ShippingQuote>;
   updateShippingQuote(id: string, updates: Partial<ShippingQuote>): Promise<ShippingQuote>;
   deleteShippingQuote(id: string): Promise<void>;
+
+  // ======== COMMERCIAL MODULE METHODS ========
+  
+  // Commercial Applications - Gestione richieste di iscrizione
+  getCommercialApplication(id: string): Promise<CommercialApplication | undefined>;
+  getCommercialApplicationsByTenant(tenantId: string): Promise<CommercialApplication[]>;
+  getCommercialApplicationsByStatus(status: string, tenantId: string): Promise<CommercialApplication[]>;
+  getCommercialApplicationByEmail(email: string): Promise<CommercialApplication | undefined>;
+  createCommercialApplication(application: InsertCommercialApplication): Promise<CommercialApplication>;
+  updateCommercialApplication(id: string, updates: Partial<CommercialApplication>): Promise<CommercialApplication>;
+  deleteCommercialApplication(id: string): Promise<void>;
+  
+  // AI Analysis for Applications
+  analyzeCommercialApplication(id: string, cvText?: string): Promise<{
+    cvScore: number;
+    suggestedCategory: string;
+    suggestedAssignment: string;
+    confidenceLevel: number;
+    notes: string[];
+  }>;
+  
+  // Approval Process
+  approveCommercialApplication(id: string, approvalData: {
+    subRole: 'agente' | 'responsabile';
+    livello?: 'base' | 'medium' | 'premium';
+    grado?: '1' | '2' | '3';
+    percentuale?: string;
+    notes?: string;
+  }): Promise<{
+    profile: CommercialProfile;
+    user: User;
+  }>;
+  rejectCommercialApplication(id: string, reason: string, reviewedBy: string): Promise<CommercialApplication>;
+  
+  // Commercial Profiles - Gestione profili attivi
+  getCommercialProfile(id: string): Promise<CommercialProfile | undefined>;
+  getCommercialProfilesByTenant(tenantId: string): Promise<CommercialProfile[]>;
+  getCommercialProfileByUserId(userId: string): Promise<CommercialProfile | undefined>;
+  getCommercialProfileByEmail(email: string): Promise<CommercialProfile | undefined>;
+  getCommercialProfilesBySubRole(subRole: string, tenantId: string): Promise<CommercialProfile[]>;
+  getCommercialProfilesByLivello(livello: string, tenantId: string): Promise<CommercialProfile[]>;
+  createCommercialProfile(profile: InsertCommercialProfile): Promise<CommercialProfile>;
+  updateCommercialProfile(id: string, updates: Partial<CommercialProfile>): Promise<CommercialProfile>;
+  deleteCommercialProfile(id: string): Promise<void>;
+  
+  // Performance tracking
+  updateCommercialPerformance(profileId: string, metrics: {
+    newClients?: number;
+    additionalRevenue?: number;
+  }): Promise<CommercialProfile>;
+  calculateCommercialLevelUpgrade(profileId: string): Promise<{
+    currentLevel: string;
+    canUpgrade: boolean;
+    nextLevel?: string;
+    requirements: {
+      clientsNeeded: number;
+      revenueNeeded: number;
+      monthsNeeded: number;
+    };
+  }>;
+  
+  // Commercial Experiences - Gestione esperienze lavorative
+  getCommercialExperience(id: string): Promise<CommercialExperience | undefined>;
+  getCommercialExperiencesByProfile(profileId: string): Promise<CommercialExperience[]>;
+  createCommercialExperience(experience: InsertCommercialExperience): Promise<CommercialExperience>;
+  updateCommercialExperience(id: string, updates: Partial<CommercialExperience>): Promise<CommercialExperience>;
+  deleteCommercialExperience(id: string): Promise<void>;
+  
+  // Dashboard Analytics for Commercial Module
+  getCommercialDashboardStats(tenantId: string): Promise<{
+    totalApplications: number;
+    pendingApplications: number;
+    activeProfiles: number;
+    totalAgenti: number;
+    totalResponsabili: number;
+    levelDistribution: { base: number; medium: number; premium: number };
+    monthlyApplications: Array<{ month: string; count: number }>;
+    topPerformers: Array<{ id: string; name: string; revenue: number; clients: number }>;
+  }>;
   
   sessionStore: session.Store;
 }
