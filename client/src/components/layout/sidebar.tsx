@@ -14,6 +14,7 @@ import { useState } from "react";
 import { useLocation, Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useRolePermissions } from "@/components/role-protected";
+import { useDeviceInterface } from "@/hooks/use-device-interface";
 import {
   Truck,
   LayoutDashboard,
@@ -287,6 +288,7 @@ export function Sidebar({ className }: SidebarProps) {
   const [expandedMenu, setExpandedMenu] = useState<string | null>(null);
   const { user, logoutMutation } = useAuth();
   const { hasRole, canAccess } = useRolePermissions();
+  const { isApp, isPC } = useDeviceInterface();
 
   const filteredMenuItems = menuItems.filter(item => {
     // System creator and admin should see ALL items including commerciale areas

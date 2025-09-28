@@ -20,6 +20,9 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "./lib/protected-route";
 import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/layout/sidebar";
+import { BottomNavigation } from "@/components/pwa/bottom-navigation";
+import { SplashScreen } from "@/components/pwa/splash-screen";
+import { useDeviceInterface } from "@/hooks/use-device-interface";
 import { useState } from "react";
 
 // Pages
@@ -59,19 +62,22 @@ import CommercialRegistration from "@/pages/commercial-registration";
 
 function MainLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const { isApp, isPC } = useDeviceInterface();
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className={`flex h-screen overflow-hidden bg-background transition-page ${isApp ? 'pb-[70px]' : ''}`}>
       <Sidebar className={sidebarOpen ? "" : "hidden lg:block"} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header 
           title="Dashboard" 
           onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
         />
-        <main className="flex-1 overflow-auto">
+        <main className={`flex-1 overflow-auto ${isApp ? 'pb-4' : ''}`}>
           {children}
         </main>
       </div>
+      {/* Bottom Navigation for Mobile */}
+      <BottomNavigation />
     </div>
   );
 }
@@ -245,8 +251,9 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AuthProvider>
-          <Toaster />
+          <SplashScreen />
           <Router />
+          <Toaster />
         </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>

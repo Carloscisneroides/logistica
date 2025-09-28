@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { GlobalAIAssistant } from "@/components/ai/global-ai-assistant";
 import { useAuth } from "@/hooks/use-auth";
+import { useDeviceInterface } from "@/hooks/use-device-interface";
 import ycoreLogo from "@assets/Copilot_20250928_191905_1759079989814.png";
 
 interface HeaderProps {
@@ -17,56 +18,60 @@ export function Header({ title, onMenuToggle }: HeaderProps) {
   const [selectedLanguage, setSelectedLanguage] = useState("it");
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const { user, logoutMutation } = useAuth();
+  const { isApp, isPC } = useDeviceInterface();
 
   const { data: languages } = useQuery({
     queryKey: ["/api/languages"],
   });
 
   return (
-    <header className="bg-card border-b border-border px-6 py-4">
+    <header className={`bg-card border-b border-border ${isApp ? 'px-4 py-3' : 'px-6 py-4'}`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Button
             variant="ghost"
-            size="sm"
-            className="lg:hidden"
+            size={isApp ? "sm" : "sm"}
+            className={isApp ? "block" : "lg:hidden"}
             onClick={onMenuToggle}
             data-testid="button-menu-toggle"
           >
-            <Menu className="w-5 h-5" />
+            <Menu className={isApp ? "w-6 h-6" : "w-5 h-5"} />
           </Button>
           
-          {/* YCORE Brand Integration */}
+          {/* YCORE Brand Integration - Responsive */}
           <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-3">
+            <div className={`flex items-center ${isApp ? 'space-x-2' : 'space-x-3'}`}>
               <img 
                 src={ycoreLogo} 
                 alt="YCORE Logo" 
-                className="h-8 w-8 object-contain"
+                className={isApp ? "h-7 w-7 object-contain" : "h-8 w-8 object-contain"}
                 data-testid="img-ycore-logo"
               />
-              <div className="w-px h-8 bg-border/50"></div>
-              <h1 className="text-xl font-semibold text-foreground" data-testid="text-page-title">
-                {title}
+              {!isApp && <div className="w-px h-8 bg-border/50"></div>}
+              <h1 className={`${isApp ? 'text-lg' : 'text-xl'} font-semibold text-foreground ${isApp ? 'truncate' : ''}`} data-testid="text-page-title">
+                {isApp ? title.length > 15 ? title.substring(0, 15) + '...' : title : title}
               </h1>
             </div>
           </div>
-          <Badge 
-            variant="secondary" 
-            className="bg-accent/10 text-accent border-accent/20"
-            data-testid="badge-multi-tenant"
-          >
-            <Crown className="w-3 h-3 mr-1" />
-            Multi-Tenant
-          </Badge>
+          {!isApp && (
+            <Badge 
+              variant="secondary" 
+              className="bg-accent/10 text-accent border-accent/20"
+              data-testid="badge-multi-tenant"
+            >
+              <Crown className="w-3 h-3 mr-1" />
+              Multi-Tenant
+            </Badge>
+          )}
         </div>
         
-        <div className="flex items-center space-x-4">
-          {/* Language Selector */}
-          <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
-            <SelectTrigger className="w-[140px]" data-testid="select-language">
-              <SelectValue placeholder="Lingua" />
-            </SelectTrigger>
+        <div className={`flex items-center ${isApp ? 'space-x-2' : 'space-x-4'}`}>
+          {/* Language Selector - Hidden on App mode for space */}
+          {!isApp && (
+            <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
+              <SelectTrigger className="w-[140px]" data-testid="select-language">
+                <SelectValue placeholder="Lingua" />
+              </SelectTrigger>
             <SelectContent>
               {Array.isArray(languages) ? languages.map((lang: any) => (
                 <SelectItem key={lang.code} value={lang.code}>
@@ -84,7 +89,8 @@ export function Header({ title, onMenuToggle }: HeaderProps) {
                 </SelectItem>
               )}
             </SelectContent>
-          </Select>
+            </Select>
+          )}
           
           {/* AI Assistant Globale */}
           <GlobalAIAssistant variant="header" />

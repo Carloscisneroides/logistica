@@ -14,7 +14,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { insertUserSchema } from "@shared/schema";
 import { z } from "zod";
 import { Redirect } from "wouter";
-import { Loader2, Truck, Shield, Users, Zap, Download, Smartphone, Settings2 } from "lucide-react";
+import { Loader2, Truck, Shield, Users, Zap, Download, Smartphone, Settings2, Check } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import ycoreLogo from "@assets/Copilot_20250928_191905_1759079989814.png";
 
 const loginSchema = insertUserSchema.pick({ username: true, password: true });
@@ -195,6 +196,8 @@ export default function AuthPage() {
   const isPrivateDemo = true; // Modalità demo privata attiva
   const [showPWAInstall, setShowPWAInstall] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [pwaInstalled, setPwaInstalled] = useState(false);
+  const { toast } = useToast();
 
   const loginForm = useForm<LoginData>({
     resolver: zodResolver(loginSchema),
@@ -221,8 +224,15 @@ export default function AuthPage() {
     },
   });
 
-  // PWA Install Handler - PIÙ VELOCE E AUTOMATICO
+  // PWA Install Handler con feedback migliorato
   useEffect(() => {
+    // Check if already installed
+    const isInstalled = localStorage.getItem('pwa-installed') === '1';
+    if (isInstalled) {
+      setPwaInstalled(true);
+      setShowPWAInstall(false);
+    }
+
     const handleBeforeInstallPrompt = (e: any) => {
       e.preventDefault();
       setDeferredPrompt(e);
@@ -237,32 +247,82 @@ export default function AuthPage() {
       }, 2000);
     };
 
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    // PWA Installation Success Handler
+    const handleAppInstalled = (e: any) => {
+      console.log('🎉 YCORE PWA installata con successo!', e);
+      setPwaInstalled(true);
+      setShowPWAInstall(false);
+      localStorage.setItem('pwa-installed', '1');
+      
+      toast({
+        title: "🎉 YCORE Installata!",
+        description: "L'app è stata installata con successo. Puoi aprirla dall'icona nella Home o dal menu Applicazioni.",
+        duration: 5000,
+        variant: "default"
+      });
+    };
+
+    // Display mode change detection 
+    const standAloneMediaQuery = window.matchMedia('(display-mode: standalone)');
+    const handleDisplayModeChange = (e: MediaQueryListEvent) => {
+      if (e.matches && !pwaInstalled) {
+        // User installed PWA via browser menu
+        setPwaInstalled(true);
+        setShowPWAInstall(false);
+        localStorage.setItem('pwa-installed', '1');
+        
+        toast({
+          title: "🎉 YCORE Installata!",
+          description: "L'app è stata installata con successo. Puoi aprirla dall'icona nella Home o dal menu Applicazioni.",
+          duration: 5000,
+          variant: "default"
+        });
+      }
+    };
 
     // DETECT SE GIÀ INSTALLATA
-    if (window.matchMedia('(display-mode: standalone)').matches) {
+    if (standAloneMediaQuery.matches) {
       setShowPWAInstall(false);
+      setPwaInstalled(true);
     }
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+    standAloneMediaQuery.addListener(handleDisplayModeChange);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+      standAloneMediaQuery.removeListener(handleDisplayModeChange);
     };
-  }, []);
+  }, [toast, pwaInstalled]);
 
   const handleInstallApp = async () => {
     if (!deferredPrompt) {
-      // Better Chrome detection and PWA install guidance
+      // Better Chrome detection and PWA install guidance with toast
       const isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
       const isMobile = /Android|iPhone|iPad/.test(navigator.userAgent);
       
       if (isChrome) {
         if (isMobile) {
-          alert('Tocca i 3 punti (⋮) in alto a destra, poi "Installa app" o "Aggiungi alla schermata Home"');
+          toast({
+            title: "📱 Installa YCORE",
+            description: "Tocca i 3 punti (⋮) in alto a destra, poi seleziona \"Installa app\" o \"Aggiungi alla schermata Home\"",
+            duration: 7000,
+          });
         } else {
-          alert('Clicca l\'icona "Installa" nella barra degli indirizzi oppure Menu Chrome → "Installa YCORE"');
+          toast({
+            title: "💻 Installa YCORE",
+            description: "Clicca l'icona \"Installa\" nella barra degli indirizzi oppure Menu Chrome → \"Installa YCORE\"",
+            duration: 7000,
+          });
         }
       } else {
-        alert('Per la migliore esperienza PWA, usa Google Chrome e cerca l\'opzione "Installa app"');
+        toast({
+          title: "🔧 Browser Supportato",
+          description: "Per la migliore esperienza PWA, usa Google Chrome e cerca l'opzione \"Installa app\"",
+          duration: 7000,
+        });
       }
       return;
     }
@@ -274,16 +334,32 @@ export default function AuthPage() {
       if (outcome === 'accepted') {
         setDeferredPrompt(null);
         setShowPWAInstall(false);
-        alert('🎉 YCORE installato con successo!');
+        setPwaInstalled(true);
+        localStorage.setItem('pwa-installed', '1');
+        
+        toast({
+          title: "🎉 YCORE Installata!",
+          description: "L'app è stata installata con successo. Ora puoi aprirla dall'icona nella Home o dal menu Applicazioni.",
+          duration: 5000,
+          variant: "default"
+        });
       }
     } catch (error) {
       console.log('PWA install error:', error);
-      // Fallback to manual instructions
+      // Fallback to manual instructions with toast
       const isMobile = /Android|iPhone|iPad/.test(navigator.userAgent);
       if (isMobile) {
-        alert('Tocca i 3 punti (⋮) in alto a destra, poi "Installa app"');
+        toast({
+          title: "📱 Installazione Manuale",
+          description: "Tocca i 3 punti (⋮) in alto a destra, poi seleziona \"Installa app\"",
+          duration: 7000,
+        });
       } else {
-        alert('Cerca l\'icona "Installa" nella barra degli indirizzi di Chrome');
+        toast({
+          title: "💻 Installazione Manuale",
+          description: "Cerca l'icona \"Installa\" nella barra degli indirizzi di Chrome",
+          duration: 7000,
+        });
       }
     }
   };
@@ -903,7 +979,7 @@ export default function AuthPage() {
                   </div>
                 </div>
                 
-                {!window.matchMedia('(display-mode: standalone)').matches && (
+                {!window.matchMedia('(display-mode: standalone)').matches && !pwaInstalled && (
                   <div className="pt-3 border-t border-border/50">
                     <p className="text-xs text-muted-foreground mb-3">
                       📱 Installa YCORE come app sul tuo dispositivo per un'esperienza migliorata
@@ -911,7 +987,7 @@ export default function AuthPage() {
                     
                     <button
                       onClick={handleInstallApp}
-                      className="pwa-install-button w-full justify-center"
+                      className="pwa-install-button w-full justify-center ripple-effect tap-scale"
                       data-testid="button-install-pwa"
                     >
                       <Download className="w-4 h-4" />
@@ -926,7 +1002,7 @@ export default function AuthPage() {
                   </div>
                 )}
                 
-                {window.matchMedia('(display-mode: standalone)').matches && (
+                {pwaInstalled && (
                   <div className="pt-3 border-t border-border/50">
                     <div className="flex items-center justify-center space-x-2 text-sm text-green-600 dark:text-green-400">
                       <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>

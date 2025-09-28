@@ -1,0 +1,24 @@
+📄 Foglio Tecnico – Implementazione PWA + Simmetria Mobile
+Obiettivo
+Realizzare una piattaforma web che si comporti come un'app mobile nativa una volta installata, con interfaccia simmetrica, responsive e ottimizzata per dispositivi mobili.
+
+Architettura Tecnica
+La piattaforma utilizza un file manifest.json correttamente configurato con proprietà fondamentali come display: standalone, start_url: /, theme_color e background_color. Le icone sono presenti nei formati 192x192 e 512x512 per garantire compatibilità con Android e iOS.
+
+Il service worker è attivo e gestisce la cache delle risorse statiche e dinamiche, supportando anche il fallback offline. L’installazione automatica è abilitata e l’icona dell’app compare correttamente sul dispositivo.
+
+Per migliorare l’esperienza utente, è previsto l’ascolto dell’evento appinstalled, che attiva un feedback visivo tramite toast o modal per confermare l’avvenuta installazione.
+
+Interfaccia Mobile
+L’interfaccia presenta attualmente problemi di simmetria e layout. Gli elementi non sono allineati correttamente e le spaziature risultano incoerenti. Si sta intervenendo con l’uso di Flexbox e CSS Grid per garantire un layout fluido e bilanciato. Le icone e i bottoni saranno uniformati per dimensioni e stile, mentre i font verranno gestiti con unità scalabili come rem per migliorare l’accessibilità.
+
+Il design responsive è in fase di ottimizzazione con media queries per adattarsi a vari dispositivi. Elementi non essenziali verranno nascosti su schermi piccoli e verrà introdotta una bottom navigation bar per migliorare la navigazione mobile.
+
+Effetti e UX
+Saranno implementate transizioni fluide tra le pagine, effetti visivi sui pulsanti (come il ripple effect), uno splash screen personalizzato all’avvio e notifiche push opzionali tramite Push API. La Web Share API verrà integrata per consentire la condivisione nativa dei contenuti.
+
+Validazioni
+Sono già stati verificati i system logs e la rilevazione del dispositivo. L’installazione automatica è funzionante, ma manca ancora il feedback visivo post-installazione. La simmetria grafica è in fase di correzione e sono in corso test su dispositivi Android e iOS per garantire una resa coerente.
+
+Prossimi Step
+Si procederà con l’implementazione del feedback visivo, la rifinitura del layout mobile, la validazione finale con l’architect e, se necessario, l’impacchettamento dell’app per la distribuzione su store nativi tramite Capacitor.

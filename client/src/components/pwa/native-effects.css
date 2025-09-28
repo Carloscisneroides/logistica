@@ -1,0 +1,255 @@
+/* 🎨 PWA Native Effects - Mobile-First Experience */
+
+/* ✨ Transizioni fluide */
+.transition-page {
+  animation: slideInRight 0.3s ease-out;
+}
+
+.transition-modal {
+  animation: fadeInScale 0.2s ease-out;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInScale {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* 📱 Touch feedback - Ripple effect */
+.ripple-effect {
+  position: relative;
+  overflow: hidden;
+  transform: translate3d(0, 0, 0);
+}
+
+.ripple-effect:before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.ripple-effect:active:before {
+  width: 300px;
+  height: 300px;
+}
+
+/* 🧭 Bottom Navigation Bar - Mobile */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 70px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 1000;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.dark .bottom-nav {
+  background: rgba(0, 0, 0, 0.95);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.bottom-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 12px;
+  min-width: 60px;
+  color: #666;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  border-radius: 12px;
+}
+
+.bottom-nav-item.active {
+  color: #007AFF;
+  background: rgba(0, 122, 255, 0.1);
+}
+
+.bottom-nav-item:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.dark .bottom-nav-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.bottom-nav-icon {
+  width: 24px;
+  height: 24px;
+  margin-bottom: 4px;
+}
+
+.bottom-nav-label {
+  font-size: 10px;
+  font-weight: 500;
+}
+
+/* 🖼️ Splash Screen */
+.splash-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  animation: splashFadeOut 0.5s ease-in-out 2s forwards;
+}
+
+@keyframes splashFadeOut {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+.splash-logo {
+  width: 80px;
+  height: 80px;
+  margin-bottom: 20px;
+  animation: logoSpin 2s ease-in-out;
+}
+
+@keyframes logoSpin {
+  0% { transform: scale(0.5) rotate(0deg); opacity: 0; }
+  50% { transform: scale(1.1) rotate(180deg); opacity: 1; }
+  100% { transform: scale(1) rotate(360deg); opacity: 1; }
+}
+
+.splash-title {
+  color: white;
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.splash-subtitle {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+}
+
+/* 📱 Simmetria e Layout Bilanciato */
+.interface-app {
+  --spacing-unit: 16px;
+  --touch-target: 44px;
+  --border-radius: 12px;
+}
+
+.interface-app .symmetric-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-unit);
+  padding: var(--spacing-unit);
+}
+
+.interface-app .balanced-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  min-height: var(--touch-target);
+}
+
+.interface-app .centered-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--spacing-unit);
+}
+
+/* 🎯 Touch Targets - Accessibilità */
+.interface-app button,
+.interface-app .touch-target {
+  min-height: var(--touch-target);
+  min-width: var(--touch-target);
+  padding: 12px 16px;
+  border-radius: var(--border-radius);
+  transition: all 0.2s ease;
+}
+
+/* 🧊 Standalone Mode Styles */
+@media (display-mode: standalone) {
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .app-header {
+    padding-top: calc(env(safe-area-inset-top) + 12px);
+  }
+}
+
+/* 📱 Mobile-First Responsive */
+@media (max-width: 768px) {
+  .interface-app .desktop-only {
+    display: none;
+  }
+  
+  .interface-app .mobile-stack {
+    flex-direction: column;
+  }
+  
+  .interface-app .mobile-full-width {
+    width: 100%;
+  }
+}
+
+/* 🌙 Dark Mode Consistency */
+.dark .interface-app {
+  --bg-primary: #000;
+  --bg-secondary: #1a1a1a;
+  --text-primary: #fff;
+  --text-secondary: #999;
+}
+
+/* ✨ Micro-interactions */
+.interface-app .hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.interface-app .tap-scale:active {
+  transform: scale(0.98);
+}
+
+/* 🔔 Toast Notifications - Mobile Optimized */
+.interface-app .toast {
+  margin: 16px;
+  border-radius: var(--border-radius);
+  backdrop-filter: blur(10px);
+}
