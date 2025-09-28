@@ -223,7 +223,7 @@ export function setupAuth(app: Express) {
   });
 
   // **REGISTRATION DISABLED FOR PRIVATE DEMO** - Blocca registrazione pubblica
-  app.post("/api/register", registerRateLimit, async (req, res, next) => {
+  app.post("/api/register", registerRateLimit, validateCSRF, async (req, res, next) => {
     // Blocca tutte le registrazioni durante fase di validazione privata
     const clientIP = req.ip || req.socket.remoteAddress || 'unknown';
     console.log(`[REGISTRATION_BLOCKED] PUBLIC REGISTRATION ATTEMPT BLOCKED | IP: ${clientIP} | Username: ${req.body.username} | Time: ${new Date().toISOString()}`);
@@ -236,7 +236,7 @@ export function setupAuth(app: Express) {
     // Codice originale disabilitato per mantenere sicurezza demo privata
   });
 
-  // **PROTECTED LOGIN** - Rate limited, CSRF protected with session regeneration
+  // **PROTECTED LOGIN** - Rate limited, CSRF protected with session regeneration  
   app.post("/api/login", authRateLimit, validateCSRF, (req, res, next) => {
     const clientIP = req.ip || req.socket.remoteAddress || 'unknown';
     console.log(`[AUTH] LOGIN ATTEMPT | IP: ${clientIP} | Username: ${req.body.username} | Time: ${new Date().toISOString()}`);
@@ -250,6 +250,12 @@ export function setupAuth(app: Express) {
       if (!user) {
         console.log(`[AUTH] LOGIN FAILED | IP: ${clientIP} | Username: ${req.body.username} | Time: ${new Date().toISOString()}`);
         return res.status(401).json({ error: "Invalid credentials" });
+      }
+      
+      // **WHITELIST ENFORCEMENT** - Verifica utente autorizzato
+      if (!checkAuthorizedUser(user.username)) {
+        console.log(`[AUTH] WHITELIST BLOCKED | IP: ${clientIP} | Username: ${user.username} | Time: ${new Date().toISOString()}`);
+        return res.status(403).json({ error: "Accesso non autorizzato. Contattare Reply/AWS." });
       }
       
       // **SESSION FIXATION PROTECTION** - Regenerate session on successful login

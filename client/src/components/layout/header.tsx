@@ -5,6 +5,7 @@ import { Bell, Plus, Menu, Crown } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { GlobalAIAssistant } from "@/components/ai/global-ai-assistant";
+import ycoreLogo from "../../assets/ycore-logo.png";
 
 interface HeaderProps {
   title: string;
@@ -31,9 +32,19 @@ export function Header({ title, onMenuToggle }: HeaderProps) {
           >
             <Menu className="w-5 h-5" />
           </Button>
-          <h1 className="text-2xl font-bold text-foreground" data-testid="text-page-title">
-            {title}
-          </h1>
+          
+          {/* YCORE Logo */}
+          <div className="flex items-center space-x-3">
+            <img 
+              src={ycoreLogo} 
+              alt="YCORE Logo" 
+              className="h-8 w-8 object-contain"
+              data-testid="img-ycore-logo"
+            />
+            <h1 className="text-2xl font-bold text-foreground" data-testid="text-page-title">
+              {title}
+            </h1>
+          </div>
           <Badge 
             variant="secondary" 
             className="bg-accent/10 text-accent border-accent/20"
