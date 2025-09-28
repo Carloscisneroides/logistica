@@ -35,6 +35,17 @@ import {
   Calculator,
   ChevronDown,
   ChevronRight,
+  Link as LinkIcon,
+  Webhook,
+  MapPin,
+  RotateCcw,
+  Archive,
+  UserCheck,
+  Wrench,
+  Shield,
+  AlertTriangle,
+  Bell,
+  Warehouse,
 } from "lucide-react";
 
 const menuItems = [
@@ -63,6 +74,11 @@ const menuItems = [
         title: "Listini & Corrieri",
         href: "/rates-carriers",
         icon: Calculator,
+      },
+      {
+        title: "Shipment Tracking",
+        href: "/shipment-tracking",
+        icon: MapPin,
       }
     ]
   },
@@ -103,6 +119,23 @@ const menuItems = [
     href: "/ecommerce",
     icon: ShoppingCart,
     roles: ["admin", "merchant"],
+    submenu: [
+      {
+        title: "Dashboard eCommerce",
+        href: "/ecommerce",
+        icon: ShoppingCart,
+      },
+      {
+        title: "CSM Tickets",
+        href: "/ecommerce/csm-tickets",
+        icon: UserCheck,
+      },
+      {
+        title: "TSM Support",
+        href: "/ecommerce/tsm-support",
+        icon: Wrench,
+      }
+    ]
   },
   {
     title: "Marketplace B2B",
@@ -120,6 +153,59 @@ const menuItems = [
     title: "Analytics",
     href: "/analytics",
     icon: BarChart3,
+  },
+  {
+    title: "Platform Connections",
+    href: "/platform-connections",
+    icon: LinkIcon,
+    roles: ["admin", "merchant"],
+  },
+  {
+    title: "Platform Webhooks",
+    href: "/platform-webhooks", 
+    icon: Webhook,
+    roles: ["admin"],
+  },
+  {
+    title: "Gestione Resi",
+    href: "/returns",
+    icon: RotateCcw,
+    roles: ["admin", "merchant"],
+  },
+  {
+    title: "Magazzino & Inventario",
+    href: "/warehouse-inventory",
+    icon: Warehouse,
+    roles: ["admin", "merchant"],
+  },
+  {
+    title: "Storage Items",
+    href: "/storage-items",
+    icon: Archive,
+    roles: ["admin", "merchant"],
+  },
+  {
+    title: "Sistema Audit",
+    href: "/audit-system",
+    icon: Shield,
+    roles: ["admin"],
+    submenu: [
+      {
+        title: "Audit Logs",
+        href: "/audit-logs",
+        icon: FileCheck,
+      },
+      {
+        title: "Escalations",
+        href: "/escalations",
+        icon: AlertTriangle,
+      },
+      {
+        title: "Notifications",
+        href: "/notifications",
+        icon: Bell,
+      }
+    ]
   },
   {
     title: "Impostazioni",
