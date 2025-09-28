@@ -51,23 +51,102 @@ const sheetVariants = cva(
 
 interface SheetContentProps
   extends React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content>,
-    VariantProps<typeof sheetVariants> {}
+    VariantProps<typeof sheetVariants> {
+  onCloseMenu?: () => void;
+}
 
 const SheetContent = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Content>,
   SheetContentProps
->(({ side = "right", className, children, ...props }, ref) => {
-  // Block body scroll when sheet opens
+>(({ side = "right", className, children, onCloseMenu, ...props }, ref) => {
+  const isMobileMenu = className?.includes('mobile-menu-content');
+  
+  // Enhanced body scroll lock with position preservation
   React.useEffect(() => {
+    if (!isMobileMenu) return;
+    
+    const scrollY = window.scrollY;
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = '100%';
     document.body.classList.add('menu-open');
+    
     return () => {
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
       document.body.classList.remove('menu-open');
+      window.scrollTo(0, scrollY);
     };
-  }, []);
+  }, [isMobileMenu]);
+
+  // Enhanced swipe-to-close functionality for mobile menu
+  React.useEffect(() => {
+    if (!isMobileMenu || side !== 'left' || !onCloseMenu) return;
+    
+    let startX = 0;
+    let isDragging = false;
+    let currentTransform = 0;
+    
+    const handlePointerStart = (e: PointerEvent) => {
+      startX = e.clientX;
+      isDragging = true;
+      e.preventDefault();
+    };
+    
+    const handlePointerMove = (e: PointerEvent) => {
+      if (!isDragging) return;
+      
+      const deltaX = startX - e.clientX;
+      currentTransform = Math.max(0, deltaX); // Only allow leftward drag
+      
+      const panel = e.currentTarget as HTMLElement;
+      requestAnimationFrame(() => {
+        panel.style.transform = `translateX(-${currentTransform}px)`;
+        panel.style.transition = 'none';
+      });
+    };
+    
+    const handlePointerEnd = (e: PointerEvent) => {
+      if (!isDragging) return;
+      isDragging = false;
+      
+      const panel = e.currentTarget as HTMLElement;
+      const threshold = Math.max(120, panel.offsetWidth * 0.3);
+      
+      if (currentTransform > threshold) {
+        // Close menu
+        onCloseMenu();
+      } else {
+        // Reset position
+        requestAnimationFrame(() => {
+          panel.style.transform = '';
+          panel.style.transition = '';
+        });
+      }
+      
+      currentTransform = 0;
+    };
+    
+    const panel = document.querySelector('.mobile-menu-content') as HTMLElement;
+    if (panel) {
+      panel.addEventListener('pointerdown', handlePointerStart);
+      panel.addEventListener('pointermove', handlePointerMove);
+      panel.addEventListener('pointerup', handlePointerEnd);
+      panel.addEventListener('pointercancel', handlePointerEnd);
+      
+      return () => {
+        panel.removeEventListener('pointerdown', handlePointerStart);
+        panel.removeEventListener('pointermove', handlePointerMove);
+        panel.removeEventListener('pointerup', handlePointerEnd);
+        panel.removeEventListener('pointercancel', handlePointerEnd);
+      };
+    }
+  }, [isMobileMenu, side, onCloseMenu]);
 
   return (
     <SheetPortal>
-      <SheetOverlay />
+      <SheetOverlay className={isMobileMenu ? "mobile-menu-overlay" : ""} />
       <SheetPrimitive.Content
         ref={ref}
         className={cn(sheetVariants({ side }), className)}

@@ -19,6 +19,7 @@ interface HeaderProps {
 export function Header({ title, onMenuToggle }: HeaderProps) {
   const [selectedLanguage, setSelectedLanguage] = useState("it");
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, logoutMutation } = useAuth();
   const { isApp, isPC } = useDeviceInterface();
   const [location] = useLocation();
@@ -44,7 +45,7 @@ export function Header({ title, onMenuToggle }: HeaderProps) {
                 <ArrowLeft className="w-6 h-6" />
               </Button>
             ) : (
-              <Sheet>
+              <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                 <SheetTrigger asChild>
                   <Button
                     variant="ghost"
@@ -54,7 +55,7 @@ export function Header({ title, onMenuToggle }: HeaderProps) {
                     <Menu className="w-6 h-6" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="left" className="mobile-menu-content">
+                <SheetContent side="left" className="mobile-menu-content" onCloseMenu={() => setMobileMenuOpen(false)}>
                   <div className="flex flex-col h-full">
                     {/* Header Logo */}
                     <div className="flex items-center space-x-3 pb-6 border-b border-border">

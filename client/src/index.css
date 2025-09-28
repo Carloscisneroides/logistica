@@ -361,15 +361,25 @@
   transform: translateX(2px) scale(0.98);
 }
 
-/* Smooth mobile menu animations */
+/* Smooth mobile menu animations - SCOPED to mobile menu only */
 @media (max-width: 1024px) {
-  [data-state="open"] {
+  .mobile-menu-content[data-state="open"] {
     animation-duration: 0.25s !important;
     animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1) !important;
   }
   
-  [data-state="closed"] {
+  .mobile-menu-content[data-state="closed"] {
     animation-duration: 0.2s !important;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+  
+  .mobile-menu-overlay[data-state="open"] {
+    animation-duration: 0.2s !important;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+  
+  .mobile-menu-overlay[data-state="closed"] {
+    animation-duration: 0.15s !important;
     animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1) !important;
   }
   
@@ -390,5 +400,31 @@
     background: var(--border);
     border-radius: 2px;
     opacity: 0.5;
+  }
+}
+
+/* Touch and Swipe Gesture Support */
+.touch-swipe-close {
+  touch-action: pan-y !important;
+  -webkit-touch-callout: none !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+}
+
+/* Enhanced mobile sheet interactions */
+@media (pointer: coarse) {
+  .mobile-menu-content {
+    touch-action: pan-y !important;
+  }
+  
+  /* Improve touch performance */
+  .mobile-menu-item {
+    transform: translateZ(0) !important;
+    will-change: transform !important;
+  }
+  
+  /* Add subtle haptic feedback simulation */
+  .mobile-menu-item:active {
+    transition-duration: 0.1s !important;
   }
 }
