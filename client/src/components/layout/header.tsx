@@ -30,8 +30,8 @@ export function Header({ title, onMenuToggle }: HeaderProps) {
   });
 
   return (
-    <header className={`bg-card border-b border-border ${isApp ? 'px-4 py-3' : 'px-6 py-4'}`}>
-      <div className="flex items-center justify-between">
+    <header className={`bg-card border-b border-border ${isApp ? 'px-4 py-3' : 'px-0 py-4'}`}>
+      <div className={`flex items-center justify-between ${!isApp ? 'desktop-container' : ''}`}>
         <div className="flex items-center space-x-4">
           {/* Mobile: Back button or Menu */}
           {isApp ? (

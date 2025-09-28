@@ -48,10 +48,10 @@ export default function Dashboard() {
   }
 
   const stats = dashboardData || {};
-  const recentClients = clients?.slice(0, 3) || [];
-  const modules = courierModules || [];
+  const recentClients = Array.isArray(clients) ? clients.slice(0, 3) : [];
+  const modules = Array.isArray(courierModules) ? courierModules : [];
   const activeModules = modules.filter((m: any) => m.status === "active");
-  const pendingCorrections = corrections?.filter((c: any) => c.status === "pending").length || 0;
+  const pendingCorrections = Array.isArray(corrections) ? corrections.filter((c: any) => c.status === "pending").length : 0;
 
   if (isApp) {
     // MOBILE APP-NATIVE DASHBOARD
@@ -155,12 +155,13 @@ export default function Dashboard() {
 
   // DESKTOP DASHBOARD
   return (
-    <div className="p-6 space-y-6">
+    <div className="desktop-container desktop-content space-y-6">
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="desktop-section">
+        <div className="desktop-grid-uniform grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
         <StatsCard
           title="Spedizioni Oggi"
-          value={stats.todayShipments?.toString() || "0"}
+          value={(stats as any).todayShipments?.toString() || "0"}
           change="+12% vs ieri"
           changeType="positive"
           icon={<Truck className="w-6 h-6 text-primary" />}
@@ -168,7 +169,7 @@ export default function Dashboard() {
         />
         <StatsCard
           title="Clienti Attivi"
-          value={stats.activeClients?.toString() || "0"}
+          value={(stats as any).activeClients?.toString() || "0"}
           change="+5 questo mese"
           changeType="positive"
           icon={<Users className="w-6 h-6 text-green-600" />}
@@ -176,7 +177,7 @@ export default function Dashboard() {
         />
         <StatsCard
           title="Ricavi Mensili"
-          value={`€${stats.monthlyRevenue?.toLocaleString() || "0"}`}
+          value={`€${(stats as any).monthlyRevenue?.toLocaleString() || "0"}`}
           change="Target: 85%"
           changeType="neutral"
           icon={<Euro className="w-6 h-6 text-accent" />}
@@ -184,16 +185,18 @@ export default function Dashboard() {
         />
         <StatsCard
           title="Moduli Attivi"
-          value={`${stats.activeModules || 0}/${stats.totalModules || 0}`}
+          value={`${(stats as any).activeModules || 0}/${(stats as any).totalModules || 0}`}
           change="2 in attivazione"
           changeType="warning"
           icon={<Puzzle className="w-6 h-6 text-purple-600" />}
           data-testid="stats-active-modules"
         />
+        </div>
       </div>
 
       {/* Main Dashboard Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="desktop-section">
+        <div className="desktop-grid-uniform grid-cols-1 lg:grid-cols-3">
         {/* Courier Modules Panel */}
         <div className="lg:col-span-2 bg-card rounded-lg border border-border">
           <div className="p-6 border-b border-border">
@@ -237,19 +240,19 @@ export default function Dashboard() {
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">Spedizioni oggi</span>
                 <span className="text-sm font-medium text-foreground" data-testid="text-ai-today-routed">
-                  {stats.aiStats?.todayRouted || 0}
+                  {(stats as any).aiStats?.todayRouted || 0}
                 </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">Risparmio generato</span>
                 <span className="text-sm font-medium text-accent" data-testid="text-ai-savings">
-                  €{stats.aiStats?.totalSavings?.toLocaleString() || "0"}
+                  €{(stats as any).aiStats?.totalSavings?.toLocaleString() || "0"}
                 </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">Accuratezza</span>
                 <span className="text-sm font-medium text-green-600" data-testid="text-ai-accuracy">
-                  {((stats.aiStats?.accuracy || 0) * 100).toFixed(1)}%
+                  {(((stats as any).aiStats?.accuracy || 0) * 100).toFixed(1)}%
                 </span>
               </div>
             </div>
@@ -277,10 +280,12 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+        </div>
       </div>
 
       {/* Recent Activity Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="desktop-section">
+        <div className="desktop-grid-uniform grid-cols-1 lg:grid-cols-2">
         {/* Recent Clients */}
         <div className="bg-card rounded-lg border border-border">
           <div className="p-6 border-b border-border">
@@ -332,14 +337,16 @@ export default function Dashboard() {
 
         {/* Billing Overview */}
         <BillingOverview 
-          pendingInvoicesCount={pendingInvoices?.length || 0}
-          monthlyTotal={stats.monthlyRevenue || 0}
+          pendingInvoicesCount={Array.isArray(pendingInvoices) ? pendingInvoices.length : 0}
+          monthlyTotal={(stats as any).monthlyRevenue || 0}
           pendingCorrections={pendingCorrections}
         />
+        </div>
       </div>
 
       {/* Commercial Section (only for admin/managers) */}
-      <div className="bg-card rounded-lg border border-border">
+      <div className="desktop-section">
+        <div className="bg-card rounded-lg border border-border">
         <div className="p-6 border-b border-border">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold text-foreground">Team Commerciali</h3>
@@ -355,7 +362,7 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="desktop-grid-uniform grid-cols-1 md:grid-cols-2 lg:grid-cols-4" style={{gap: '1rem'}}>
             <CommercialCard
               name="Marco Rossi"
               role="Senior Account"
@@ -389,6 +396,7 @@ export default function Dashboard() {
               initials="SN"
             />
           </div>
+        </div>
         </div>
       </div>
     </div>

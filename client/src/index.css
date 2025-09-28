@@ -155,6 +155,44 @@
     --interface-card-spacing: 1.5rem;
     --interface-border-radius: 8px;
     --interface-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    --interface-max-width: 1440px;
+    --interface-container-padding: 2rem;
+  }
+
+  /* DESKTOP CONTAINER SYSTEM - SIMMETRIA ENTERPRISE */
+  .desktop-container {
+    max-width: var(--interface-max-width);
+    margin: 0 auto;
+    padding-left: var(--interface-container-padding);
+    padding-right: var(--interface-container-padding);
+  }
+
+  .desktop-content {
+    padding: var(--interface-content-padding);
+  }
+
+  .desktop-grid-uniform {
+    display: grid;
+    gap: var(--interface-card-spacing);
+  }
+
+  .desktop-section {
+    margin-bottom: calc(var(--interface-spacing) * 2);
+  }
+
+  /* RESPONSIVE BREAKPOINTS UNIFORMI */
+  @media (min-width: 1280px) {
+    .desktop-container {
+      padding-left: 3rem;
+      padding-right: 3rem;
+    }
+  }
+
+  @media (min-width: 1536px) {
+    .desktop-container {
+      padding-left: 4rem;
+      padding-right: 4rem;
+    }
   }
 
   .interface-pc .header-pc {
