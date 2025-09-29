@@ -258,6 +258,14 @@ export const ModuleRateLimiters = {
     standardHeaders: true,
     legacyHeaders: false,
     keyGenerator: (req) => `wallet:${req.session?.user?.id || req.ip}`,
+    handler: (req, res) => {
+      GranularAuthSystem['logSecurityEvent'](req, 'WALLET_RATE_LIMIT_EXCEEDED', 'medium');
+      res.status(429).json({
+        error: "Troppo traffico su operazioni wallet",
+        retryAfter: "60 secondi",
+        code: "WALLET_RATE_LIMIT"
+      });
+    },
     skip: (req) => req.session?.user?.role === 'admin' // Admin bypass
   }),
 
@@ -271,8 +279,13 @@ export const ModuleRateLimiters = {
       code: "BONIFICO_RATE_LIMIT"
     },
     keyGenerator: (req) => `bonifico:${req.session?.user?.id}`,
-    onLimitReached: (req) => {
+    handler: (req, res) => {
       GranularAuthSystem['logSecurityEvent'](req, 'BONIFICO_RATE_LIMIT_EXCEEDED', 'high');
+      res.status(429).json({
+        error: "Limite bonifici raggiunto",
+        retryAfter: "5 minuti",
+        code: "BONIFICO_RATE_LIMIT"
+      });
     }
   }),
 
@@ -284,7 +297,13 @@ export const ModuleRateLimiters = {
       error: "Limite operazioni admin raggiunto", 
       code: "ADMIN_RATE_LIMIT"
     },
-    keyGenerator: (req) => `admin:${req.session?.user?.id}`
+    keyGenerator: (req) => `admin:${req.session?.user?.id}`,
+    handler: (req, res) => {
+      res.status(429).json({
+        error: "Limite operazioni admin raggiunto",
+        code: "ADMIN_RATE_LIMIT"
+      });
+    }
   }),
 
   // Fidelity Card operations
