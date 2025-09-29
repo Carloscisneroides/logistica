@@ -258,7 +258,7 @@ export default function AuthPage() {
       localStorage.setItem('pwa-installed', '1');
       
       toast({
-        title: "🎉 Nuvra Installata!",
+        title: `🎉 ${BRAND_NAME} Installata!`,
         description: "L'app è stata installata con successo. Puoi aprirla dall'icona nella Home o dal menu Applicazioni.",
         duration: 5000,
         variant: "default"
@@ -1047,7 +1047,7 @@ export default function AuthPage() {
                   <Smartphone className="w-5 h-5 text-white" />
                 </div>
                 <h3 className="text-lg font-bold text-foreground">
-                  Nuvra {interfaceMode.toUpperCase()}
+                  {BRAND_NAME} {interfaceMode.toUpperCase()}
                 </h3>
               </div>
               
@@ -1073,7 +1073,7 @@ export default function AuthPage() {
                 {!window.matchMedia('(display-mode: standalone)').matches && !pwaInstalled && (
                   <div className="pt-3 border-t border-border/50">
                     <p className="text-xs text-muted-foreground mb-3">
-                      📱 Installa Nuvra come app sul tuo dispositivo per un'esperienza migliorata
+                      📱 Installa {BRAND_NAME} come app sul tuo dispositivo per un'esperienza migliorata
                     </p>
                     
                     <button
@@ -1100,7 +1100,7 @@ export default function AuthPage() {
                       <span className="font-medium">App Installata</span>
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Stai utilizzando Nuvra come app nativa
+                      Stai utilizzando {BRAND_NAME} come app nativa
                     </p>
                   </div>
                 )}

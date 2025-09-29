@@ -54,7 +54,7 @@ export const translations = {
     tagline: "Il Motore del Business Moderno",
     demoReserved: "DEMO RISERVATA",
     authorizedPartners: "Accesso limitato ai partner autorizzati",
-    installApp: "Installa Nuvra App",
+    installApp: "Installa NYVRA App",
     
     // eCommerce
     products: "Prodotti",
@@ -121,7 +121,7 @@ export const translations = {
     tagline: "The Engine of Modern Business",
     demoReserved: "DEMO RESERVED",
     authorizedPartners: "Access limited to authorized partners",
-    installApp: "Install YCORE App",
+    installApp: "Install NYVRA App",
     
     // eCommerce
     products: "Products",

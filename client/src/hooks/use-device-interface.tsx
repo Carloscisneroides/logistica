@@ -21,7 +21,7 @@ export function useDeviceInterface() {
       }
 
       // Check localStorage override (hidden QA feature)
-      const savedMode = localStorage.getItem('nuvra-debug-mode') as InterfaceMode;
+      const savedMode = localStorage.getItem('nyvra-debug-mode') as InterfaceMode;
       if (savedMode === 'app' || savedMode === 'pc') {
         setInterfaceMode(savedMode);
         return;
@@ -60,11 +60,11 @@ export function useDeviceInterface() {
       } else if (isIpadOS) {
         // iPadOS = APP mode (even though UA says Mac)
         newMode = 'app';
-      } else if (screenWidth <= 1024) {
-        // Mobile/tablet screens = APP mode (more aggressive)
+      } else if (screenWidth <= 768 && (isTouchFirst || noHover)) {
+        // Mobile/small tablet screens with touch = APP mode
         newMode = 'app';
-      } else if (isTouchFirst) {
-        // Any touch device = APP mode
+      } else if (screenWidth <= 900 && isTouchFirst && noHover) {
+        // Medium tablets without hover (pure mobile) = APP mode
         newMode = 'app';
       } else if (isSmallViewport || noHover) {
         // No hover or small viewport = APP mode
@@ -90,7 +90,7 @@ export function useDeviceInterface() {
       document.documentElement.style.setProperty('--is-standalone', isPWAStandalone ? '1' : '0');
       document.documentElement.style.setProperty('--is-mobile', (isTouchFirst && (isSmallViewport || noHover || isIpadOS)) ? '1' : '0');
 
-      console.log(`🎯 YCORE Interface: ${newMode.toUpperCase()} | Screen: ${screenWidth}x${screenHeight} | Touch: ${isTouchFirst} | PWA: ${isPWAStandalone} | iPad: ${isIpadOS} | Small: ${isSmallViewport} | NoHover: ${noHover}`);
+      console.log(`🎯 NYVRA Interface: ${newMode.toUpperCase()} | Screen: ${screenWidth}x${screenHeight} | Touch: ${isTouchFirst} | PWA: ${isPWAStandalone} | iPad: ${isIpadOS} | Small: ${isSmallViewport} | NoHover: ${noHover}`);
     }
 
     // Keyboard detection for mobile
@@ -170,9 +170,9 @@ export function useDeviceInterface() {
   // Hidden QA debug functions (not exposed in UI)
   const setDebugMode = (mode: InterfaceMode | null) => {
     if (mode) {
-      localStorage.setItem('ycore-debug-mode', mode);
+      localStorage.setItem('nyvra-debug-mode', mode);
     } else {
-      localStorage.removeItem('ycore-debug-mode');
+      localStorage.removeItem('nyvra-debug-mode');
     }
     window.location.reload(); // Refresh to apply
   };

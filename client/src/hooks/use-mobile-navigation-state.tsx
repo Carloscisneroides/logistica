@@ -1,6 +1,6 @@
 /**
- * Nuvra Mobile Navigation State Manager
- * Autore: Ylenia Sacco - Founder & CEO, Nuvra
+ * NYVRA Mobile Navigation State Manager
+ * Autore: Ylenia Sacco - Founder & CEO, NYVRA
  * Data: 29 settembre 2025
  * 
  * Modulo centralizzato per gestione stato menu mobile
@@ -48,7 +48,7 @@ export function useMobileNavigationState(): MobileNavigationState {
       
       // Console logs only in development
       if (import.meta.env.DEV) {
-        console.log(`🎯 Nuvra Navigation: ${menuType} ${prevActive === menuType ? 'CLOSED' : 'OPENED'} | Active: ${newActive}`);
+        console.log(`🎯 NYVRA Navigation: ${menuType} ${prevActive === menuType ? 'CLOSED' : 'OPENED'} | Active: ${newActive}`);
       }
       
       return newActive;
@@ -60,7 +60,7 @@ export function useMobileNavigationState(): MobileNavigationState {
     setActiveMenu('none');
     setLastAction('close_all');
     if (import.meta.env.DEV) {
-      console.log('🎯 YCORE Navigation: ALL MENUS CLOSED');
+      console.log('🎯 NYVRA Navigation: ALL MENUS CLOSED');
     }
   }, []);
 

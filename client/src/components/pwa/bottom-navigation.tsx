@@ -39,7 +39,7 @@ const bottomNavItems = [
 ];
 
 interface BottomNavigationProps {
-  navigationState?: any; // Nuvra Navigation State
+  navigationState?: any; // NYVRA Navigation State
 }
 
 export function BottomNavigation({ navigationState }: BottomNavigationProps) {

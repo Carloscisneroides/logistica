@@ -1,5 +1,5 @@
 /**
- * Nuvra Mobile Navigation Debug Overlay
+ * NYVRA Mobile Navigation Debug Overlay
  * Componente per visualizzazione stato navigazione in tempo reale
  * Attivo solo in development mode
  */

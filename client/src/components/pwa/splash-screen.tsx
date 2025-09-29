@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
-import nuvraLogo from "@assets/generated_images/Nuvra_desktop_logo_3ec046e6.png";
+import { NyvraLogo } from "@/components/branding/nyvra-logo";
+import { BRAND_NAME, BRAND_TAGLINE } from "@/lib/constants";
 
 export function SplashScreen() {
   const [show, setShow] = useState(true);
 
   useEffect(() => {
     // Check if splash was already shown in this session
-    const splashShown = sessionStorage.getItem('nuvra-splash-shown');
+    const splashShown = sessionStorage.getItem('nyvra-splash-shown');
     
     if (splashShown) {
       setShow(false);
@@ -16,7 +17,7 @@ export function SplashScreen() {
     // Show splash for 2 seconds
     const timer = setTimeout(() => {
       setShow(false);
-      sessionStorage.setItem('nuvra-splash-shown', '1');
+      sessionStorage.setItem('nyvra-splash-shown', '1');
     }, 2000);
 
     return () => clearTimeout(timer);
@@ -26,13 +27,10 @@ export function SplashScreen() {
 
   return (
     <div className="splash-screen" data-testid="splash-screen">
-      <img 
-        src={nuvraLogo} 
-        alt="Nuvra Logo" 
-        className="splash-logo"
-      />
-      <h1 className="splash-title">Nuvra</h1>
-      <p className="splash-subtitle">Logistics & E-commerce Platform</p>
+      <div className="splash-logo">
+        <NyvraLogo size="xl" variant="full" />
+      </div>
+      <p className="splash-subtitle">{BRAND_TAGLINE}</p>
     </div>
   );
 }

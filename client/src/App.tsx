@@ -1,14 +1,14 @@
 /*
- * Nuvra SaaS Ecosystem - Proprietary Software
- * Copyright © 2025 Nuvra SRL Innovativa - All Rights Reserved
+ * NYVRA - Neural Yield Verification Risk Analysis
+ * Copyright © 2025 NYVRA Platform - All Rights Reserved
  * 
- * WATERMARK: nuvra-app-f47ac10b-58cc-4372-a567-0e02b2c3d479
+ * WATERMARK: nyvra-app-f47ac10b-58cc-4372-a567-0e02b2c3d479
  * BUILD: 2025-09-29T22:08:15.000Z
  * MODULE: Frontend Core Application
  * 
  * UNAUTHORIZED COPYING, MODIFICATION, DISTRIBUTION, OR USE OF THIS SOFTWARE
  * IS STRICTLY PROHIBITED. THIS SOFTWARE CONTAINS PROPRIETARY AND CONFIDENTIAL
- * INFORMATION OWNED BY NUVRA SRL INNOVATIVA.
+ * INFORMATION OWNED BY NYVRA PLATFORM.
  */
 
 import { Switch, Route } from "wouter";
@@ -85,7 +85,7 @@ function MainLayout({ children }: { children: React.ReactNode }) {
       <div className="flex h-screen overflow-hidden bg-background">
         <div className="flex-1 flex flex-col overflow-hidden">
           <Header 
-            title="Nuvra" 
+            title="NYVRA" 
             mobileMode={true}
             navigationState={navigationState}
           />
@@ -298,7 +298,7 @@ function App() {
     const handleAppInstalled = () => {
       toast({
         title: "🎉 App Installata!",
-        description: "Nuvra è stata installata con successo sul dispositivo",
+        description: "NYVRA è stata installata con successo sul dispositivo",
         duration: 5000,
       });
     };

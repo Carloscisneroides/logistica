@@ -1,5 +1,5 @@
 /**
- * Nuvra Mobile Header Menu
+ * NYVRA Mobile Header Menu
  * Menu mobile che appare quando navigationState.isHeaderMenuOpen = true
  * Integrato con il sistema centralizzato di gestione stato
  */
@@ -16,7 +16,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
-import nuvraLogo from "@assets/Copilot_20250928_191905_1759079989814.png";
+import { NyvraLogo } from "@/components/branding/nyvra-logo";
+import { BRAND_NAME } from "@/lib/constants";
 
 interface MobileHeaderMenuProps {
   isOpen: boolean;
@@ -76,10 +77,10 @@ export function MobileHeaderMenu({ isOpen, onClose }: MobileHeaderMenuProps) {
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-border">
             <div className="flex items-center space-x-3">
-              <img src={nuvraLogo} alt="Nuvra" className="h-8 w-8" />
+              <NyvraLogo size="sm" variant="icon" />
               <div>
-                <span className="font-bold text-lg text-primary">Nuvra</span>
-                <p className="text-xs text-muted-foreground">Business Platform</p>
+                <span className="font-bold text-lg text-primary">{BRAND_NAME}</span>
+                <p className="text-xs text-muted-foreground">AI Antifraud Platform</p>
               </div>
             </div>
             <Button

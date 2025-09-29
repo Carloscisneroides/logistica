@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Share2, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { BRAND_NAME, BRAND_DESCRIPTION } from "@/lib/constants";
 
 interface WebShareProps {
   title?: string;
@@ -10,8 +11,8 @@ interface WebShareProps {
 }
 
 export function WebShare({ 
-  title = "Nuvra - Piattaforma Logistics", 
-  text = "Scopri Nuvra, la piattaforma SaaS modulare per logistics e e-commerce", 
+  title = `${BRAND_NAME} - AI Antifraud Platform`, 
+  text = BRAND_DESCRIPTION, 
   url 
 }: WebShareProps) {
   const [copied, setCopied] = useState(false);
