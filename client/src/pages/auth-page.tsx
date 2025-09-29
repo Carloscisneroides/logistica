@@ -583,7 +583,7 @@ export default function AuthPage() {
                 Inserisci le tue credenziali per continuare
               </p>
             </div>
-              
+            
             {/* Elite Demo Notice */}
             <div className="mb-6 p-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/50 dark:to-orange-950/50 rounded-xl border border-amber-200/50 dark:border-amber-800/50">
               <div className="text-center space-y-2">
@@ -1044,6 +1044,7 @@ export default function AuthPage() {
                 </div>
               )}
             </div>
+          </div>
         </div>
 
         {/* SEZIONE PWA APP SOTTO IL FORM */}
