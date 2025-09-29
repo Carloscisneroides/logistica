@@ -1106,6 +1106,9 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
       });
       
       // Verify client belongs to user's tenant
+      if (!validatedData.clientId) {
+        return res.status(400).json({ error: "Client ID is required" });
+      }
       const client = await storage.getClient(validatedData.clientId);
       if (!client || client.tenantId !== user.tenantId) {
         return res.status(404).json({ error: "Client not found" });
@@ -1278,9 +1281,11 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
       if (['high', 'critical'].includes(severity)) {
         try {
           // Get client user for risk assessment
-          const client = await storage.getClient(shipment.clientId);
-          if (client?.commercialId) {
-            await storage.executeAutomatedResponse(client.commercialId, user.tenantId, severity as 'high' | 'critical');
+          if (shipment.clientId) {
+            const client = await storage.getClient(shipment.clientId);
+            if (client?.commercialId) {
+              await storage.executeAutomatedResponse(client.commercialId, user.tenantId, severity as 'high' | 'critical');
+            }
           }
         } catch (escalationError) {
           console.error("Escalation error:", escalationError);
