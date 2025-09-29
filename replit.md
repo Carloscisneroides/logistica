@@ -1,38 +1,39 @@
-# NUVRA - MODULAR SAAS ECOSYSTEM
+# NYVRA - NEURAL YIELD VERIFICATION RISK ANALYSIS
 
 **Sender**: Ylenia Sacco – Strategic Lead YS Logistics
 **Recipient**: Reply Team / Technical AI Interlocutor
 
 ## Overview
 
-Nuvra is a modular and scalable SaaS ecosystem designed for comprehensive logistics, commercial, and operational management. Launched from zero in 48 hours, Nuvra is now operativo, antifrode, multilingua, and modulare with 45+ database tables, PWA mobile architecture, and ready for SRL innovativa and international partners.
+NYVRA (Neural Yield Verification Risk Analysis) is an enterprise-grade AI-powered antifraud and risk analysis platform. Built from zero in 48 hours with cutting-edge technology, NYVRA provides real-time neural network analysis, predictive fraud detection, and comprehensive risk management for logistics, e-commerce, and financial operations.
 
-The platform provides a robust foundation with contextual AI, multi-tenant segmentation, competitive protection, and integrated monetization. Strategic expansion includes integration with international partners (Temu, Shein, Alibaba, Maersk, DHL, Cainiao) and the new Glovo-model integration for marketplace delivery services.
+The platform leverages neural network architecture for pattern detection, machine learning for predictive analytics, and real-time monitoring for instant threat response. Strategic expansion includes integration with international partners (Temu, Shein, Alibaba, Maersk, DHL, Cainiao) for global fraud detection coverage.
 
 **Key Status (September 2025):**
-- ✅ Core Platform: Operational with mobile navigation system
-- ✅ 50+ Specialized Modules: Fully inventoried and categorized  
-- ✅ PWA Mobile: Refactored with centralized hook architecture
-- ✅ Multilingua: 10 languages ready for global distribution
-- ✅ White-label: Complete customization for sub-clients
-- ✅ Anti-fraud: Integrated system with AI prediction
-- 🔧 Enterprise Modules: In consolidation phase
-- 🔧 Marketplace: 90% complete with Glovo integration planned
-- ✅ **REBRAND COMPLETED**: Successfully rebranded from YCORE to Nuvra (September 29, 2025)
+- ✅ Core Platform: Operational with futuristic UI/UX design
+- ✅ Neural AI Engine: Real-time fraud detection and risk scoring
+- ✅ PWA Mobile: Optimized for on-the-go security monitoring
+- ✅ Multilingua: 10 languages for international deployment
+- ✅ White-label: Enterprise customization capabilities
+- ✅ Anti-fraud System: AI-powered predictive detection active
+- 🔧 Enterprise Modules: Advanced analytics in development
+- 🔧 Marketplace Integration: Antifraud API for e-commerce platforms
+- ✅ **REBRAND COMPLETED**: Successfully rebranded to NYVRA (September 29, 2025)
 
 ## Stato Piattaforma
-- ✅ Core Platform operativo con navigazione mobile centralizzata (useMobileNavigationState)
-- ✅ 50+ moduli inventariati e categorizzati
-- ✅ PWA Mobile rifattorizzato con hook centralizzato
-- ✅ Sistema AI integrato (Assistant + Anti-fraud)
-- ✅ Architettura modulare scalabile per migliaia di tenant
+- ✅ NYVRA Brand: Nuovo design futuristico con logo neural network
+- ✅ Core Platform: Dashboard AI-powered con metriche real-time
+- ✅ 50+ moduli antifrode inventariati e categorizzati
+- ✅ PWA Mobile: Design simmetrico PC/mobile con traction visuals
+- ✅ Neural AI Engine: Pattern detection e machine learning attivo
+- ✅ Architettura scalabile per enterprise multi-tenant
 
 ## Punti Chiave per Partner
-- **Rapidità**: Lanciato da zero in 48h
-- **Scalabilità**: 45+ tabelle, isolamento multi-tenant
-- **Sicurezza**: Sistema antifrode integrato
-- **Internazionalizzazione**: Traduzione in 10 lingue
-- **White-label**: Personalizzazione completa per sottoclienti (logo, colori, app mobile)
+- **AI Neural**: Engine di analisi predittiva con machine learning
+- **Antifrode 24/7**: Monitoraggio continuo e threat detection
+- **Scalabilità**: Architettura enterprise-ready multi-tenant
+- **Real-time**: Dashboard con aggiornamenti istantanei
+- **White-label**: Personalizzazione completa brand e interfaccia
 
 ## Stato Deployment
 - **Codebase stabile e testato**

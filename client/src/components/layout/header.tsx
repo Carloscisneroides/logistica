@@ -2,14 +2,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Bell, Plus, Menu, Crown, User, LogOut, ArrowLeft, Search, LayoutDashboard, Settings } from "lucide-react";
+import { Bell, Plus, Menu, Crown, User, LogOut, ArrowLeft, Search, LayoutDashboard, Settings, Shield } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { GlobalAIAssistant } from "@/components/ai/global-ai-assistant";
 import { useAuth } from "@/hooks/use-auth";
 import { useDeviceInterface } from "@/hooks/use-device-interface";
 import { useLocation } from "wouter";
-import nuvraLogo from "@assets/generated_images/Nuvra_desktop_logo_3ec046e6.png";
+import { NyvraLogo } from "@/components/branding/nyvra-logo";
 
 interface HeaderProps {
   title: string;
@@ -49,13 +49,10 @@ export function Header({ title, onMenuToggle, mobileMode = false, navigationStat
               <Menu className="w-6 h-6" />
             </Button>
           ) : mobileMode ? (
-            /* MOBILE FALLBACK: Solo logo */
-            <div className="flex items-center space-x-3">
-              <img src={nuvraLogo} alt="Nuvra" className="h-8 w-8" />
-              <span className="heading-2 text-primary">{title}</span>
+            <div className="flex items-center space-x-2">
+              <NyvraLogo size="sm" variant="icon" animated={false} />
             </div>
           ) : (
-            /* DESKTOP MODE: Menu + Logo simmetrico */
             <>
               <Button
                 variant="ghost"
@@ -66,19 +63,14 @@ export function Header({ title, onMenuToggle, mobileMode = false, navigationStat
                 <Menu className="w-6 h-6" />
               </Button>
               <div className="flex items-center space-x-3">
-                <img 
-                  src={nuvraLogo} 
-                  alt="Nuvra Logo" 
-                  className="h-8 w-8 object-contain"
-                  data-testid="img-nuvra-logo"
-                />
+                <NyvraLogo size="sm" variant="icon" animated={false} />
                 <Badge 
                   variant="secondary" 
-                  className="bg-accent/10 text-accent border-accent/20"
-                  data-testid="badge-multi-tenant"
+                  className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 text-blue-600 dark:text-cyan-400 border-blue-500/20"
+                  data-testid="badge-antifraud"
                 >
-                  <Crown className="w-3 h-3 mr-1" />
-                  Multi-Tenant
+                  <Shield className="w-3 h-3 mr-1" />
+                  Antifraud AI
                 </Badge>
               </div>
             </>
@@ -208,7 +200,7 @@ export function Header({ title, onMenuToggle, mobileMode = false, navigationStat
       
       {/* Copyright notice sempre visibile */}
       <div className="text-xs text-muted-foreground/50 text-right pr-2 mt-1">
-        © 2025 Nuvra SRL Innovativa - Proprietà riservata
+        © 2025 NYVRA - Neural Yield Verification Risk Analysis - All Rights Reserved
       </div>
     </header>
   );

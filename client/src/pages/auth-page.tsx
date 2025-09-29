@@ -17,7 +17,7 @@ import { z } from "zod";
 import { Redirect } from "wouter";
 import { Loader2, Truck, Shield, Users, Zap, Download, Smartphone, Settings2, Check, Globe, Bot } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import nuvraLogo from "@assets/generated_images/Nuvra_desktop_logo_3ec046e6.png";
+import { NyvraLogo } from "@/components/branding/nyvra-logo";
 
 const loginSchema = insertUserSchema.pick({ username: true, password: true });
 // Validazione Partita IVA italiana (11 cifre)
@@ -244,14 +244,14 @@ export default function AuthPage() {
       setTimeout(() => {
         const isChrome = /Chrome/.test(navigator.userAgent);
         if (isChrome && e) {
-          console.log('🚀 Nuvra PWA pronta per installazione automatica!');
+          console.log('🚀 NYVRA PWA pronta per installazione automatica!');
         }
       }, 2000);
     };
 
     // PWA Installation Success Handler
     const handleAppInstalled = (e: any) => {
-      console.log('🎉 Nuvra PWA installata con successo!', e);
+      console.log('🎉 NYVRA PWA installata con successo!', e);
       setPwaInstalled(true);
       setShowPWAInstall(false);
       localStorage.setItem('pwa-installed', '1');
@@ -274,7 +274,7 @@ export default function AuthPage() {
         localStorage.setItem('pwa-installed', '1');
         
         toast({
-          title: "🎉 Nuvra Installata!",
+          title: "🎉 NYVRA Installata!",
           description: "L'app è stata installata con successo. Puoi aprirla dall'icona nella Home o dal menu Applicazioni.",
           duration: 5000,
           variant: "default"
@@ -308,14 +308,14 @@ export default function AuthPage() {
       if (isChrome) {
         if (isMobile) {
           toast({
-            title: "📱 Installa Nuvra",
+            title: "📱 Installa NYVRA",
             description: "Tocca i 3 punti (⋮) in alto a destra, poi seleziona \"Installa app\" o \"Aggiungi alla schermata Home\"",
             duration: 7000,
           });
         } else {
           toast({
-            title: "💻 Installa Nuvra",
-            description: "Clicca l'icona \"Installa\" nella barra degli indirizzi oppure Menu Chrome → \"Installa Nuvra\"",
+            title: "💻 Installa NYVRA",
+            description: "Clicca l'icona \"Installa\" nella barra degli indirizzi oppure Menu Chrome → \"Installa NYVRA\"",
             duration: 7000,
           });
         }
@@ -340,7 +340,7 @@ export default function AuthPage() {
         localStorage.setItem('pwa-installed', '1');
         
         toast({
-          title: "🎉 Nuvra Installata!",
+          title: "🎉 NYVRA Installata!",
           description: "L'app è stata installata con successo. Ora puoi aprirla dall'icona nella Home o dal menu Applicazioni.",
           duration: 5000,
           variant: "default"
@@ -390,12 +390,11 @@ export default function AuthPage() {
   if (isApp) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
-        <div className="bg-primary px-6 py-8 text-center text-white safe-area-top">
-          <div className="flex items-center justify-center space-x-3 mb-4">
-            <img src={nuvraLogo} alt="Nuvra" className="w-10 h-10" />
-            <h1 className="text-2xl font-bold">Nuvra</h1>
+        <div className="bg-gradient-to-br from-blue-600 via-indigo-700 to-cyan-600 px-6 py-8 text-center text-white safe-area-top">
+          <div className="flex items-center justify-center mb-4">
+            <NyvraLogo size="sm" variant="full" />
           </div>
-          <p className="text-primary-foreground/80 text-sm">{t('tagline')}</p>
+          <p className="text-primary-foreground/90 text-xs font-medium tracking-wide">Neural Yield Verification Risk Analysis</p>
           {/* Language Switcher - Mobile Login */}
           <div className="flex justify-center mt-4">
             <button
@@ -497,68 +496,59 @@ export default function AuthPage() {
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-cyan-400/10 to-blue-600/10 rounded-full blur-3xl animate-ping"></div>
       </div>
       
-      {/* Centered Nuvra Header */}
-      <div className="w-full bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-800 relative overflow-hidden">
+      {/* NYVRA Header - Futuristic Design */}
+      <div className="w-full bg-gradient-to-br from-blue-600 via-indigo-700 to-cyan-600 relative overflow-hidden">
         {/* Animated Background Elements */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-white/10 rounded-full blur-xl animate-pulse"></div>
-          <div className="absolute bottom-1/3 right-1/3 w-24 h-24 bg-yellow-300/20 rounded-full blur-lg animate-pulse delay-1000"></div>
-          <div className="absolute top-1/2 right-1/4 w-16 h-16 bg-cyan-300/30 rounded-full blur-md animate-ping delay-500"></div>
+          <div className="absolute bottom-1/3 right-1/3 w-24 h-24 bg-cyan-300/20 rounded-full blur-lg animate-pulse delay-1000"></div>
+          <div className="absolute top-1/2 right-1/4 w-16 h-16 bg-blue-300/30 rounded-full blur-md animate-ping delay-500"></div>
         </div>
         
         {/* Main Content - SIMMETRICO E CENTRATO */}
         <div className="desktop-container py-16 relative z-10">
           <div className="text-center space-y-6 max-w-4xl mx-auto">
-            {/* Logo + Title centrato */}
-            <div className="flex items-center justify-center space-x-4">
-              <div className="w-16 h-16 bg-white/20 backdrop-blur-xl rounded-2xl border border-white/30 shadow-2xl flex items-center justify-center">
-                <img 
-                  src={nuvraLogo} 
-                  alt="Nuvra Logo" 
-                  className="w-10 h-10 object-contain"
-                />
-              </div>
-              <h1 className="text-4xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-blue-100 to-cyan-200">
-                Nuvra
-              </h1>
+            {/* Logo NYVRA centrato */}
+            <div className="flex items-center justify-center">
+              <NyvraLogo size="xl" variant="full" animated={true} />
             </div>
             
-            {/* Sottotitolo centrato */}
-            <h2 className="heading-1 text-white/90">
-              Il Motore Digitale del Business Moderno
+            {/* Sottotitolo futuristico */}
+            <h2 className="text-2xl font-bold text-white/90 tracking-wide">
+              Il Sistema Antifrode di Nuova Generazione
             </h2>
             
             {/* Value Proposition centrata */}
             <p className="text-lg text-white/80 leading-relaxed font-medium max-w-3xl mx-auto">
-              Un ecosistema <span className="text-yellow-300 font-bold">modulare</span>, <span className="text-yellow-300 font-bold">intelligente</span> e <span className="text-yellow-300 font-bold">sicuro</span> che trasforma il modo in cui le aziende operano, vendono e crescono.
+              Piattaforma <span className="text-cyan-300 font-bold">AI-powered</span> per <span className="text-cyan-300 font-bold">analisi predittiva</span> e <span className="text-cyan-300 font-bold">protezione enterprise</span> contro frodi e rischi operativi.
             </p>
             
-            {/* Features centrate */}
+            {/* Features centrate - NYVRA */}
             <div className="flex items-center justify-center space-x-8 pt-4">
               <div className="text-center">
                 <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-3">
-                  <span className="text-xl">🚀</span>
+                  <Bot className="w-6 h-6 text-white" />
                 </div>
-                <p className="text-white body-text font-semibold">Innovazione</p>
+                <p className="text-white body-text font-semibold">AI Neural</p>
               </div>
               <div className="text-center">
                 <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-3">
-                  <span className="text-xl">🔒</span>
+                  <Shield className="w-6 h-6 text-white" />
                 </div>
-                <p className="text-white body-text font-semibold">Sicurezza</p>
+                <p className="text-white body-text font-semibold">Antifrode</p>
               </div>
               <div className="text-center">
                 <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-3">
-                  <span className="text-xl">⚡</span>
+                  <Zap className="w-6 h-6 text-white" />
                 </div>
-                <p className="text-white body-text font-semibold">Velocità</p>
+                <p className="text-white body-text font-semibold">Real-time</p>
               </div>
             </div>
             
             {/* Citazione centrale */}
             <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/20 shadow-2xl text-center">
               <p className="text-white text-lg font-semibold leading-relaxed">
-                Nuvra non è solo una piattaforma: è il <span className="text-yellow-300">cuore operativo</span> che connette persone, processi e opportunità in <span className="text-cyan-300">tempo reale</span>.
+                <span className="text-cyan-300 font-black">NYVRA</span> è il cervello <span className="text-cyan-300">neurale</span> che analizza, prevede e protegge il tuo business <span className="text-cyan-300">24/7</span> con intelligenza artificiale di livello enterprise.
               </p>
             </div>
           </div>
