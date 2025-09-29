@@ -31,7 +31,7 @@ export function NyvraLogo({
 
   return (
     <div className={`flex items-center gap-3 ${className}`}>
-      {/* NYVRA Icon - Neural Network Pattern */}
+      {/* NYVRA Icon - Network Pattern */}
       <div className="relative">
         <svg
           width={currentSize}
@@ -61,7 +61,7 @@ export function NyvraLogo({
             opacity="0.9"
           />
           
-          {/* Neural Network Pattern */}
+          {/* Network Connection Pattern */}
           <circle cx="30" cy="30" r="3" fill="#ffffff" opacity="0.9" />
           <circle cx="70" cy="30" r="3" fill="#ffffff" opacity="0.9" />
           <circle cx="50" cy="50" r="4" fill="#fbbf24" opacity="1" />

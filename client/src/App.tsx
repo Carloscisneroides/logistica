@@ -1,5 +1,5 @@
 /*
- * NYVRA - Neural Yield Verification Risk Analysis
+ * NYVRA - Network Yield Verification Risk Analysis
  * Copyright © 2025 NYVRA Platform - All Rights Reserved
  * 
  * WATERMARK: nyvra-app-f47ac10b-58cc-4372-a567-0e02b2c3d479

@@ -1,4 +1,4 @@
-# NYVRA - NEURAL YIELD VERIFICATION RISK ANALYSIS
+# NYVRA - NETWORK YIELD VERIFICATION RISK ANALYSIS
 
 **Sender**: Ylenia Sacco – Strategic Lead YS Logistics
 **Recipient**: Reply Team / Technical AI Interlocutor
