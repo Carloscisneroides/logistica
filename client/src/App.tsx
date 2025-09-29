@@ -11,7 +11,7 @@
  * INFORMATION OWNED BY NYVRA PLATFORM.
  */
 
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -68,6 +68,7 @@ import { useEffect } from "react";
 function MainLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { isApp, isPC } = useDeviceInterface();
+  const [location] = useLocation();
   
   // Gestione sicura del Context
   let navigationState;
@@ -78,6 +79,42 @@ function MainLayout({ children }: { children: React.ReactNode }) {
     navigationState = null;
   }
 
+  // Mappa dinamica titoli pagine
+  const getPageTitle = (path: string): string => {
+    const titleMap: Record<string, string> = {
+      '/': 'Dashboard',
+      '/shipments': 'Spedizioni',
+      '/shipment-tracking': 'Tracking Spedizioni',
+      '/shipments-list': 'Elenco Spedizioni',
+      '/logistics-warehouses': 'Magazzini Logistica',
+      '/courier-modules': 'Moduli Corrieri',
+      '/rates-carriers': 'Listini & Corrieri',
+      '/global-logistics': 'Logistica Globale',
+      '/clients': 'Clienti',
+      '/billing': 'Fatturazione',
+      '/corrections': 'Correzioni',
+      '/commercial': 'Commerciale',
+      '/commerciale/agente': 'Dashboard Agente',
+      '/commerciale/responsabile': 'Dashboard Responsabile',
+      '/support': 'Supporto',
+      '/ecommerce': 'eCommerce',
+      '/ecommerce-warehouses': 'Magazzini eCommerce',
+      '/ecommerce-suppliers': 'Fornitori eCommerce',
+      '/marketplace': 'Marketplace',
+      '/fidelity': 'Programma Fedeltà',
+      '/wallet': 'Wallet NYVRA',
+      '/system-creator': 'System Creator',
+      '/admin': 'Pannello Admin',
+      '/staff': 'Console Staff',
+      '/client-area': 'Area Cliente',
+      '/client/marketplace': 'Marketplace Area',
+      '/client/logistica': 'Logistica Area',
+    };
+    return titleMap[path] || 'NYVRA';
+  };
+
+  const pageTitle = getPageTitle(location);
+
   // ===== ARCHITETTURA UNIFICATA YLENIA SACCO =====
   if (isApp) {
     // MODALITÀ MOBILE - Gestione centralizzata menu
@@ -85,7 +122,7 @@ function MainLayout({ children }: { children: React.ReactNode }) {
       <div className="flex h-screen overflow-hidden bg-background">
         <div className="flex-1 flex flex-col overflow-hidden">
           <Header 
-            title="NYVRA" 
+            title={pageTitle} 
             mobileMode={true}
             navigationState={navigationState}
           />
@@ -110,7 +147,7 @@ function MainLayout({ children }: { children: React.ReactNode }) {
       <Sidebar className={sidebarOpen ? "" : "hidden lg:block"} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header 
-          title="Dashboard" 
+          title={pageTitle} 
           mobileMode={false}
           onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
         />
