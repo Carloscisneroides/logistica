@@ -497,7 +497,7 @@ export default function AuthPage() {
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-cyan-400/10 to-blue-600/10 rounded-full blur-3xl animate-ping"></div>
       </div>
       
-      {/* Full Width Nuvra Header */}
+      {/* Centered Nuvra Header */}
       <div className="w-full bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-800 relative overflow-hidden">
         {/* Animated Background Elements */}
         <div className="absolute inset-0 overflow-hidden">
@@ -506,61 +506,56 @@ export default function AuthPage() {
           <div className="absolute top-1/2 right-1/4 w-16 h-16 bg-cyan-300/30 rounded-full blur-md animate-ping delay-500"></div>
         </div>
         
-        {/* Main Content - TUTTO IN ORIZZONTALE E LARGHEZZA PIENA */}
-        <div className="relative flex items-center justify-center py-16 px-8 z-10">
-          <div className="w-full max-w-6xl space-y-6">
-            {/* Prima riga: Logo + Nuvra + Sottotitolo - LARGHEZZA PIENA */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="w-16 h-16 bg-white/20 backdrop-blur-xl rounded-2xl border border-white/30 shadow-2xl flex items-center justify-center">
-                  <img 
-                    src={nuvraLogo} 
-                    alt="Nuvra Logo" 
-                    className="w-10 h-10 object-contain"
-                  />
-                </div>
-                <h1 className="text-4xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-blue-100 to-cyan-200">
-                  Nuvra
-                </h1>
+        {/* Main Content - SIMMETRICO E CENTRATO */}
+        <div className="desktop-container py-16 relative z-10">
+          <div className="text-center space-y-6 max-w-4xl mx-auto">
+            {/* Logo + Title centrato */}
+            <div className="flex items-center justify-center space-x-4">
+              <div className="w-16 h-16 bg-white/20 backdrop-blur-xl rounded-2xl border border-white/30 shadow-2xl flex items-center justify-center">
+                <img 
+                  src={nuvraLogo} 
+                  alt="Nuvra Logo" 
+                  className="w-10 h-10 object-contain"
+                />
               </div>
-              <h2 className="text-xl font-bold text-white/90">
-                Il Motore Digitale del Business Moderno
-              </h2>
+              <h1 className="text-4xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-blue-100 to-cyan-200">
+                Nuvra
+              </h1>
             </div>
             
-            {/* Seconda riga: Value Proposition + Features - LARGHEZZA PIENA */}
-            <div className="flex items-center justify-between space-x-6">
-              {/* Descrizione principale */}
-              <div className="flex-1">
-                <p className="text-lg text-white/80 leading-relaxed font-medium">
-                  Un ecosistema <span className="text-yellow-300 font-bold">modulare</span>, <span className="text-yellow-300 font-bold">intelligente</span> e <span className="text-yellow-300 font-bold">sicuro</span> che trasforma il modo in cui le aziende operano, vendono e crescono.
-                </p>
+            {/* Sottotitolo centrato */}
+            <h2 className="heading-1 text-white/90">
+              Il Motore Digitale del Business Moderno
+            </h2>
+            
+            {/* Value Proposition centrata */}
+            <p className="text-lg text-white/80 leading-relaxed font-medium max-w-3xl mx-auto">
+              Un ecosistema <span className="text-yellow-300 font-bold">modulare</span>, <span className="text-yellow-300 font-bold">intelligente</span> e <span className="text-yellow-300 font-bold">sicuro</span> che trasforma il modo in cui le aziende operano, vendono e crescono.
+            </p>
+            
+            {/* Features centrate */}
+            <div className="flex items-center justify-center space-x-8 pt-4">
+              <div className="text-center">
+                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-3">
+                  <span className="text-xl">🚀</span>
+                </div>
+                <p className="text-white body-text font-semibold">Innovazione</p>
               </div>
-              
-              {/* Features in orizzontale */}
-              <div className="flex items-center space-x-4">
-                <div className="text-center">
-                  <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-2">
-                    <span className="text-lg">🚀</span>
-                  </div>
-                  <p className="text-white text-xs font-semibold">Innovazione</p>
+              <div className="text-center">
+                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-3">
+                  <span className="text-xl">🔒</span>
                 </div>
-                <div className="text-center">
-                  <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-2">
-                    <span className="text-lg">🔒</span>
-                  </div>
-                  <p className="text-white text-xs font-semibold">Sicurezza</p>
+                <p className="text-white body-text font-semibold">Sicurezza</p>
+              </div>
+              <div className="text-center">
+                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-3">
+                  <span className="text-xl">⚡</span>
                 </div>
-                <div className="text-center">
-                  <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-2">
-                    <span className="text-lg">⚡</span>
-                  </div>
-                  <p className="text-white text-xs font-semibold">Velocità</p>
-                </div>
+                <p className="text-white body-text font-semibold">Velocità</p>
               </div>
             </div>
             
-            {/* Terza riga: Citazione centrale - LARGHEZZA PIENA */}
+            {/* Citazione centrale */}
             <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/20 shadow-2xl text-center">
               <p className="text-white text-lg font-semibold leading-relaxed">
                 Nuvra non è solo una piattaforma: è il <span className="text-yellow-300">cuore operativo</span> che connette persone, processi e opportunità in <span className="text-cyan-300">tempo reale</span>.
@@ -575,75 +570,75 @@ export default function AuthPage() {
         <div className="absolute top-1/2 left-0 w-2 h-48 bg-gradient-to-b from-transparent via-white/20 to-transparent -translate-x-1"></div>
       </div>
 
-      {/* Form di login CENTRATO SOTTO */}
-      <div className="flex items-center justify-center p-8 relative z-10">
-        <div className="w-full max-w-lg space-y-12">
-          {/* Glassmorphism Card */}
-          <div className="bg-white/70 dark:bg-black/40 backdrop-blur-xl rounded-3xl border border-white/50 dark:border-white/10 shadow-2xl shadow-blue-500/10 p-10">
-            <div className="text-center space-y-4 mb-10">
-              <h2 className="text-xl font-bold text-foreground">
+      {/* Form di login CENTRATO E SIMMETRICO */}
+      <div className="min-h-[calc(100vh-400px)] flex items-center justify-center px-4 py-8 relative z-10">
+        <div className="w-full max-w-md">
+          {/* Glassmorphism Card centrata */}
+          <div className="card-uniform bg-white/80 dark:bg-black/50 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-2xl shadow-blue-500/10">
+            <div className="text-center mb-8">
+              <h2 className="heading-1 text-foreground">
                 {isLogin ? "Accesso" : "Registrazione"}
               </h2>
+              <p className="body-text text-muted-foreground mt-2">
+                Inserisci le tue credenziali per continuare
+              </p>
             </div>
               
-              {/* Elite Demo Notice */}
-              <div className="mt-8 p-5 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/50 dark:to-orange-950/50 rounded-2xl border border-amber-200/50 dark:border-amber-800/50">
-                <div className="text-center space-y-2">
-                  <div className="flex items-center justify-center space-x-2">
-                    <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
-                    <span className="text-sm font-semibold text-amber-700 dark:text-amber-300">DEMO RISERVATA</span>
-                    <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
-                  </div>
-                  <p className="text-xs text-amber-600 dark:text-amber-400">
-                    Accesso limitato ai partner autorizzati
-                  </p>
-                  <p className="text-[10px] text-amber-600/70 dark:text-amber-400/70">
-                    Sistema protetto con tracciamento avanzato
-                  </p>
+            {/* Elite Demo Notice */}
+            <div className="mb-6 p-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/50 dark:to-orange-950/50 rounded-xl border border-amber-200/50 dark:border-amber-800/50">
+              <div className="text-center space-y-2">
+                <div className="flex items-center justify-center space-x-2">
+                  <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
+                  <span className="body-text font-semibold text-amber-700 dark:text-amber-300">DEMO RISERVATA</span>
+                  <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
                 </div>
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  Accesso limitato ai partner autorizzati
+                </p>
+                <p className="text-[10px] text-amber-600/70 dark:text-amber-400/70">
+                  Sistema protetto con tracciamento avanzato
+                </p>
               </div>
             </div>
             
-            <div className="space-y-8">
+            {/* Form sezione simmetrica */}
+            <div className="space-y-6">
               {isLogin ? (
                 <form 
                   onSubmit={loginForm.handleSubmit(onLoginSubmit)} 
-                  className={`space-y-8 ${isApp ? 'form-keyboard-adaptive form-mobile' : ''}`}
-                  data-keyboard-open={keyboardOpen ? '1' : '0'}
+                  className="space-y-6"
                 >
-                  <div className="space-y-6">
-                    <div className="space-y-3">
-                      <Label htmlFor="username" className="text-sm font-medium text-foreground/80">Username</Label>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="username" className="body-text font-medium text-foreground">Username</Label>
                       <Input
                         id="username"
                         type="text"
                         {...loginForm.register("username")}
-                        className="h-12 border-2 border-border/50 focus:border-primary/80 rounded-xl bg-background/50 backdrop-blur-sm transition-all duration-200 focus:ring-2 focus:ring-primary/20"
+                        className="h-12 border-2 border-border focus:border-primary rounded-lg bg-background transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                         placeholder="Inserisci il tuo username"
                         data-testid="input-username"
                       />
                       {loginForm.formState.errors.username && (
-                        <p className="text-sm text-red-500 flex items-center space-x-1">
-                          <span>•</span>
-                          <span>{loginForm.formState.errors.username.message}</span>
+                        <p className="text-xs text-destructive">
+                          {loginForm.formState.errors.username.message}
                         </p>
                       )}
                     </div>
                     
-                    <div className="space-y-3">
-                      <Label htmlFor="password" className="text-sm font-medium text-foreground/80">Password</Label>
+                    <div className="space-y-2">
+                      <Label htmlFor="password" className="body-text font-medium text-foreground">Password</Label>
                       <Input
                         id="password"
                         type="password"
                         {...loginForm.register("password")}
-                        className="h-12 border-2 border-border/50 focus:border-primary/80 rounded-xl bg-background/50 backdrop-blur-sm transition-all duration-200 focus:ring-2 focus:ring-primary/20"
+                        className="h-12 border-2 border-border focus:border-primary rounded-lg bg-background transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                         placeholder="Inserisci la tua password"
                         data-testid="input-password"
                       />
                       {loginForm.formState.errors.password && (
-                        <p className="text-sm text-red-500 flex items-center space-x-1">
-                          <span>•</span>
-                          <span>{loginForm.formState.errors.password.message}</span>
+                        <p className="text-xs text-destructive">
+                          {loginForm.formState.errors.password.message}
                         </p>
                       )}
                     </div>
@@ -651,12 +646,12 @@ export default function AuthPage() {
                   
                   <Button 
                     type="submit" 
-                    className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-xl shadow-lg shadow-blue-500/25 transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]"
+                    className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-lg transition-all duration-200"
                     disabled={loginMutation.isPending}
                     data-testid="button-login"
                   >
                     {loginMutation.isPending && (
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     )}
                     {loginMutation.isPending ? "Accesso..." : "Accedi al Sistema"}
                   </Button>
