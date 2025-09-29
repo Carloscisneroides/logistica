@@ -17,7 +17,7 @@ import { z } from "zod";
 import { Redirect } from "wouter";
 import { Loader2, Truck, Shield, Users, Zap, Download, Smartphone, Settings2, Check, Globe, Bot } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import nuvraLogo from "@assets/nuvra-logo.png";
+import nuvraLogo from "@assets/generated_images/Nuvra_desktop_logo_3ec046e6.png";
 
 const loginSchema = insertUserSchema.pick({ username: true, password: true });
 // Validazione Partita IVA italiana (11 cifre)
