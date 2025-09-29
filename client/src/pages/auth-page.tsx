@@ -18,6 +18,7 @@ import { Redirect } from "wouter";
 import { Loader2, Truck, Shield, Users, Zap, Download, Smartphone, Settings2, Check, Globe, Bot } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { NyvraLogo } from "@/components/branding/nyvra-logo";
+import { BRAND_NAME, BRAND_TAGLINE } from "@/lib/constants";
 
 const loginSchema = insertUserSchema.pick({ username: true, password: true });
 // Validazione Partita IVA italiana (11 cifre)
@@ -274,7 +275,7 @@ export default function AuthPage() {
         localStorage.setItem('pwa-installed', '1');
         
         toast({
-          title: "🎉 NYVRA Installata!",
+          title: `🎉 ${BRAND_NAME} Installata!`,
           description: "L'app è stata installata con successo. Puoi aprirla dall'icona nella Home o dal menu Applicazioni.",
           duration: 5000,
           variant: "default"
@@ -308,14 +309,14 @@ export default function AuthPage() {
       if (isChrome) {
         if (isMobile) {
           toast({
-            title: "📱 Installa NYVRA",
+            title: `📱 Installa ${BRAND_NAME}`,
             description: "Tocca i 3 punti (⋮) in alto a destra, poi seleziona \"Installa app\" o \"Aggiungi alla schermata Home\"",
             duration: 7000,
           });
         } else {
           toast({
-            title: "💻 Installa NYVRA",
-            description: "Clicca l'icona \"Installa\" nella barra degli indirizzi oppure Menu Chrome → \"Installa NYVRA\"",
+            title: `💻 Installa ${BRAND_NAME}`,
+            description: `Clicca l'icona \"Installa\" nella barra degli indirizzi oppure Menu Chrome → \"Installa ${BRAND_NAME}\"`,
             duration: 7000,
           });
         }
@@ -340,7 +341,7 @@ export default function AuthPage() {
         localStorage.setItem('pwa-installed', '1');
         
         toast({
-          title: "🎉 NYVRA Installata!",
+          title: `🎉 ${BRAND_NAME} Installata!`,
           description: "L'app è stata installata con successo. Ora puoi aprirla dall'icona nella Home o dal menu Applicazioni.",
           duration: 5000,
           variant: "default"
@@ -394,7 +395,7 @@ export default function AuthPage() {
           <div className="flex items-center justify-center mb-4">
             <NyvraLogo size="sm" variant="full" />
           </div>
-          <p className="text-primary-foreground/90 text-xs font-medium tracking-wide">Neural Yield Verification Risk Analysis</p>
+          <p className="text-primary-foreground/90 text-xs font-medium tracking-wide">{BRAND_TAGLINE}</p>
           {/* Language Switcher - Mobile Login */}
           <div className="flex justify-center mt-4">
             <button
@@ -548,7 +549,7 @@ export default function AuthPage() {
             {/* Citazione centrale */}
             <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/20 shadow-2xl text-center">
               <p className="text-white text-lg font-semibold leading-relaxed">
-                <span className="text-cyan-300 font-black">NYVRA</span> è il cervello <span className="text-cyan-300">neurale</span> che analizza, prevede e protegge il tuo business <span className="text-cyan-300">24/7</span> con intelligenza artificiale di livello enterprise.
+                <span className="text-cyan-300 font-black">{BRAND_NAME}</span> è il cervello <span className="text-cyan-300">neurale</span> che analizza, prevede e protegge il tuo business <span className="text-cyan-300">24/7</span> con intelligenza artificiale di livello enterprise.
               </p>
             </div>
           </div>

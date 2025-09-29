@@ -296,7 +296,7 @@ export function setupAuth(app: Express) {
         const adminUser = await storage.createUser({
           username: "admin",
           email: "ylenia@ycore.it",
-          password: "3a5c2fe2674f97b849dd4fa742da66adc737ef5489c6bae498d0388e6336d9efe0e232124f9ffc3f9802fb68854fe2cfa72166b9e1c77f580cc9f784d767b14c.68c94beac8ca73e45162e52dee1e95be",
+          password: "34fab0326bb47a7f32869f494880eade94721ab6c96a6775557ad4b7e531f4f15762390d5da3e8ff8630d61603043fb3ddf47aa31a8192eae5bb062792540490.e23626de7ad2888eddb5d1ac695d4560",
           role: "admin",
           tenantId: defaultTenant.id,
           isActive: true

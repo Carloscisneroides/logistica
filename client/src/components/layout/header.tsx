@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useDeviceInterface } from "@/hooks/use-device-interface";
 import { useLocation } from "wouter";
 import { NyvraLogo } from "@/components/branding/nyvra-logo";
+import { BRAND_COPYRIGHT } from "@/lib/constants";
 
 interface HeaderProps {
   title: string;
@@ -200,7 +201,7 @@ export function Header({ title, onMenuToggle, mobileMode = false, navigationStat
       
       {/* Copyright notice sempre visibile */}
       <div className="text-xs text-muted-foreground/50 text-right pr-2 mt-1">
-        © 2025 NYVRA - Neural Yield Verification Risk Analysis - All Rights Reserved
+        {BRAND_COPYRIGHT}
       </div>
     </header>
   );

@@ -1,7 +1,7 @@
 {
-  "name": "Nuvra - Ecosistema SaaS Modulare",
-  "short_name": "Nuvra",
-  "description": "Il Motore Digitale del Business Moderno - Piattaforma modulare, intelligente e sicura - v2.1.0",
+  "name": "NYVRA - Neural Yield Verification Risk Analysis",
+  "short_name": "NYVRA",
+  "description": "Enterprise AI-Powered Antifraud & Risk Analysis Platform - Neural Network Security - v2.1.0",
   "theme_color": "#1e40af",
   "background_color": "#0f172a",
   "display": "standalone",
@@ -119,7 +119,7 @@
   },
   "protocol_handlers": [
     {
-      "protocol": "web+nuvra",
+      "protocol": "web+nyvra",
       "url": "/?action=%s"
     }
   ]

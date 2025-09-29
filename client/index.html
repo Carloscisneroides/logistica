@@ -13,7 +13,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Nuvra" />
+    <meta name="apple-mobile-web-app-title" content="NYVRA" />
     <meta name="msapplication-TileColor" content="#1e40af" />
     <meta name="msapplication-tap-highlight" content="no" />
     
@@ -32,22 +32,22 @@
     <meta name="msapplication-config" content="/browserconfig.xml" />
     
     <!-- SEO and App Description -->
-    <title>Nuvra - Il Motore Digitale del Business Moderno</title>
-    <meta name="description" content="Ecosistema SaaS modulare, intelligente e sicuro per la trasformazione digitale aziendale. Logistics, eCommerce, Marketplace e AI integrati." />
-    <meta name="keywords" content="SaaS, logistics, ecommerce, marketplace, business platform, digital transformation" />
-    <meta name="author" content="Nuvra Platform" />
+    <title>NYVRA - Neural Yield Verification Risk Analysis</title>
+    <meta name="description" content="Enterprise-grade AI-powered antifraud and risk analysis platform. Real-time neural network analysis and predictive fraud detection for logistics, eCommerce and financial operations." />
+    <meta name="keywords" content="antifraud, risk analysis, AI, machine learning, fraud detection, neural network, enterprise security" />
+    <meta name="author" content="NYVRA Platform" />
     
     <!-- Open Graph / Social Media -->
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Nuvra - Il Motore Digitale del Business Moderno" />
-    <meta property="og:description" content="Piattaforma modulare per logistics, eCommerce e marketplace con AI integrata" />
+    <meta property="og:title" content="NYVRA - Neural Yield Verification Risk Analysis" />
+    <meta property="og:description" content="AI-powered antifraud platform for enterprise risk management and predictive fraud detection" />
     <meta property="og:image" content="/pwa-assets/og-image.png" />
     <meta property="og:url" content="/" />
     
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Nuvra Platform" />
-    <meta name="twitter:description" content="Il Motore Digitale del Business Moderno" />
+    <meta name="twitter:title" content="NYVRA Platform" />
+    <meta name="twitter:description" content="Neural Yield Verification Risk Analysis - AI Antifraud System" />
     <meta name="twitter:image" content="/pwa-assets/og-image.png" />
     
     <!-- Preload Critical Resources -->
@@ -97,7 +97,7 @@
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('/sw.js')
             .then((registration) => {
-              console.log('🚀 Nuvra PWA: Service Worker registered successfully:', registration.scope);
+              console.log('🚀 NYVRA PWA: Service Worker registered successfully:', registration.scope);
               
               // Check for updates
               registration.addEventListener('updatefound', () => {
@@ -106,10 +106,10 @@
                   newWorker.addEventListener('statechange', () => {
                     if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                       // New version available
-                      console.log('🔄 Nuvra PWA: New version available');
+                      console.log('🔄 NYVRA PWA: New version available');
                       
                       // Optionally show update notification
-                      if (window.confirm('Nueva versione di Nuvra disponibile. Aggiornare ora?')) {
+                      if (window.confirm('Nuova versione di NYVRA disponibile. Aggiornare ora?')) {
                         window.location.reload();
                       }
                     }
@@ -118,7 +118,7 @@
               });
             })
             .catch((error) => {
-              console.log('❌ Nuvra PWA: Service Worker registration failed:', error);
+              console.log('❌ NYVRA PWA: Service Worker registration failed:', error);
             });
         });
       }
@@ -126,7 +126,7 @@
       // PWA Install Prompt
       let deferredPrompt;
       window.addEventListener('beforeinstallprompt', (e) => {
-        console.log('📱 Nuvra PWA: Install prompt available');
+        console.log('📱 NYVRA PWA: Install prompt available');
         e.preventDefault();
         deferredPrompt = e;
         
@@ -148,7 +148,7 @@
             transform: translateY(-100%);
             transition: transform 0.3s ease;
           ">
-            <span style="font-weight: 600; margin-right: 12px;">📱 Installa Nuvra come App</span>
+            <span style="font-weight: 600; margin-right: 12px;">📱 Installa NYVRA come App</span>
             <button id="install-btn" style="
               background: rgba(255,255,255,0.2); 
               border: 1px solid rgba(255,255,255,0.3); 
@@ -181,9 +181,9 @@
           deferredPrompt.prompt();
           deferredPrompt.userChoice.then((choiceResult) => {
             if (choiceResult.outcome === 'accepted') {
-              console.log('✅ Nuvra PWA: User accepted the install prompt');
+              console.log('✅ NYVRA PWA: User accepted the install prompt');
             } else {
-              console.log('❌ Nuvra PWA: User dismissed the install prompt');
+              console.log('❌ NYVRA PWA: User dismissed the install prompt');
             }
             deferredPrompt = null;
             document.body.removeChild(installBanner);
@@ -198,13 +198,13 @@
       
       // PWA Install Success
       window.addEventListener('appinstalled', (evt) => {
-        console.log('🎉 Nuvra PWA: App was installed successfully');
+        console.log('🎉 NYVRA PWA: App was installed successfully');
         
         // Track install event
         if (typeof gtag === 'function') {
           gtag('event', 'pwa_install', {
             event_category: 'engagement',
-            event_label: 'Nuvra PWA Installed'
+            event_label: 'NYVRA PWA Installed'
           });
         }
       });
@@ -215,7 +215,7 @@
         const isIOSStandalone = 'standalone' in window.navigator && window.navigator.standalone;
         
         if (isStandalone || isIOSStandalone) {
-          console.log('📱 Nuvra PWA: Running in app mode');
+          console.log('📱 NYVRA PWA: Running in app mode');
           document.body.classList.add('pwa-standalone');
           
           // Add app-specific behaviors
@@ -226,7 +226,7 @@
       // Handle offline/online status
       function updateOnlineStatus() {
         const status = navigator.onLine ? 'online' : 'offline';
-        console.log(`🌐 Nuvra PWA: Network status changed to ${status}`);
+        console.log(`🌐 NYVRA PWA: Network status changed to ${status}`);
         
         if (!navigator.onLine) {
           // Show offline indicator

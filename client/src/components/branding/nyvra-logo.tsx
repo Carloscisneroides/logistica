@@ -1,3 +1,5 @@
+import { BRAND_NAME, BRAND_TAGLINE } from '@/lib/constants';
+
 interface NyvraLogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
   variant?: 'full' | 'icon';
@@ -97,11 +99,11 @@ export function NyvraLogo({
             className="font-black tracking-tight bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 bg-clip-text text-transparent"
             style={{ fontSize: size === 'sm' ? '1.25rem' : size === 'md' ? '1.75rem' : size === 'lg' ? '2.25rem' : '3rem' }}
           >
-            NYVRA
+            {BRAND_NAME}
           </span>
           {size !== 'sm' && (
             <span className="text-xs text-muted-foreground tracking-wide -mt-1">
-              Neural Yield Verification
+              {BRAND_TAGLINE.split(' ').slice(0, 3).join(' ')}
             </span>
           )}
         </div>
