@@ -225,18 +225,77 @@ export function setupAuth(app: Express) {
     res.json({ message: "Registration rejected successfully" });
   });
 
-  // **REGISTRATION DISABLED FOR PRIVATE DEMO** - Blocca registrazione pubblica
+  // **REGISTRATION WITH MANUAL APPROVAL** - Registrazione con approvazione manuale
   app.post("/api/register", registerRateLimit, async (req, res, next) => {
-    // Blocca tutte le registrazioni durante fase di validazione privata
-    const clientIP = req.ip || req.socket.remoteAddress || 'unknown';
-    console.log(`[REGISTRATION_BLOCKED] PUBLIC REGISTRATION ATTEMPT BLOCKED | IP: ${clientIP} | Username: ${req.body.username} | Time: ${new Date().toISOString()}`);
-    
-    return res.status(403).json({ 
-      error: "Registrazione disabilitata. Sistema in fase di validazione privata.",
-      message: "Contattare l'amministratore per credenziali di accesso."
-    });
-    
-    // Codice originale disabilitato per mantenere sicurezza demo privata
+    try {
+      const clientIP = req.ip || req.socket.remoteAddress || 'unknown';
+      const userAgent = req.headers['user-agent'] || 'unknown';
+      
+      // Validate input
+      const validationResult = insertRegistrationRequestSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        console.log(`[REGISTRATION] VALIDATION ERROR | IP: ${clientIP} | Errors: ${JSON.stringify(validationResult.error.errors)}`);
+        return res.status(400).json({ 
+          error: "Dati non validi",
+          details: validationResult.error.errors 
+        });
+      }
+
+      const { username, email, password, role, companyName, phoneNumber, businessType, message } = validationResult.data;
+
+      // Check if username or email already exists
+      const existingUser = await storage.getUserByUsername(username);
+      if (existingUser) {
+        return res.status(400).json({ error: "Username già in uso" });
+      }
+
+      const existingEmail = await storage.getUserByEmail(email);
+      if (existingEmail) {
+        return res.status(400).json({ error: "Email già in uso" });
+      }
+
+      // Hash password
+      const hashedPassword = await hashPassword(password);
+
+      // Create registration request
+      const registrationRequest = await storage.createRegistrationRequest({
+        username,
+        email,
+        password: hashedPassword,
+        role: role || 'merchant',
+        companyName,
+        phoneNumber,
+        businessType,
+        message,
+        status: 'pending',
+        ipAddress: clientIP,
+        userAgent
+      });
+
+      console.log(`[REGISTRATION] NEW REQUEST | ID: ${registrationRequest.id} | Username: ${username} | Email: ${email} | IP: ${clientIP}`);
+
+      // Send notification email to admin
+      const emailSent = await sendRegistrationNotification('info@nyvra.com', {
+        username,
+        email,
+        companyName: companyName || undefined,
+        businessType: businessType || undefined,
+        message: message || undefined,
+        ipAddress: clientIP
+      });
+
+      if (!emailSent) {
+        console.warn(`[REGISTRATION] EMAIL NOTIFICATION FAILED | Request ID: ${registrationRequest.id}`);
+      }
+
+      res.status(200).json({ 
+        message: "Richiesta di registrazione inviata con successo. Riceverai una conferma via email una volta approvata.",
+        requestId: registrationRequest.id
+      });
+    } catch (error: any) {
+      console.error(`[REGISTRATION] ERROR | ${error.message}`);
+      next(error);
+    }
   });
 
   // **PROTECTED LOGIN** - Rate limited with session regeneration  
