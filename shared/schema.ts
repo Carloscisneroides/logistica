@@ -4348,6 +4348,12 @@ export const insertCommercialBonificoRequestSchema = createInsertSchema(commerci
   updatedAt: true,
 });
 
+export const insertYcoreCommissionSchema = createInsertSchema(ycoreCommissions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Wallet operation schemas for API
 export const walletRechargeSchema = z.object({
   amount: z.string().regex(/^\d+\.\d{2}$/, "Formato importo non valido (es: 100.00)"),
@@ -4406,6 +4412,8 @@ export type Bonifico = typeof bonifici.$inferSelect;
 export type InsertBonifico = z.infer<typeof insertBonificoSchema>;
 export type NuvraCommission = typeof ycoreCommissions.$inferSelect;
 export type YcoreCommission = NuvraCommission; // Legacy alias for compatibility
+export type InsertNuvraCommission = z.infer<typeof insertYcoreCommissionSchema>;
+export type InsertYcoreCommission = InsertNuvraCommission; // Legacy alias for compatibility
 export type CommercialBonificoRequest = typeof commercialBonificoRequests.$inferSelect;
 export type InsertCommercialBonificoRequest = z.infer<typeof insertCommercialBonificoRequestSchema>;
 export type TransactionAuditLog = typeof transactionAuditLogs.$inferSelect;

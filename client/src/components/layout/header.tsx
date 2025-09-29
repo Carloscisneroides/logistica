@@ -76,10 +76,10 @@ export function Header({ title, onMenuToggle, mobileMode = false, navigationStat
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-3">
                 <img 
-                  src={ycoreLogo} 
-                  alt="YCORE Logo" 
+                  src={nuvraLogo} 
+                  alt="Nuvra Logo" 
                   className="h-8 w-8 object-contain"
-                  data-testid="img-ycore-logo"
+                  data-testid="img-nuvra-logo"
                 />
                 <div className="w-px h-8 bg-border/50"></div>
                 <h1 className="text-xl font-semibold text-foreground" data-testid="text-page-title">
@@ -204,7 +204,7 @@ export function Header({ title, onMenuToggle, mobileMode = false, navigationStat
       
       {/* Copyright notice sempre visibile */}
       <div className="text-xs text-muted-foreground/50 text-right pr-2 mt-1">
-        © 2025 YCore SRL Innovativa - Proprietà riservata
+        © 2025 Nuvra SRL Innovativa - Proprietà riservata
       </div>
     </header>
   );
