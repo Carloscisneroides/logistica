@@ -89,12 +89,10 @@ function MainLayout({ children }: { children: React.ReactNode }) {
             mobileMode={true}
             navigationState={navigationState}
           />
-          <main className="flex-1 overflow-auto pb-[80px]">
+          <main className="flex-1 overflow-auto">
             {children}
           </main>
         </div>
-        {/* Bottom Navigation con visibilità controllata */}
-        <BottomNavigation navigationState={navigationState} />
         {/* Mobile Header Menu - Appare sopra tutto quando attivo */}
         {navigationState && (
           <MobileHeaderMenu 
@@ -102,8 +100,6 @@ function MainLayout({ children }: { children: React.ReactNode }) {
             onClose={navigationState.closeAllMenus}
           />
         )}
-        {/* Debug overlay in development */}
-        {/* <MobileNavigationDebug /> */}
       </div>
     );
   }
