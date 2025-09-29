@@ -555,7 +555,7 @@ export default function AuthPage() {
             {/* Citazione centrale */}
             <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/20 shadow-2xl text-center">
               <p className="text-white text-lg font-semibold leading-relaxed">
-                <span className="text-cyan-300 font-black">{BRAND_NAME}</span> gestisce la tua <span className="text-cyan-300">supply chain globale</span>, il tuo <span className="text-cyan-300">business online</span> e ti protegge dalle frodi <span className="text-cyan-300">24/7</span> con intelligenza artificiale. Crea anche <span className="text-cyan-300">opportunità di lavoro</span> per il tuo team.
+                <span className="text-cyan-300 font-black">{BRAND_NAME}</span> gestisce la tua <span className="text-cyan-300">supply chain globale</span>, il tuo <span className="text-cyan-300">business online</span> e ti protegge dalle frodi <span className="text-cyan-300">24/7</span> con intelligenza artificiale. Include anche <span className="text-cyan-300">marketing operativo</span>.
               </p>
             </div>
           </div>
