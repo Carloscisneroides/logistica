@@ -32,9 +32,10 @@ export function Header({ title, onMenuToggle, mobileMode = false, navigationStat
   });
 
   return (
-    <header className={`bg-card border-b border-border ${mobileMode ? 'px-4 py-3' : 'px-0 py-4'}`}>
-      <div className={`flex items-center justify-between ${!mobileMode ? 'desktop-container' : ''}`}>
-        <div className="flex items-center space-x-4">
+    <header className="bg-card border-b border-border">
+      <div className={`${!mobileMode ? 'desktop-container header-grid-3' : 'flex items-center justify-between px-4 py-3'}`}>
+        {/* LEFT AREA - Menu/Logo */}
+        <div className="flex items-center space-x-3">
           {/* ARCHITETTURA YLENIA SACCO - GESTIONE CENTRALIZZATA */}
           {mobileMode && navigationState ? (
             /* MOBILE MODE: Menu hamburger con stato centralizzato */
@@ -51,29 +52,19 @@ export function Header({ title, onMenuToggle, mobileMode = false, navigationStat
             /* MOBILE FALLBACK: Solo logo */
             <div className="flex items-center space-x-3">
               <img src={nuvraLogo} alt="Nuvra" className="h-8 w-8" />
-              <span className="font-bold text-lg text-primary">{title}</span>
+              <span className="heading-2 text-primary">{title}</span>
             </div>
           ) : (
-            /* DESKTOP MODE: Menu toggle tradizionale */
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onMenuToggle}
-              data-testid="button-menu-toggle"
-            >
-              <Menu className="w-6 h-6" />
-            </Button>
-          )}
-          
-          {/* Title - Mobile Centered */}
-          {isApp ? (
-            <div className="flex-1 flex justify-center">
-              <h1 className="text-lg font-semibold text-foreground truncate max-w-[180px]" data-testid="text-page-title">
-                {title}
-              </h1>
-            </div>
-          ) : (
-            <div className="flex items-center space-x-4">
+            /* DESKTOP MODE: Menu + Logo simmetrico */
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onMenuToggle}
+                data-testid="button-menu-toggle"
+              >
+                <Menu className="w-6 h-6" />
+              </Button>
               <div className="flex items-center space-x-3">
                 <img 
                   src={nuvraLogo} 
@@ -81,31 +72,41 @@ export function Header({ title, onMenuToggle, mobileMode = false, navigationStat
                   className="h-8 w-8 object-contain"
                   data-testid="img-nuvra-logo"
                 />
-                <div className="w-px h-8 bg-border/50"></div>
-                <h1 className="text-xl font-semibold text-foreground" data-testid="text-page-title">
-                  {title}
-                </h1>
+                <Badge 
+                  variant="secondary" 
+                  className="bg-accent/10 text-accent border-accent/20"
+                  data-testid="badge-multi-tenant"
+                >
+                  <Crown className="w-3 h-3 mr-1" />
+                  Multi-Tenant
+                </Badge>
               </div>
-            </div>
-          )}
-          {!isApp && (
-            <Badge 
-              variant="secondary" 
-              className="bg-accent/10 text-accent border-accent/20"
-              data-testid="badge-multi-tenant"
-            >
-              <Crown className="w-3 h-3 mr-1" />
-              Multi-Tenant
-            </Badge>
+            </>
           )}
         </div>
-        
-        <div className={`flex items-center ${isApp ? 'space-x-1' : 'space-x-4'}`}>
+
+        {/* CENTER AREA - Title (sempre centrato) */}
+        {isApp ? (
+          <div className="flex-1 header-center">
+            <h1 className="heading-2 text-foreground truncate max-w-[180px]" data-testid="text-page-title">
+              {title}
+            </h1>
+          </div>
+        ) : (
+          <div className="header-center">
+            <h1 className="heading-1 text-foreground" data-testid="text-page-title">
+              {title}
+            </h1>
+          </div>
+        )}
+
+        {/* RIGHT AREA - Actions */}
+        <div className={`flex items-center ${isApp ? 'space-x-1' : 'space-x-3'}`}>
           {/* Desktop: Full feature set */}
           {!isApp && (
             <>
               <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
-                <SelectTrigger className="w-[140px]" data-testid="select-language">
+                <SelectTrigger className="w-[120px] body-text" data-testid="select-language">
                   <SelectValue placeholder="Lingua" />
                 </SelectTrigger>
                 <SelectContent>
@@ -113,14 +114,14 @@ export function Header({ title, onMenuToggle, mobileMode = false, navigationStat
                     <SelectItem key={lang.code} value={lang.code}>
                       <span className="flex items-center space-x-2">
                         <span>{lang.flag}</span>
-                        <span>{lang.name}</span>
+                        <span className="body-text">{lang.name}</span>
                       </span>
                     </SelectItem>
                   )) : (
                     <SelectItem value="it">
                       <span className="flex items-center space-x-2">
                         <span>🇮🇹</span>
-                        <span>Italiano</span>
+                        <span className="body-text">Italiano</span>
                       </span>
                     </SelectItem>
                   )}
@@ -132,6 +133,7 @@ export function Header({ title, onMenuToggle, mobileMode = false, navigationStat
                   variant="ghost" 
                   size="sm"
                   data-testid="button-notifications"
+                  className="w-10 h-10"
                 >
                   <Bell className="w-5 h-5" />
                   <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">
@@ -145,7 +147,7 @@ export function Header({ title, onMenuToggle, mobileMode = false, navigationStat
           {/* Mobile: Compact actions */}
           {isApp && (
             <>
-              <Button variant="ghost" size="sm" data-testid="button-search-mobile">
+              <Button variant="ghost" size="sm" data-testid="button-search-mobile" className="w-10 h-10">
                 <Search className="w-5 h-5" />
               </Button>
               <GlobalAIAssistant variant="header" />
@@ -158,11 +160,11 @@ export function Header({ title, onMenuToggle, mobileMode = false, navigationStat
               variant="ghost" 
               size="sm"
               onClick={() => setUserMenuOpen(!userMenuOpen)}
-              className="flex items-center space-x-2"
+              className={`flex items-center space-x-2 ${isApp ? 'w-10 h-10' : ''}`}
               data-testid="button-user-menu"
             >
               <User className="w-5 h-5" />
-              <span className="hidden md:block">{user?.username || "Admin"}</span>
+              <span className="hidden md:block body-text">{user?.username || "Admin"}</span>
             </Button>
             
             {userMenuOpen && (
@@ -191,14 +193,16 @@ export function Header({ title, onMenuToggle, mobileMode = false, navigationStat
             )}
           </div>
 
-          {/* Quick Actions */}
-          <Button 
-            className="bg-primary text-primary-foreground hover:bg-primary/90"
-            data-testid="button-quick-action"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Nuovo Cliente
-          </Button>
+          {/* Quick Actions - Desktop only */}
+          {!isApp && (
+            <Button 
+              className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2"
+              data-testid="button-quick-action"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              <span className="body-text font-medium">Nuovo Cliente</span>
+            </Button>
+          )}
         </div>
       </div>
       
