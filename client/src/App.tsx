@@ -22,7 +22,7 @@ import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/layout/sidebar";
 import { BottomNavigation } from "@/components/pwa/bottom-navigation";
 import { SplashScreen } from "@/components/pwa/splash-screen";
-import { MobileNavigationDebug } from "@/components/debug/mobile-navigation-debug";
+//import { MobileNavigationDebug } from "@/components/debug/mobile-navigation-debug";
 import { MobileHeaderMenu } from "@/components/pwa/mobile-header-menu";
 import { MobileNavigationProvider, useMobileNavigationContext } from "@/contexts/mobile-navigation-context";
 import { useState } from "react";
@@ -103,7 +103,7 @@ function MainLayout({ children }: { children: React.ReactNode }) {
           />
         )}
         {/* Debug overlay in development */}
-        <MobileNavigationDebug />
+        {/* <MobileNavigationDebug /> */}
       </div>
     );
   }
