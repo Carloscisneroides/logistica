@@ -2154,7 +2154,7 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
       res.json({
         message: "Tracking sync completed",
         processed: processedUpdates.length,
-        errors: errors.length,
+        errorCount: errors.length,
         processedUpdates,
         errors
       });
@@ -5627,7 +5627,7 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
           return res.status(401).json({ error: "Utente non autenticato" });
         }
 
-        const wallet = await storage.getWalletByUserId(userId);
+        let wallet = await storage.getWalletByUserId(userId);
         if (!wallet) {
           // Auto-create wallet se non esiste
           const newWallet = await storage.createWallet({

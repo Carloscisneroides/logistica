@@ -3995,7 +3995,7 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  async executeAutomatedResponse(userId: string, tenantId: string, riskLevel: 'low' | 'medium' | 'high' | 'critical'): Promise<{
+  async executeImmediateResponse(userId: string, tenantId: string, riskLevel: 'low' | 'medium' | 'high' | 'critical'): Promise<{
     action: string;
     applied: boolean;
     details: string;
@@ -4417,8 +4417,8 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  // Calculate comprehensive user risk score based on historical patterns
-  async calculateUserRiskScore(userId: string, tenantId: string): Promise<{
+  // Calculate basic user risk score based on historical patterns
+  async calculateBasicUserRiskScore(userId: string, tenantId: string): Promise<{
     riskScore: number;
     riskLevel: 'low' | 'medium' | 'high' | 'critical';
     factors: string[];
@@ -4465,8 +4465,8 @@ export class DatabaseStorage implements IStorage {
     return { riskScore: finalScore, riskLevel, factors };
   }
 
-  // Execute automated response based on risk level
-  async executeAutomatedResponse(userId: string, tenantId: string, riskLevel: 'low' | 'medium' | 'high' | 'critical'): Promise<{
+  // Execute escalation response based on risk level
+  async executeEscalationResponse(userId: string, tenantId: string, riskLevel: 'low' | 'medium' | 'high' | 'critical'): Promise<{
     actionsTaken: string[];
     escalationId?: string;
     notificationsSent: number;
