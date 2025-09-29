@@ -16,7 +16,7 @@ interface HeaderProps {
   title: string;
   onMenuToggle?: () => void;
   mobileMode?: boolean;
-  navigationState?: any; // Nuvra Navigation State per mobile
+  navigationState?: any; // Navigation state for mobile menu
 }
 
 export function Header({ title, onMenuToggle, mobileMode = false, navigationState }: HeaderProps) {
