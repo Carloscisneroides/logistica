@@ -1,11 +1,11 @@
-# YCORE - MODULAR SAAS ECOSYSTEM
+# NUVRA - MODULAR SAAS ECOSYSTEM
 
 **Sender**: Ylenia Sacco – Strategic Lead YS Logistics
 **Recipient**: Reply Team / Technical AI Interlocutor
 
 ## Overview
 
-YCORE is a modular and scalable SaaS ecosystem designed for comprehensive logistics, commercial, and operational management. Launched from zero in 48 hours, YCORE is now operativo, antifrode, multilingua, and modulare with 45+ database tables, PWA mobile architecture, and ready for SRL innovativa and international partners.
+Nuvra is a modular and scalable SaaS ecosystem designed for comprehensive logistics, commercial, and operational management. Launched from zero in 48 hours, Nuvra is now operativo, antifrode, multilingua, and modulare with 45+ database tables, PWA mobile architecture, and ready for SRL innovativa and international partners.
 
 The platform provides a robust foundation with contextual AI, multi-tenant segmentation, competitive protection, and integrated monetization. Strategic expansion includes integration with international partners (Temu, Shein, Alibaba, Maersk, DHL, Cainiao) and the new Glovo-model integration for marketplace delivery services.
 

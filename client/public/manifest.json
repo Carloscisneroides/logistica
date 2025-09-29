@@ -1,6 +1,6 @@
 {
-  "name": "YCORE - Ecosistema SaaS Modulare",
-  "short_name": "YCORE",
+  "name": "Nuvra - Ecosistema SaaS Modulare",
+  "short_name": "Nuvra",
   "description": "Il Motore Digitale del Business Moderno - Piattaforma modulare, intelligente e sicura - v2.1.0",
   "theme_color": "#1e40af",
   "background_color": "#0f172a",
@@ -119,7 +119,7 @@
   },
   "protocol_handlers": [
     {
-      "protocol": "web+ycore",
+      "protocol": "web+nuvra",
       "url": "/?action=%s"
     }
   ]

@@ -1,7 +1,7 @@
-// YCORE Progressive Web App Service Worker - FIX MENU DUPLICATI
-const CACHE_NAME = 'ycore-v2.2.0';
-const STATIC_CACHE_NAME = 'ycore-static-v2.2.0';
-const DYNAMIC_CACHE_NAME = 'ycore-dynamic-v2.2.0';
+// Nuvra Progressive Web App Service Worker - FIX MENU DUPLICATI
+const CACHE_NAME = 'nuvra-v2.2.0';
+const STATIC_CACHE_NAME = 'nuvra-static-v2.2.0';
+const DYNAMIC_CACHE_NAME = 'nuvra-dynamic-v2.2.0';
 
 // Resources to cache immediately
 const STATIC_ASSETS = [
@@ -22,16 +22,16 @@ const OFFLINE_FALLBACK_DATA = {
 
 // Install event - cache static assets
 self.addEventListener('install', event => {
-  console.log('🚀 YCORE SW: Installing...');
+  console.log('🚀 Nuvra SW: Installing...');
   
   event.waitUntil(
     caches.open(STATIC_CACHE_NAME)
       .then(cache => {
-        console.log('📦 YCORE SW: Caching static assets');
+        console.log('📦 Nuvra SW: Caching static assets');
         return cache.addAll(STATIC_ASSETS);
       })
       .then(() => {
-        console.log('✅ YCORE SW: Static assets cached v2.1.0 - FORCE REFRESH PWA UPDATE');
+        console.log('✅ Nuvra SW: Static assets cached v2.1.0 - FORCE REFRESH PWA UPDATE');
         return self.skipWaiting(); // Activate immediately
       })
   );
@@ -39,7 +39,7 @@ self.addEventListener('install', event => {
 
 // Activate event - HARD CLEAN ALL CACHES
 self.addEventListener('activate', event => {
-  console.log('⚡ YCORE SW v2.2.0: HARD CLEANING...');
+  console.log('⚡ Nuvra SW v2.2.0: HARD CLEANING...');
   
   event.waitUntil(
     Promise.all([
@@ -47,7 +47,7 @@ self.addEventListener('activate', event => {
       caches.keys().then(cacheNames => {
         return Promise.all(
           cacheNames
-            .filter(cacheName => cacheName.startsWith('ycore-'))
+            .filter(cacheName => cacheName.startsWith('nuvra-'))
             .map(cacheName => {
               console.log('🗑️ HARD DELETE:', cacheName);
               return caches.delete(cacheName);
@@ -67,7 +67,7 @@ self.addEventListener('activate', event => {
         });
       })
     ]).then(() => {
-      console.log('✅ YCORE SW v2.2.0: HARD CLEAN COMPLETED - MENU FIX!');
+      console.log('✅ Nuvra SW v2.2.0: HARD CLEAN COMPLETED - MENU FIX!');
       return self.clients.claim();
     })
   );

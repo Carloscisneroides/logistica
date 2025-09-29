@@ -1,14 +1,14 @@
 /*
- * YCore SaaS Ecosystem - Proprietary Software
- * Copyright © 2025 YCore SRL Innovativa - All Rights Reserved
+ * Nuvra SaaS Ecosystem - Proprietary Software
+ * Copyright © 2025 Nuvra SRL Innovativa - All Rights Reserved
  * 
- * WATERMARK: ycore-app-f47ac10b-58cc-4372-a567-0e02b2c3d479
- * BUILD: 2025-09-27T22:08:15.000Z
+ * WATERMARK: nuvra-app-f47ac10b-58cc-4372-a567-0e02b2c3d479
+ * BUILD: 2025-09-29T22:08:15.000Z
  * MODULE: Frontend Core Application
  * 
  * UNAUTHORIZED COPYING, MODIFICATION, DISTRIBUTION, OR USE OF THIS SOFTWARE
  * IS STRICTLY PROHIBITED. THIS SOFTWARE CONTAINS PROPRIETARY AND CONFIDENTIAL
- * INFORMATION OWNED BY YCORE SRL INNOVATIVA.
+ * INFORMATION OWNED BY NUVRA SRL INNOVATIVA.
  */
 
 import { Switch, Route } from "wouter";

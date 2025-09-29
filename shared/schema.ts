@@ -4404,7 +4404,7 @@ export type Transaction = typeof transactions.$inferSelect;
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 export type Bonifico = typeof bonifici.$inferSelect;
 export type InsertBonifico = z.infer<typeof insertBonificoSchema>;
-export type YcoreCommission = typeof ycoreCommissions.$inferSelect;
+export type NuvraCommission = typeof ycoreCommissions.$inferSelect;
 export type CommercialBonificoRequest = typeof commercialBonificoRequests.$inferSelect;
 export type InsertCommercialBonificoRequest = z.infer<typeof insertCommercialBonificoRequestSchema>;
 export type TransactionAuditLog = typeof transactionAuditLogs.$inferSelect;
@@ -4576,8 +4576,6 @@ export type BonificoValidation = z.infer<typeof bonificoValidationSchema>;
 export type FidelityCardValidation = z.infer<typeof fidelityCardValidationSchema>;
 export type CommercialBonificoValidation = z.infer<typeof commercialBonificoValidationSchema>;
 export type AbbonamentoPagamento = z.infer<typeof abbonamentoPagamentoSchema>;
-export type YcoreCommission = z.infer<typeof ycoreCommissionSchema>;
-export type AuditLog = z.infer<typeof auditLogSchema>;
 
 // Legacy API schemas types (mantenuti per compatibilità)
 export type WalletRecharge = z.infer<typeof walletRechargeSchema>;
