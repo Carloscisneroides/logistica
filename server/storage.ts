@@ -3487,8 +3487,8 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
-  // Marketplace Dashboard & Analytics
-  async getMarketplaceDashboardStats(tenantId: string): Promise<{
+  // Professional Marketplace Dashboard & Analytics
+  async getProfessionalMarketplaceDashboardStats(tenantId: string): Promise<{
     totalProfessionals: number;
     activeProfessionals: number;
     totalProjects: number;
