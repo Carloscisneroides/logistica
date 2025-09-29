@@ -67,6 +67,12 @@ export default function AdminPanel() {
   const [selectedApplication, setSelectedApplication] = useState<CommercialApplication | null>(null);
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
   const [rejectionDialogOpen, setRejectionDialogOpen] = useState(false);
+  
+  // State for registration requests management
+  const [selectedRegistrationRequest, setSelectedRegistrationRequest] = useState<any | null>(null);
+  const [registrationApprovalDialogOpen, setRegistrationApprovalDialogOpen] = useState(false);
+  const [registrationRejectionDialogOpen, setRegistrationRejectionDialogOpen] = useState(false);
+  const [registrationRejectionReason, setRegistrationRejectionReason] = useState('');
 
   // React Hook Form for approval
   const approvalForm = useForm<CommercialApproval>({
@@ -174,6 +180,55 @@ export default function AdminPanel() {
       toast({
         title: "Errore",
         description: error.message || "Errore nel rifiuto della candidatura",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Registration Request mutations
+  const approveRegistrationMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiRequest("POST", `/api/admin/approve-registration/${id}`, {});
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/registration-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/user-stats'] });
+      setRegistrationApprovalDialogOpen(false);
+      setSelectedRegistrationRequest(null);
+      toast({
+        title: "Registrazione approvata",
+        description: "L'utente è stato creato e può ora accedere al sistema",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Errore",
+        description: error.message || "Errore nell'approvazione della registrazione",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const rejectRegistrationMutation = useMutation({
+    mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
+      const response = await apiRequest("POST", `/api/admin/reject-registration/${id}`, { reason });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/registration-requests'] });
+      setRegistrationRejectionDialogOpen(false);
+      setSelectedRegistrationRequest(null);
+      setRegistrationRejectionReason('');
+      toast({
+        title: "Registrazione rifiutata",
+        description: "La richiesta è stata rifiutata",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Errore",
+        description: error.message || "Errore nel rifiuto della registrazione",
         variant: "destructive",
       });
     }
@@ -413,10 +468,28 @@ export default function AdminPanel() {
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="default" data-testid={`button-approve-${index}`}>
+                  <Button 
+                    size="sm" 
+                    variant="default" 
+                    onClick={() => {
+                      setSelectedRegistrationRequest(request);
+                      setRegistrationApprovalDialogOpen(true);
+                    }}
+                    data-testid={`button-approve-${index}`}
+                  >
+                    <CheckCircle className="h-4 w-4 mr-1" />
                     Approva
                   </Button>
-                  <Button size="sm" variant="destructive" data-testid={`button-reject-${index}`}>
+                  <Button 
+                    size="sm" 
+                    variant="destructive" 
+                    onClick={() => {
+                      setSelectedRegistrationRequest(request);
+                      setRegistrationRejectionDialogOpen(true);
+                    }}
+                    data-testid={`button-reject-${index}`}
+                  >
+                    <XCircle className="h-4 w-4 mr-1" />
                     Rifiuta
                   </Button>
                 </div>
@@ -802,6 +875,117 @@ export default function AdminPanel() {
                     <>
                       <XCircle className="mr-2 h-4 w-4" />
                       Rifiuta Candidatura
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Registration Approval Dialog */}
+      <Dialog open={registrationApprovalDialogOpen} onOpenChange={setRegistrationApprovalDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Approva Registrazione</DialogTitle>
+          </DialogHeader>
+          {selectedRegistrationRequest && (
+            <div className="space-y-4">
+              <div>
+                <p className="font-medium">{selectedRegistrationRequest.username}</p>
+                <p className="text-sm text-muted-foreground">{selectedRegistrationRequest.email}</p>
+                {selectedRegistrationRequest.companyName && (
+                  <p className="text-sm text-muted-foreground">Azienda: {selectedRegistrationRequest.companyName}</p>
+                )}
+                {selectedRegistrationRequest.message && (
+                  <div className="mt-2 p-3 bg-muted rounded-md">
+                    <p className="text-sm">{selectedRegistrationRequest.message}</p>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex justify-end space-x-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setRegistrationApprovalDialogOpen(false)}
+                  disabled={approveRegistrationMutation.isPending}
+                >
+                  Annulla
+                </Button>
+                <Button 
+                  onClick={() => approveRegistrationMutation.mutate(selectedRegistrationRequest.id)}
+                  disabled={approveRegistrationMutation.isPending}
+                >
+                  {approveRegistrationMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Approvando...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      Approva
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Registration Rejection Dialog */}
+      <Dialog open={registrationRejectionDialogOpen} onOpenChange={setRegistrationRejectionDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Rifiuta Registrazione</DialogTitle>
+          </DialogHeader>
+          {selectedRegistrationRequest && (
+            <div className="space-y-4">
+              <div>
+                <p className="font-medium">{selectedRegistrationRequest.username}</p>
+                <p className="text-sm text-muted-foreground">{selectedRegistrationRequest.email}</p>
+              </div>
+              
+              <div>
+                <Label htmlFor="rejectionReason">Motivazione del rifiuto *</Label>
+                <Textarea 
+                  placeholder="Spiega i motivi del rifiuto..."
+                  value={registrationRejectionReason}
+                  onChange={(e) => setRegistrationRejectionReason(e.target.value)}
+                  className="min-h-[100px]"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setRegistrationRejectionDialogOpen(false);
+                    setRegistrationRejectionReason('');
+                  }}
+                  disabled={rejectRegistrationMutation.isPending}
+                >
+                  Annulla
+                </Button>
+                <Button 
+                  variant="destructive"
+                  onClick={() => rejectRegistrationMutation.mutate({
+                    id: selectedRegistrationRequest.id,
+                    reason: registrationRejectionReason
+                  })}
+                  disabled={rejectRegistrationMutation.isPending || !registrationRejectionReason.trim()}
+                >
+                  {rejectRegistrationMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Rifiutando...
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="mr-2 h-4 w-4" />
+                      Rifiuta
                     </>
                   )}
                 </Button>

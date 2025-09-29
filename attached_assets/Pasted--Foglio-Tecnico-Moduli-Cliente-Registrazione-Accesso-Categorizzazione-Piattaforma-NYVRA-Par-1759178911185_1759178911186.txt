@@ -1,0 +1,114 @@
+📄 Foglio Tecnico – Moduli Cliente (Registrazione, Accesso, Categorizzazione)
+Piattaforma: NYVRA Partner tecnico: Reply Responsabile: Ylenia Sacco – Founder & CEO
+
+🔐 Modulo di Registrazione Cliente
+Input richiesto
+Email (validazione formale + DNS)
+
+Password (min. 12 caratteri, entropia controllata)
+
+Nome e Cognome (opzionale)
+
+Lingua preferita
+
+Accettazione Termini & Privacy
+
+Logica antifrode
+Rate limiting per IP e device fingerprint
+
+Verifica email via OTP
+
+Logging tentativi falliti
+
+Output
+Creazione profilo con UUID
+
+Flag email_verified: false
+
+Token sessione temporaneo
+
+✅ Modulo di Conferma Accesso (Login)
+Input
+Email + Password
+
+Sicurezza
+Protezione brute-force (CAPTCHA dopo 5 tentativi)
+
+Device fingerprinting + geolocalizzazione IP
+
+Logging accessi con timestamp e user-agent
+
+Output
+Verifica hash password
+
+Se email non verificata → re-invio OTP
+
+Se OK → generazione JWT/session token
+
+📲 Conferma Accesso In-App
+Flusso mobile-native
+Login → OTP → Dashboard
+
+OTP via push/SMS
+
+Token salvato in Keychain/Keystore
+
+UI multilingua, animazioni leggere
+
+🧠 Categorizzazione Cliente
+Categorie disponibili
+standard
+
+premium
+
+partner
+
+logistics_operator
+
+internal_test
+
+Assegnazione
+Manuale via dashboard o email approvazione
+
+Automatica via regole (email aziendale, IP, link privato)
+
+Effetti
+Accesso modulare (es. API solo per partner)
+
+UI personalizzata
+
+Logging categoria per antifrode e analytics
+
+📩 Email di Richiesta Accesso
+Contenuto
+Dati cliente (nome, email, IP, device, timestamp)
+
+Stato antifrode (OTP, fingerprint, reputazione IP)
+
+Pulsanti: [ACCETTA] | [RIFIUTA] | [ANALIZZA]
+
+🔗 API di Approvazione e Categorizzazione
+http
+POST /api/client/approve
+Body:
+{
+  "client_id": "UUID",
+  "approved_by": "admin@nyvra.com",
+  "timestamp": "2025-09-29T22:47:00Z"
+}
+http
+POST /api/client/set-category
+Body:
+{
+  "client_id": "UUID",
+  "category": "premium",
+  "modified_by": "admin@nyvra.com"
+}
+📌 Note per Reply
+Tutti i moduli sono progettati per essere integrabili via API REST o SDK
+
+Logging e antifrode sono modulari e attivabili per categoria
+
+UI/UX mobile e desktop sono simmetriche e multilingua
+
+Pronti per onboarding partner e rollout internazionale
