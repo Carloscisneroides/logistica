@@ -257,7 +257,7 @@ export const ModuleRateLimiters = {
     },
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: (req) => `wallet:${req.session?.user?.id || req.ip}`,
+    keyGenerator: (req) => `wallet:${req.session?.user?.id || 'anonymous'}`,
     handler: (req, res) => {
       GranularAuthSystem['logSecurityEvent'](req, 'WALLET_RATE_LIMIT_EXCEEDED', 'medium');
       res.status(429).json({
