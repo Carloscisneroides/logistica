@@ -317,7 +317,7 @@ export default function AdminPanel() {
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{pendingRequests?.length || 0}</div>
+            <div className="text-2xl font-bold">{(pendingRequests as any)?.length || 0}</div>
             <p className="text-xs text-muted-foreground">
               Da approvare
             </p>
@@ -710,118 +710,153 @@ export default function AdminPanel() {
           {selectedApplication && (
             <div className="space-y-4">
               <div>
-                <p className="font-medium">{selectedApplication.nome} {selectedApplication.cognome}</p>
+                <p className="font-medium">{selectedApplication.fullName}</p>
                 <p className="text-sm text-muted-foreground">{selectedApplication.email}</p>
               </div>
               
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="subRole">Ruolo Commerciale *</Label>
-                  <Select 
-                    value={approvalData.subRole} 
-                    onValueChange={(value) => setApprovalData({...approvalData, subRole: value})}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleziona ruolo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="agente">Agente Commerciale</SelectItem>
-                      <SelectItem value="responsabile">Responsabile Commerciale</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="livello">Livello</Label>
-                    <Select 
-                      value={approvalData.livello} 
-                      onValueChange={(value) => setApprovalData({...approvalData, livello: value})}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="base">Base</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
-                        <SelectItem value="premium">Premium</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="grado">Grado</Label>
-                    <Select 
-                      value={approvalData.grado} 
-                      onValueChange={(value) => setApprovalData({...approvalData, grado: value})}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">1</SelectItem>
-                        <SelectItem value="2">2</SelectItem>
-                        <SelectItem value="3">3</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="percentuale">Percentuale Provvigione (%)</Label>
-                  <Select 
-                    value={approvalData.percentuale} 
-                    onValueChange={(value) => setApprovalData({...approvalData, percentuale: value})}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="2.50">2.50%</SelectItem>
-                      <SelectItem value="5.00">5.00%</SelectItem>
-                      <SelectItem value="7.50">7.50%</SelectItem>
-                      <SelectItem value="10.00">10.00%</SelectItem>
-                      <SelectItem value="12.50">12.50%</SelectItem>
-                      <SelectItem value="15.00">15.00%</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="notes">Note (opzionale)</Label>
-                  <Textarea 
-                    placeholder="Note aggiuntive per il nuovo commerciale..."
-                    value={approvalData.notes}
-                    onChange={(e) => setApprovalData({...approvalData, notes: e.target.value})}
+              <Form {...approvalForm}>
+                <form onSubmit={approvalForm.handleSubmit(onApprovalSubmit)} className="space-y-4">
+                  <FormField
+                    control={approvalForm.control}
+                    name="subRole"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Ruolo Commerciale *</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleziona ruolo" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="agente">Agente Commerciale</SelectItem>
+                            <SelectItem value="responsabile">Responsabile Commerciale</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
-              </div>
 
-              <div className="flex justify-end space-x-2">
-                <Button 
-                  variant="outline" 
-                  onClick={() => setApprovalDialogOpen(false)}
-                  disabled={approveMutation.isPending}
-                >
-                  Annulla
-                </Button>
-                <Button 
-                  onClick={submitApproval}
-                  disabled={approveMutation.isPending || !approvalData.subRole}
-                >
-                  {approveMutation.isPending ? (
-                    <>
-                      <Calendar className="mr-2 h-4 w-4 animate-spin" />
-                      Approvando...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="mr-2 h-4 w-4" />
-                      Approva Candidatura
-                    </>
-                  )}
-                </Button>
-              </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={approvalForm.control}
+                      name="livello"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Livello</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="base">Base</SelectItem>
+                              <SelectItem value="medium">Medium</SelectItem>
+                              <SelectItem value="premium">Premium</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={approvalForm.control}
+                      name="grado"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Grado</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="1">1</SelectItem>
+                              <SelectItem value="2">2</SelectItem>
+                              <SelectItem value="3">3</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <FormField
+                    control={approvalForm.control}
+                    name="percentuale"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Percentuale Provvigione (%)</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="2.50">2.50%</SelectItem>
+                            <SelectItem value="5.00">5.00%</SelectItem>
+                            <SelectItem value="7.50">7.50%</SelectItem>
+                            <SelectItem value="10.00">10.00%</SelectItem>
+                            <SelectItem value="12.50">12.50%</SelectItem>
+                            <SelectItem value="15.00">15.00%</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={approvalForm.control}
+                    name="notes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Note (opzionale)</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Note aggiuntive per il nuovo commerciale..."
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="flex justify-end space-x-2">
+                    <Button 
+                      type="button"
+                      variant="outline" 
+                      onClick={() => setApprovalDialogOpen(false)}
+                      disabled={approveMutation.isPending}
+                    >
+                      Annulla
+                    </Button>
+                    <Button 
+                      type="submit"
+                      disabled={approveMutation.isPending}
+                    >
+                      {approveMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Approvando...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className="mr-2 h-4 w-4" />
+                          Approva Candidatura
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              </Form>
             </div>
           )}
         </DialogContent>
@@ -836,49 +871,62 @@ export default function AdminPanel() {
           {selectedApplication && (
             <div className="space-y-4">
               <div>
-                <p className="font-medium">{selectedApplication.nome} {selectedApplication.cognome}</p>
+                <p className="font-medium">{selectedApplication.fullName}</p>
                 <p className="text-sm text-muted-foreground">{selectedApplication.email}</p>
               </div>
               
-              <div>
-                <Label htmlFor="rejectionReason">Motivazione del rifiuto *</Label>
-                <Textarea 
-                  placeholder="Spiega i motivi del rifiuto della candidatura..."
-                  value={rejectionReason}
-                  onChange={(e) => setRejectionReason(e.target.value)}
-                  className="min-h-[100px]"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Questa motivazione sarà inviata al candidato via email
-                </p>
-              </div>
+              <Form {...rejectionForm}>
+                <form onSubmit={rejectionForm.handleSubmit(onRejectionSubmit)} className="space-y-4">
+                  <FormField
+                    control={rejectionForm.control}
+                    name="rejectionReason"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Motivazione del rifiuto *</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Spiega i motivi del rifiuto della candidatura..."
+                            className="min-h-[100px]"
+                            {...field}
+                          />
+                        </FormControl>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Questa motivazione sarà inviata al candidato via email
+                        </p>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              <div className="flex justify-end space-x-2">
-                <Button 
-                  variant="outline" 
-                  onClick={() => setRejectionDialogOpen(false)}
-                  disabled={rejectMutation.isPending}
-                >
-                  Annulla
-                </Button>
-                <Button 
-                  variant="destructive"
-                  onClick={submitRejection}
-                  disabled={rejectMutation.isPending || !rejectionReason.trim()}
-                >
-                  {rejectMutation.isPending ? (
-                    <>
-                      <Calendar className="mr-2 h-4 w-4 animate-spin" />
-                      Rifiutando...
-                    </>
-                  ) : (
-                    <>
-                      <XCircle className="mr-2 h-4 w-4" />
-                      Rifiuta Candidatura
-                    </>
-                  )}
-                </Button>
-              </div>
+                  <div className="flex justify-end space-x-2">
+                    <Button 
+                      type="button"
+                      variant="outline" 
+                      onClick={() => setRejectionDialogOpen(false)}
+                      disabled={rejectMutation.isPending}
+                    >
+                      Annulla
+                    </Button>
+                    <Button 
+                      type="submit"
+                      variant="destructive"
+                      disabled={rejectMutation.isPending}
+                    >
+                      {rejectMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Rifiutando...
+                        </>
+                      ) : (
+                        <>
+                          <XCircle className="mr-2 h-4 w-4" />
+                          Rifiuta Candidatura
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              </Form>
             </div>
           )}
         </DialogContent>
