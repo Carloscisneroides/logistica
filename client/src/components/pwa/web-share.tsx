@@ -10,8 +10,8 @@ interface WebShareProps {
 }
 
 export function WebShare({ 
-  title = "YCORE - Piattaforma Logistics", 
-  text = "Scopri YCORE, la piattaforma SaaS modulare per logistics e e-commerce", 
+  title = "Nuvra - Piattaforma Logistics", 
+  text = "Scopri Nuvra, la piattaforma SaaS modulare per logistics e e-commerce", 
   url 
 }: WebShareProps) {
   const [copied, setCopied] = useState(false);

@@ -85,7 +85,7 @@ function MainLayout({ children }: { children: React.ReactNode }) {
       <div className="flex h-screen overflow-hidden bg-background">
         <div className="flex-1 flex flex-col overflow-hidden">
           <Header 
-            title="YCORE" 
+            title="Nuvra" 
             mobileMode={true}
             navigationState={navigationState}
           />
@@ -298,7 +298,7 @@ function App() {
     const handleAppInstalled = () => {
       toast({
         title: "🎉 App Installata!",
-        description: "YCORE è stata installata con successo sul dispositivo",
+        description: "Nuvra è stata installata con successo sul dispositivo",
         duration: 5000,
       });
     };

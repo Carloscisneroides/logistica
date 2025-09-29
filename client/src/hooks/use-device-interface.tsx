@@ -21,7 +21,7 @@ export function useDeviceInterface() {
       }
 
       // Check localStorage override (hidden QA feature)
-      const savedMode = localStorage.getItem('ycore-debug-mode') as InterfaceMode;
+      const savedMode = localStorage.getItem('nuvra-debug-mode') as InterfaceMode;
       if (savedMode === 'app' || savedMode === 'pc') {
         setInterfaceMode(savedMode);
         return;

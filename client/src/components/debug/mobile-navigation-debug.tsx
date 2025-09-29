@@ -1,5 +1,5 @@
 /**
- * YCore Mobile Navigation Debug Overlay
+ * Nuvra Mobile Navigation Debug Overlay
  * Componente per visualizzazione stato navigazione in tempo reale
  * Attivo solo in development mode
  */
@@ -18,7 +18,7 @@ export function MobileNavigationDebug() {
 
   return (
     <div className="fixed top-2 left-2 z-[9999] bg-black/80 text-white text-xs p-2 rounded font-mono max-w-[200px]">
-      <div className="font-bold text-green-400">🎯 YCORE NAV DEBUG</div>
+      <div className="font-bold text-green-400">🎯 NUVRA NAV DEBUG</div>
       <div>Mode: <span className="text-blue-400">{interfaceMode}</span></div>
       <div>Active: <span className="text-yellow-400">{navigationState.activeMenu}</span></div>
       <div>Header: <span className={navigationState.isHeaderMenuOpen ? 'text-green-400' : 'text-red-400'}>

@@ -47,7 +47,7 @@ import crypto from "node:crypto";
 import OpenAI from "openai";
 
 // ========================
-// YCORE SECURITY FORTRESS - SISTEMA BLINDATO INTEGRATO
+// NUVRA SECURITY FORTRESS - SISTEMA BLINDATO INTEGRATO
 // ========================
 import {
   SecurityMiddleware,

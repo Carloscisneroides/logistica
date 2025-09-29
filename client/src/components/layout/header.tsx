@@ -9,13 +9,13 @@ import { GlobalAIAssistant } from "@/components/ai/global-ai-assistant";
 import { useAuth } from "@/hooks/use-auth";
 import { useDeviceInterface } from "@/hooks/use-device-interface";
 import { useLocation } from "wouter";
-import ycoreLogo from "@assets/Copilot_20250928_191905_1759079989814.png";
+import nuvraLogo from "@assets/Copilot_20250928_191905_1759079989814.png";
 
 interface HeaderProps {
   title: string;
   onMenuToggle?: () => void;
   mobileMode?: boolean;
-  navigationState?: any; // YCORE Navigation State per mobile
+  navigationState?: any; // Nuvra Navigation State per mobile
 }
 
 export function Header({ title, onMenuToggle, mobileMode = false, navigationState }: HeaderProps) {
@@ -50,7 +50,7 @@ export function Header({ title, onMenuToggle, mobileMode = false, navigationStat
           ) : mobileMode ? (
             /* MOBILE FALLBACK: Solo logo */
             <div className="flex items-center space-x-3">
-              <img src={ycoreLogo} alt="YCORE" className="h-8 w-8" />
+              <img src={nuvraLogo} alt="Nuvra" className="h-8 w-8" />
               <span className="font-bold text-lg text-primary">{title}</span>
             </div>
           ) : (

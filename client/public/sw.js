@@ -47,7 +47,7 @@ self.addEventListener('activate', event => {
       caches.keys().then(cacheNames => {
         return Promise.all(
           cacheNames
-            .filter(cacheName => cacheName.startsWith('nuvra-'))
+            .filter(cacheName => cacheName.startsWith('nuvra-') || cacheName.startsWith('ycore-'))
             .map(cacheName => {
               console.log('🗑️ HARD DELETE:', cacheName);
               return caches.delete(cacheName);

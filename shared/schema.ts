@@ -4405,6 +4405,7 @@ export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 export type Bonifico = typeof bonifici.$inferSelect;
 export type InsertBonifico = z.infer<typeof insertBonificoSchema>;
 export type NuvraCommission = typeof ycoreCommissions.$inferSelect;
+export type YcoreCommission = NuvraCommission; // Legacy alias for compatibility
 export type CommercialBonificoRequest = typeof commercialBonificoRequests.$inferSelect;
 export type InsertCommercialBonificoRequest = z.infer<typeof insertCommercialBonificoRequestSchema>;
 export type TransactionAuditLog = typeof transactionAuditLogs.$inferSelect;

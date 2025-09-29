@@ -1,5 +1,5 @@
 /**
- * YCore Mobile Header Menu
+ * Nuvra Mobile Header Menu
  * Menu mobile che appare quando navigationState.isHeaderMenuOpen = true
  * Integrato con il sistema centralizzato di gestione stato
  */
@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
-import ycoreLogo from "@assets/Copilot_20250928_191905_1759079989814.png";
+import nuvraLogo from "@assets/Copilot_20250928_191905_1759079989814.png";
 
 interface MobileHeaderMenuProps {
   isOpen: boolean;
@@ -76,9 +76,9 @@ export function MobileHeaderMenu({ isOpen, onClose }: MobileHeaderMenuProps) {
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-border">
             <div className="flex items-center space-x-3">
-              <img src={ycoreLogo} alt="YCORE" className="h-8 w-8" />
+              <img src={nuvraLogo} alt="Nuvra" className="h-8 w-8" />
               <div>
-                <span className="font-bold text-lg text-primary">YCORE</span>
+                <span className="font-bold text-lg text-primary">Nuvra</span>
                 <p className="text-xs text-muted-foreground">Business Platform</p>
               </div>
             </div>

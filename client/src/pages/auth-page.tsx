@@ -17,7 +17,7 @@ import { z } from "zod";
 import { Redirect } from "wouter";
 import { Loader2, Truck, Shield, Users, Zap, Download, Smartphone, Settings2, Check, Globe, Bot } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import ycoreLogo from "@assets/Copilot_20250928_191905_1759079989814.png";
+import nuvraLogo from "@assets/Copilot_20250928_191905_1759079989814.png";
 
 const loginSchema = insertUserSchema.pick({ username: true, password: true });
 // Validazione Partita IVA italiana (11 cifre)
@@ -244,20 +244,20 @@ export default function AuthPage() {
       setTimeout(() => {
         const isChrome = /Chrome/.test(navigator.userAgent);
         if (isChrome && e) {
-          console.log('🚀 YCORE PWA pronta per installazione automatica!');
+          console.log('🚀 Nuvra PWA pronta per installazione automatica!');
         }
       }, 2000);
     };
 
     // PWA Installation Success Handler
     const handleAppInstalled = (e: any) => {
-      console.log('🎉 YCORE PWA installata con successo!', e);
+      console.log('🎉 Nuvra PWA installata con successo!', e);
       setPwaInstalled(true);
       setShowPWAInstall(false);
       localStorage.setItem('pwa-installed', '1');
       
       toast({
-        title: "🎉 YCORE Installata!",
+        title: "🎉 Nuvra Installata!",
         description: "L'app è stata installata con successo. Puoi aprirla dall'icona nella Home o dal menu Applicazioni.",
         duration: 5000,
         variant: "default"
@@ -274,7 +274,7 @@ export default function AuthPage() {
         localStorage.setItem('pwa-installed', '1');
         
         toast({
-          title: "🎉 YCORE Installata!",
+          title: "🎉 Nuvra Installata!",
           description: "L'app è stata installata con successo. Puoi aprirla dall'icona nella Home o dal menu Applicazioni.",
           duration: 5000,
           variant: "default"
@@ -308,14 +308,14 @@ export default function AuthPage() {
       if (isChrome) {
         if (isMobile) {
           toast({
-            title: "📱 Installa YCORE",
+            title: "📱 Installa Nuvra",
             description: "Tocca i 3 punti (⋮) in alto a destra, poi seleziona \"Installa app\" o \"Aggiungi alla schermata Home\"",
             duration: 7000,
           });
         } else {
           toast({
-            title: "💻 Installa YCORE",
-            description: "Clicca l'icona \"Installa\" nella barra degli indirizzi oppure Menu Chrome → \"Installa YCORE\"",
+            title: "💻 Installa Nuvra",
+            description: "Clicca l'icona \"Installa\" nella barra degli indirizzi oppure Menu Chrome → \"Installa Nuvra\"",
             duration: 7000,
           });
         }
@@ -340,7 +340,7 @@ export default function AuthPage() {
         localStorage.setItem('pwa-installed', '1');
         
         toast({
-          title: "🎉 YCORE Installata!",
+          title: "🎉 Nuvra Installata!",
           description: "L'app è stata installata con successo. Ora puoi aprirla dall'icona nella Home o dal menu Applicazioni.",
           duration: 5000,
           variant: "default"
@@ -392,8 +392,8 @@ export default function AuthPage() {
       <div className="min-h-screen bg-background flex flex-col">
         <div className="bg-primary px-6 py-8 text-center text-white safe-area-top">
           <div className="flex items-center justify-center space-x-3 mb-4">
-            <img src={ycoreLogo} alt="YCORE" className="w-10 h-10" />
-            <h1 className="text-2xl font-bold">YCORE</h1>
+            <img src={nuvraLogo} alt="Nuvra" className="w-10 h-10" />
+            <h1 className="text-2xl font-bold">Nuvra</h1>
           </div>
           <p className="text-primary-foreground/80 text-sm">{t('tagline')}</p>
           {/* Language Switcher - Mobile Login */}
@@ -497,7 +497,7 @@ export default function AuthPage() {
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-cyan-400/10 to-blue-600/10 rounded-full blur-3xl animate-ping"></div>
       </div>
       
-      {/* Full Width YCORE Header */}
+      {/* Full Width Nuvra Header */}
       <div className="w-full bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-800 relative overflow-hidden">
         {/* Animated Background Elements */}
         <div className="absolute inset-0 overflow-hidden">
@@ -509,18 +509,18 @@ export default function AuthPage() {
         {/* Main Content - TUTTO IN ORIZZONTALE E LARGHEZZA PIENA */}
         <div className="relative flex items-center justify-center py-16 px-8 z-10">
           <div className="w-full max-w-6xl space-y-6">
-            {/* Prima riga: Logo + YCORE + Sottotitolo - LARGHEZZA PIENA */}
+            {/* Prima riga: Logo + Nuvra + Sottotitolo - LARGHEZZA PIENA */}
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <div className="w-16 h-16 bg-white/20 backdrop-blur-xl rounded-2xl border border-white/30 shadow-2xl flex items-center justify-center">
                   <img 
-                    src={ycoreLogo} 
-                    alt="YCORE Logo" 
+                    src={nuvraLogo} 
+                    alt="Nuvra Logo" 
                     className="w-10 h-10 object-contain"
                   />
                 </div>
                 <h1 className="text-4xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-blue-100 to-cyan-200">
-                  YCORE
+                  Nuvra
                 </h1>
               </div>
               <h2 className="text-xl font-bold text-white/90">
@@ -563,7 +563,7 @@ export default function AuthPage() {
             {/* Terza riga: Citazione centrale - LARGHEZZA PIENA */}
             <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/20 shadow-2xl text-center">
               <p className="text-white text-lg font-semibold leading-relaxed">
-                YCORE non è solo una piattaforma: è il <span className="text-yellow-300">cuore operativo</span> che connette persone, processi e opportunità in <span className="text-cyan-300">tempo reale</span>.
+                Nuvra non è solo una piattaforma: è il <span className="text-yellow-300">cuore operativo</span> che connette persone, processi e opportunità in <span className="text-cyan-300">tempo reale</span>.
               </p>
             </div>
           </div>
@@ -1060,7 +1060,7 @@ export default function AuthPage() {
                   <Smartphone className="w-5 h-5 text-white" />
                 </div>
                 <h3 className="text-lg font-bold text-foreground">
-                  YCORE {interfaceMode.toUpperCase()}
+                  Nuvra {interfaceMode.toUpperCase()}
                 </h3>
               </div>
               
@@ -1086,7 +1086,7 @@ export default function AuthPage() {
                 {!window.matchMedia('(display-mode: standalone)').matches && !pwaInstalled && (
                   <div className="pt-3 border-t border-border/50">
                     <p className="text-xs text-muted-foreground mb-3">
-                      📱 Installa YCORE come app sul tuo dispositivo per un'esperienza migliorata
+                      📱 Installa Nuvra come app sul tuo dispositivo per un'esperienza migliorata
                     </p>
                     
                     <button
@@ -1113,7 +1113,7 @@ export default function AuthPage() {
                       <span className="font-medium">App Installata</span>
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Stai utilizzando YCORE come app nativa
+                      Stai utilizzando Nuvra come app nativa
                     </p>
                   </div>
                 )}

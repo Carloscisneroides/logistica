@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import ycoreLogo from "@assets/Copilot_20250928_191905_1759079989814.png";
+import nuvraLogo from "@assets/Copilot_20250928_191905_1759079989814.png";
 
 export function SplashScreen() {
   const [show, setShow] = useState(true);
 
   useEffect(() => {
     // Check if splash was already shown in this session
-    const splashShown = sessionStorage.getItem('ycore-splash-shown');
+    const splashShown = sessionStorage.getItem('nuvra-splash-shown');
     
     if (splashShown) {
       setShow(false);
@@ -16,7 +16,7 @@ export function SplashScreen() {
     // Show splash for 2 seconds
     const timer = setTimeout(() => {
       setShow(false);
-      sessionStorage.setItem('ycore-splash-shown', '1');
+      sessionStorage.setItem('nuvra-splash-shown', '1');
     }, 2000);
 
     return () => clearTimeout(timer);
@@ -27,11 +27,11 @@ export function SplashScreen() {
   return (
     <div className="splash-screen" data-testid="splash-screen">
       <img 
-        src={ycoreLogo} 
-        alt="YCORE Logo" 
+        src={nuvraLogo} 
+        alt="Nuvra Logo" 
         className="splash-logo"
       />
-      <h1 className="splash-title">YCORE</h1>
+      <h1 className="splash-title">Nuvra</h1>
       <p className="splash-subtitle">Logistics & E-commerce Platform</p>
     </div>
   );

@@ -68,9 +68,9 @@ import {
   type LogisticsPartner, type InsertLogisticsPartner, type PartnerFacility, type InsertPartnerFacility,
   type LogisticsMarketplace, type InsertLogisticsMarketplace,
   
-  // YCORE Wallet System types  
+  // Nuvra Wallet System types  
   type Wallet, type InsertWallet, type Transaction, type InsertTransaction, 
-  type Bonifico, type InsertBonifico, type YcoreCommission, type InsertYcoreCommission,
+  type Bonifico, type InsertBonifico, type NuvraCommission, type InsertNuvraCommission,
   type CommercialBonificoRequest, type InsertCommercialBonificoRequest,
   type TransactionAuditLog, type InsertTransactionAuditLog,
   
