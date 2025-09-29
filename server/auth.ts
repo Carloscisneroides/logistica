@@ -327,12 +327,19 @@ export function setupAuth(app: Express) {
           return next(regenerateErr);
         }
         
+        // **REMEMBER ME SUPPORT** - Extend session duration if requested
+        const rememberMe = req.body.rememberMe === true;
+        if (rememberMe && req.session.cookie) {
+          req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+          console.log(`[AUTH] REMEMBER ME ENABLED | IP: ${clientIP} | Username: ${user.username} | Session extended to 30 days`);
+        }
+        
         req.login(user, (loginErr) => {
           if (loginErr) {
             console.log(`[AUTH] LOGIN SESSION ERROR | IP: ${clientIP} | Error: ${loginErr.message} | Time: ${new Date().toISOString()}`);
             return next(loginErr);
           }
-          console.log(`[AUTH] LOGIN SUCCESS | IP: ${clientIP} | UserID: ${user.id} | Time: ${new Date().toISOString()}`);
+          console.log(`[AUTH] LOGIN SUCCESS | IP: ${clientIP} | UserID: ${user.id} | RememberMe: ${rememberMe} | Time: ${new Date().toISOString()}`);
           res.status(200).json(user);
         });
       });

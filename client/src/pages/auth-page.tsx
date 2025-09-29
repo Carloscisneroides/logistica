@@ -20,7 +20,9 @@ import { useToast } from "@/hooks/use-toast";
 import { NyvraLogo } from "@/components/branding/nyvra-logo";
 import { BRAND_NAME, BRAND_TAGLINE } from "@/lib/constants";
 
-const loginSchema = insertUserSchema.pick({ username: true, password: true });
+const loginSchema = insertUserSchema.pick({ username: true, password: true }).extend({
+  rememberMe: z.boolean().optional().default(false)
+});
 // Validazione Partita IVA italiana (11 cifre)
 const validatePartitaIVA = (piva: string) => {
   if (!/^\d{11}$/.test(piva)) return false;
@@ -204,7 +206,7 @@ export default function AuthPage() {
 
   const loginForm = useForm<LoginData>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { username: "", password: "" },
+    defaultValues: { username: "", password: "", rememberMe: false },
   });
 
   const registerForm = useForm<RegisterData>({
@@ -448,6 +450,18 @@ export default function AuthPage() {
                   <p className="text-sm text-destructive">{loginForm.formState.errors.password.message}</p>
                 )}
               </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  id="rememberMe"
+                  type="checkbox"
+                  {...loginForm.register("rememberMe")}
+                  className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                  data-testid="checkbox-remember-me"
+                />
+                <Label htmlFor="rememberMe" className="text-sm font-normal cursor-pointer">
+                  Ricordami per 30 giorni
+                </Label>
+              </div>
             </div>
             <Button 
               type="submit" 
@@ -460,6 +474,21 @@ export default function AuthPage() {
               ) : (t('login'))}
             </Button>
           </form>
+          
+          {/* Link Registrazione e Contatti */}
+          <div className="mt-6 space-y-3 text-center">
+            <Button
+              onClick={() => setIsLogin(false)}
+              variant="outline"
+              className="w-full h-12 text-base font-medium rounded-xl border-2"
+              data-testid="button-switch-to-register"
+            >
+              Non hai un account? Registrati
+            </Button>
+            <div className="text-sm text-muted-foreground">
+              Hai bisogno di supporto? Contattaci: <a href="mailto:info@nyvra.com" className="text-primary hover:underline font-medium">info@nyvra.com</a>
+            </div>
+          </div>
           {/* AI Security + Demo Notice */}
           <div className="space-y-3">
             <div className="mt-8 p-4 bg-amber-50 dark:bg-amber-950/50 rounded-xl border border-amber-200 dark:border-amber-800">
@@ -639,6 +668,18 @@ export default function AuthPage() {
                         </p>
                       )}
                     </div>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        id="rememberMe-desktop"
+                        type="checkbox"
+                        {...loginForm.register("rememberMe")}
+                        className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                        data-testid="checkbox-remember-me-desktop"
+                      />
+                      <Label htmlFor="rememberMe-desktop" className="text-sm font-normal cursor-pointer">
+                        Ricordami per 30 giorni
+                      </Label>
+                    </div>
                   </div>
                   
                   <Button 
@@ -652,6 +693,21 @@ export default function AuthPage() {
                     )}
                     {loginMutation.isPending ? "Accesso..." : "Accedi al Sistema"}
                   </Button>
+                  
+                  {/* Link Registrazione e Contatti - Desktop */}
+                  <div className="mt-6 space-y-3 text-center">
+                    <Button
+                      onClick={() => setIsLogin(false)}
+                      variant="outline"
+                      className="w-full h-11 text-sm font-medium rounded-lg border-2"
+                      data-testid="button-switch-to-register-desktop"
+                    >
+                      Non hai un account? Registrati ora
+                    </Button>
+                    <div className="text-xs text-muted-foreground">
+                      Hai bisogno di supporto? <a href="mailto:info@nyvra.com" className="text-primary hover:underline font-medium">info@nyvra.com</a>
+                    </div>
+                  </div>
                 </form>
               ) : (
                 <Form {...registerForm}>
