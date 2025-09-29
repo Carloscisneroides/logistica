@@ -93,7 +93,7 @@ import { pool } from "./db";
 const PostgresSessionStore = connectPg(session);
 
 // ========================
-// YCORE WALLET STORAGE - HELPER CLASSES AND IMPLEMENTATION
+// NUVRA WALLET STORAGE - HELPER CLASSES AND IMPLEMENTATION
 // ========================
 
 import crypto from 'node:crypto';

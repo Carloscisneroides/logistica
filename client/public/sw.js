@@ -113,7 +113,7 @@ async function networkFirstWithOfflineFallback(request) {
     
     return networkResponse;
   } catch (error) {
-    console.log('🔄 YCORE SW: Network failed, trying cache...');
+    console.log('🔄 Nuvra SW: Network failed, trying cache...');
     
     const cachedResponse = await caches.match(request);
     if (cachedResponse) {
@@ -161,7 +161,7 @@ async function cacheFirst(request) {
     
     return networkResponse;
   } catch (error) {
-    console.log('❌ YCORE SW: Failed to fetch:', request.url);
+    console.log('❌ Nuvra SW: Failed to fetch:', request.url);
     throw error;
   }
 }
@@ -178,7 +178,7 @@ async function networkFirst(request) {
     
     return networkResponse;
   } catch (error) {
-    console.log('🔄 YCORE SW: Network failed for page, trying cache...');
+    console.log('🔄 Nuvra SW: Network failed for page, trying cache...');
     
     const cachedResponse = await caches.match(request);
     if (cachedResponse) {
@@ -192,7 +192,7 @@ async function networkFirst(request) {
 
 // Handle background sync
 self.addEventListener('sync', event => {
-  console.log('🔄 YCORE SW: Background sync triggered');
+  console.log('🔄 Nuvra SW: Background sync triggered');
   
   if (event.tag === 'background-data-sync') {
     event.waitUntil(syncOfflineData());
@@ -201,7 +201,7 @@ self.addEventListener('sync', event => {
 
 // Sync offline data when connection is restored
 async function syncOfflineData() {
-  console.log('📡 YCORE SW: Syncing offline data...');
+  console.log('📡 Nuvra SW: Syncing offline data...');
   
   // Here you can implement logic to sync any offline data
   // when the connection is restored
@@ -215,9 +215,9 @@ async function syncOfflineData() {
     }
     
     await clearOfflineActions();
-    console.log('✅ YCORE SW: Offline data synced successfully');
+    console.log('✅ Nuvra SW: Offline data synced successfully');
   } catch (error) {
-    console.log('❌ YCORE SW: Failed to sync offline data:', error);
+    console.log('❌ Nuvra SW: Failed to sync offline data:', error);
   }
 }
 
@@ -233,13 +233,13 @@ async function clearOfflineActions() {
 
 // Handle push notifications (future enhancement)
 self.addEventListener('push', event => {
-  console.log('📱 YCORE SW: Push notification received');
+  console.log('📱 Nuvra SW: Push notification received');
   
   const options = {
-    body: 'You have new updates in YCORE',
+    body: 'You have new updates in Nuvra',
     icon: '/pwa-assets/icon-192.png',
     badge: '/pwa-assets/badge-72.png',
-    tag: 'ycore-notification',
+    tag: 'nuvra-notification',
     renotify: true,
     actions: [
       {
@@ -260,7 +260,7 @@ self.addEventListener('push', event => {
 
 // Handle notification clicks
 self.addEventListener('notificationclick', event => {
-  console.log('📱 YCORE SW: Notification clicked');
+  console.log('📱 Nuvra SW: Notification clicked');
   
   event.notification.close();
   
