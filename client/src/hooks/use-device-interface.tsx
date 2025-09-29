@@ -51,7 +51,7 @@ export function useDeviceInterface() {
       const screenWidth = window.innerWidth;
       const screenHeight = window.innerHeight;
 
-      // DECISION LOGIC: APP mode criteria - AGGRESSIVE MOBILE DETECTION
+      // DECISION LOGIC: APP mode criteria - REFINED DETECTION
       let newMode: InterfaceMode = 'pc';
       
       if (isPWAStandalone) {
@@ -66,11 +66,13 @@ export function useDeviceInterface() {
       } else if (screenWidth <= 900 && isTouchFirst && noHover) {
         // Medium tablets without hover (pure mobile) = APP mode
         newMode = 'app';
-      } else if (isSmallViewport || noHover) {
-        // No hover or small viewport = APP mode
+      } else if (noHover && isSmallViewport) {
+        // ONLY if no hover AND small viewport = APP mode
+        // This prevents desktop browsers with narrow windows from switching to mobile
         newMode = 'app';
       }
       // Otherwise: PC mode (desktop browsers, large screens with hover)
+      // Desktop with narrow window stays in PC mode because it has hover capability
 
       // Update state
       setIsMobile(isTouchFirst && (isSmallViewport || noHover || isIpadOS));

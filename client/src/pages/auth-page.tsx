@@ -15,7 +15,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { insertUserSchema } from "@shared/schema";
 import { z } from "zod";
 import { Redirect } from "wouter";
-import { Loader2, Truck, Shield, Users, Zap, Download, Smartphone, Settings2, Check, Globe, Bot } from "lucide-react";
+import { Loader2, Truck, Shield, Users, Zap, Download, Smartphone, Settings2, Check, Globe, Bot, ShoppingCart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { NyvraLogo } from "@/components/branding/nyvra-logo";
 import { BRAND_NAME, BRAND_TAGLINE } from "@/lib/constants";
@@ -516,40 +516,46 @@ export default function AuthPage() {
             
             {/* Sottotitolo futuristico */}
             <h2 className="text-2xl font-bold text-white/90 tracking-wide">
-              Il Sistema Antifrode di Nuova Generazione
+              Ecosistema Enterprise Completo
             </h2>
             
             {/* Value Proposition centrata */}
             <p className="text-lg text-white/80 leading-relaxed font-medium max-w-3xl mx-auto">
-              Piattaforma <span className="text-cyan-300 font-bold">AI-powered</span> per <span className="text-cyan-300 font-bold">analisi predittiva</span> e <span className="text-cyan-300 font-bold">protezione enterprise</span> contro frodi e rischi operativi.
+              Piattaforma <span className="text-cyan-300 font-bold">All-in-One</span> che integra <span className="text-cyan-300 font-bold">Logistica Globale</span>, <span className="text-cyan-300 font-bold">eCommerce</span>, <span className="text-cyan-300 font-bold">Marketplace</span> e <span className="text-cyan-300 font-bold">Antifrode AI</span> in un unico sistema intelligente.
             </p>
             
             {/* Features centrate - NYVRA */}
             <div className="flex items-center justify-center space-x-8 pt-4">
               <div className="text-center">
                 <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-3">
-                  <Bot className="w-6 h-6 text-white" />
+                  <Truck className="w-6 h-6 text-white" />
                 </div>
-                <p className="text-white body-text font-semibold">AI Neural</p>
+                <p className="text-white body-text font-semibold">Logistica</p>
+              </div>
+              <div className="text-center">
+                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-3">
+                  <ShoppingCart className="w-6 h-6 text-white" />
+                </div>
+                <p className="text-white body-text font-semibold">eCommerce</p>
               </div>
               <div className="text-center">
                 <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-3">
                   <Shield className="w-6 h-6 text-white" />
                 </div>
-                <p className="text-white body-text font-semibold">Antifrode</p>
+                <p className="text-white body-text font-semibold">Antifrode AI</p>
               </div>
               <div className="text-center">
                 <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-3">
-                  <Zap className="w-6 h-6 text-white" />
+                  <Users className="w-6 h-6 text-white" />
                 </div>
-                <p className="text-white body-text font-semibold">Real-time</p>
+                <p className="text-white body-text font-semibold">Opportunità</p>
               </div>
             </div>
             
             {/* Citazione centrale */}
             <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/20 shadow-2xl text-center">
               <p className="text-white text-lg font-semibold leading-relaxed">
-                <span className="text-cyan-300 font-black">{BRAND_NAME}</span> è il cervello <span className="text-cyan-300">neurale</span> che analizza, prevede e protegge il tuo business <span className="text-cyan-300">24/7</span> con intelligenza artificiale di livello enterprise.
+                <span className="text-cyan-300 font-black">{BRAND_NAME}</span> gestisce la tua <span className="text-cyan-300">supply chain globale</span>, il tuo <span className="text-cyan-300">business online</span> e ti protegge dalle frodi <span className="text-cyan-300">24/7</span> con intelligenza artificiale. Crea anche <span className="text-cyan-300">opportunità di lavoro</span> per il tuo team.
               </p>
             </div>
           </div>

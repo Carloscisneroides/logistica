@@ -1,9 +1,9 @@
 /*
- * YCore Navigation Component - Proprietary UI Module
- * Copyright © 2025 YCore SRL Innovativa - All Rights Reserved
+ * NYVRA Navigation Component - Proprietary UI Module
+ * Copyright © 2025 NYVRA - All Rights Reserved
  * 
- * WATERMARK: ycore-nav-a1b2c3d4-e5f6-7890-abcd-ef1234567890
- * BUILD: 2025-09-27T22:08:15.000Z
+ * WATERMARK: nyvra-nav-a1b2c3d4-e5f6-7890-abcd-ef1234567890
+ * BUILD: 2025-09-29T15:00:00.000Z
  * 
  * CONFIDENTIAL AND PROPRIETARY - NOT FOR DISTRIBUTION
  */
@@ -15,6 +15,8 @@ import { useLocation, Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useRolePermissions } from "@/components/role-protected";
 import { useDeviceInterface } from "@/hooks/use-device-interface";
+import { NyvraLogo } from "@/components/branding/nyvra-logo";
+import { BRAND_NAME } from "@/lib/constants";
 import {
   Truck,
   LayoutDashboard,
@@ -123,7 +125,7 @@ const menuItems = [
     icon: FileText,
   },
   {
-    title: "Wallet YCore",
+    title: "Wallet NYVRA",
     href: "/wallet",
     icon: CreditCard,
     roles: ["admin", "merchant", "staff", "system_creator"],
@@ -324,13 +326,8 @@ export function Sidebar({ className }: SidebarProps) {
     <div className={cn("bg-secondary w-64 flex-shrink-0 h-full", className)}>
       <div className="flex flex-col h-full">
         {/* Logo Header */}
-        <div className="flex items-center justify-center h-16 bg-primary border-b border-border">
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
-              <Truck className="w-5 h-5 text-accent-foreground" />
-            </div>
-            <span className="text-primary-foreground text-xl font-bold">YCore</span>
-          </div>
+        <div className="flex items-center justify-center h-16 bg-primary border-b border-border px-4">
+          <NyvraLogo size="sm" variant="full" className="scale-90" />
         </div>
         
         {/* Navigation Menu */}
