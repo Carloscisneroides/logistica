@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Form } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
@@ -125,7 +126,7 @@ const registerSchema = z.object({
   companyName: z.string().optional(),
   phoneNumber: z.string().min(8, "Numero di telefono richiesto"),
   
-  // Categoria cliente YCore
+  // Categoria cliente NYVRA
   clientCategory: z.enum([
     "merchant_territoriali",
     "marketplace_regionali", 
@@ -146,6 +147,14 @@ const registerSchema = z.object({
   // Dati aggiuntivi
   businessDescription: z.string().min(10, "Descrivi brevemente la tua attività (min 10 caratteri)"),
   message: z.string().optional(),
+  
+  // Accettazione legale
+  acceptTerms: z.boolean().refine((val) => val === true, {
+    message: "Devi accettare i Termini e Condizioni"
+  }),
+  acceptPrivacy: z.boolean().refine((val) => val === true, {
+    message: "Devi accettare la Privacy Policy"
+  }),
 }).refine((data) => data.password === data.passwordConfirm, {
   message: "Le password non coincidono",
   path: ["passwordConfirm"],
@@ -892,7 +901,7 @@ export default function AuthPage() {
 
                     {/* Categoria cliente */}
                     <div className="space-y-4 pt-4 border-t">
-                      <h3 className="font-semibold text-lg">🎯 Categoria Cliente YCore</h3>
+                      <h3 className="font-semibold text-lg">🎯 Categoria Cliente NYVRA</h3>
                       
                       <FormField
                         control={registerForm.control}
@@ -912,7 +921,7 @@ export default function AuthPage() {
                                 <SelectItem value="logistiche">🚚 Logistiche (operatori locali e globali)</SelectItem>
                                 <SelectItem value="broker_doganali">📋 Broker Doganali (import/export, documentazione)</SelectItem>
                                 <SelectItem value="partner_asiatici">🌏 Partner Asiatici (Temu, Shein, Alibaba, AliExpress)</SelectItem>
-                                <SelectItem value="srl_territoriali">🏢 SRL Territoriali (conferimento YCore, white-label)</SelectItem>
+                                <SelectItem value="srl_territoriali">🏢 SRL Territoriali (conferimento NYVRA, white-label)</SelectItem>
                                 <SelectItem value="professionisti">👨‍💼 Professionisti (consulenti, freelance, artigiani)</SelectItem>
                               </SelectContent>
                             </Select>
@@ -1034,9 +1043,9 @@ export default function AuthPage() {
                         name="message"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Messaggio per il CEO</FormLabel>
+                            <FormLabel>Parlaci di te e della tua azienda (opzionale)</FormLabel>
                             <FormControl>
-                              <Textarea {...field} placeholder="Messaggio opzionale per Ylenia Sacco - CEO YCore..." className="min-h-[80px]" data-testid="input-message" />
+                              <Textarea {...field} placeholder="Raccontaci qualcosa in più su di te, la tua attività, obiettivi e come possiamo supportarti..." className="min-h-[80px]" data-testid="input-message" />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -1047,10 +1056,75 @@ export default function AuthPage() {
                     <div className="text-sm text-blue-700 dark:text-blue-300">
                       <span className="font-semibold">📋 Registrazione con Approvazione Manuale</span>
                       <div className="mt-1">
-                        La tua richiesta sarà inviata all'amministratore YCore per l'approvazione. 
+                        La tua richiesta sarà inviata all'amministratore NYVRA per l'approvazione. 
                         Riceverai una email di conferma dopo la valutazione.
                       </div>
                     </div>
+                  </div>
+
+                  {/* CHECKBOX TERMINI E PRIVACY */}
+                  <div className="space-y-3 pt-4 border-t">
+                    <FormField
+                      control={registerForm.control}
+                      name="acceptTerms"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                          <FormControl>
+                            <Checkbox 
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              data-testid="checkbox-accept-terms"
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel className="text-sm font-normal cursor-pointer">
+                              Accetto i{" "}
+                              <a 
+                                href="/terms" 
+                                target="_blank" 
+                                className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
+                                data-testid="link-terms"
+                              >
+                                Termini e Condizioni
+                              </a>
+                              {" "}di NYVRA *
+                            </FormLabel>
+                            <FormMessage />
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={registerForm.control}
+                      name="acceptPrivacy"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                          <FormControl>
+                            <Checkbox 
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              data-testid="checkbox-accept-privacy"
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel className="text-sm font-normal cursor-pointer">
+                              Accetto la{" "}
+                              <a 
+                                href="/privacy" 
+                                target="_blank" 
+                                className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
+                                data-testid="link-privacy"
+                              >
+                                Privacy Policy
+                              </a>
+                              {" "}e il trattamento dei dati personali *
+                            </FormLabel>
+                            <FormMessage />
+                          </div>
+                        </FormItem>
+                      )}
+                    />
                   </div>
                   
                   <Button 
