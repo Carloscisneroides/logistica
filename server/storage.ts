@@ -1311,6 +1311,34 @@ export interface IStorage {
     topPerformers: Array<{ id: string; name: string; revenue: number; clients: number }>;
   }>;
   
+  // ======== MARKETPLACE METHODS (MISSING) ========
+  getMarketplaceCategories(tenantId: string): Promise<MarketplaceCategory[]>;
+  getMarketplaceListings(tenantId: string, filters?: any): Promise<MarketplaceListing[]>;
+  getMarketplaceListing(id: string, tenantId: string): Promise<MarketplaceListing | undefined>;
+  getMarketplaceListingsBySeller(sellerId: string, tenantId: string): Promise<MarketplaceListing[]>;
+  createMarketplaceListing(listing: InsertMarketplaceListing): Promise<MarketplaceListing>;
+  updateMarketplaceListing(id: string, sellerId: string, updates: Partial<MarketplaceListing>): Promise<MarketplaceListing>;
+  getMarketplaceOrders(tenantId: string, userId: string, userRole: string): Promise<MarketplaceOrder[]>;
+  createMarketplaceOrder(order: InsertMarketplaceOrder): Promise<MarketplaceOrder>;
+  updateMarketplaceOrder(id: string, updates: Partial<MarketplaceOrder>): Promise<MarketplaceOrder>;
+  getMarketplaceReviewsByListing(listingId: string): Promise<MarketplaceReview[]>;
+  createMarketplaceReview(review: InsertMarketplaceReview): Promise<MarketplaceReview>;
+  getMarketplaceOrderByIdempotency(key: string, tenantId: string): Promise<MarketplaceOrder | undefined>;
+  createMarketplaceOrderItem(item: InsertMarketplaceOrderItem): Promise<MarketplaceOrderItem>;
+  setMarketplaceVisibility(listingId: string, visibility: any): Promise<void>;
+  incrementListingViews(listingId: string): Promise<void>;
+  
+  // ======== PLATFORM & SUPPORT METHODS (MISSING) ========
+  deletePlatformConnection(id: string): Promise<void>;
+  getCsmTicketsByTenant(tenantId: string): Promise<CsmTicket[]>;
+  getTsmTicketsByTenant(tenantId: string): Promise<TsmTicket[]>;
+  getEscalationsByUser(userId: string): Promise<Escalation[]>;
+  getCommercialUsers(tenantId: string): Promise<User[]>;
+  
+  // ======== COURIER & SHIPMENT METHODS (MISSING) ========
+  getCourierModuleByCode(code: string): Promise<CourierModule | undefined>;
+  getShipmentByTrackingNumber(trackingNumber: string): Promise<Shipment | undefined>;
+  
   sessionStore: session.Store;
 }
 

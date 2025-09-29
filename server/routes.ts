@@ -148,7 +148,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       let clients;
-      if (user.role === "commercial") {
+      if (user.role === "commerciale") {
         clients = await storage.getClientsByCommercial(user.id);
       } else {
         clients = await storage.getClientsByTenant(user.tenantId);
@@ -868,7 +868,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "courier-modules": "Moduli corrieri - configurazione, attivazione, integrazione API, tariffe",
           "billing": "Fatturazione - invoice, pagamenti, Stripe, crediti, saldi",
           "support": "Assistenza clienti - ticket, problemi spedizioni, supporto tecnico",
-          "commercial": "Area commerciale - commissioni, performance, target, prospect"
+          "commerciale": "Area commerciale - commissioni, performance, target, prospect"
         };
 
         const contextDescription = contexts[moduleName as keyof typeof contexts] || "Sistema generale YCore";
@@ -1428,7 +1428,7 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
   app.get("/api/commissions", isAuthenticated, async (req, res) => {
     try {
       const user = req.user;
-      if (user?.role !== "commercial") {
+      if (user?.role !== "commerciale") {
         return res.status(403).json({ error: "Access denied" });
       }
 
@@ -1562,7 +1562,7 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
         userId: user.id,
         entityType: "platform_connection",
         entityId: connection.id,
-        action: "created",
+        action: "create",
         details: `Platform connection created for client ${client.name}`,
         ipAddress: req.ip
       });
@@ -1606,7 +1606,7 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
         userId: user.id,
         entityType: "platform_connection",
         entityId: id,
-        action: "updated",
+        action: "update",
         details: `Platform connection updated`,
         ipAddress: req.ip
       });
@@ -1647,7 +1647,7 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
         userId: user.id,
         entityType: "platform_connection",
         entityId: id,
-        action: "deleted",
+        action: "delete",
         details: `Platform connection deleted`,
         ipAddress: req.ip
       });
@@ -1698,7 +1698,7 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
         userId: user.id,
         entityType: "platform_connection",
         entityId: id,
-        action: "tested",
+        action: "access",
         details: `Connection test: ${testResult.success ? "successful" : "failed"}`,
         ipAddress: req.ip
       });
@@ -1751,7 +1751,7 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
         userId: user.id,
         entityType: "platform_connection",
         entityId: id,
-        action: "synced",
+        action: "update",
         details: `Platform sync completed: ${syncResult.syncedItems} items`,
         ipAddress: req.ip
       });
@@ -2007,7 +2007,7 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
         userId: user.id,
         entityType: "shipment_tracking",
         entityId: tracking.id,
-        action: "created",
+        action: "create",
         details: `Tracking event created: ${validatedData.status}`,
         ipAddress: req.ip
       });
@@ -2052,7 +2052,7 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
         userId: user.id,
         entityType: "shipment_tracking",
         entityId: trackingId,
-        action: "updated",
+        action: "update",
         details: `Tracking event updated`,
         ipAddress: req.ip
       });
@@ -2389,7 +2389,7 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
 
       // Get data scope based on user role and filters
       let clients;
-      if (user.role === "commercial" && !commercialId) {
+      if (user.role === "commerciale" && !commercialId) {
         clients = await storage.getClientsByCommercial(user.id);
       } else if (commercialId && user.role === "admin") {
         clients = await storage.getClientsByCommercial(commercialId as string);
@@ -2463,7 +2463,7 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
         period: { startDate, endDate: now, type: period },
         scope: {
           clients: clients.length,
-          commercial: commercialId || (user.role === "commercial" ? user.id : null)
+          commercial: commercialId || (user.role === "commerciale" ? user.id : null)
         },
         operationalKPI: {
           totalShipments,
@@ -2707,7 +2707,7 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
         userAccess: {
           role: user.role,
           canViewAll: user.role === "admin",
-          canViewCommercial: user.role === "commercial",
+          canViewCommercial: user.role === "commerciale",
           canExport: true,
           canSchedule: user.role === "admin"
         }
