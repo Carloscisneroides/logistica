@@ -18,6 +18,7 @@ The platform provides a robust foundation with contextual AI, multi-tenant segme
 - ✅ Anti-fraud: Integrated system with AI prediction
 - 🔧 Enterprise Modules: In consolidation phase
 - 🔧 Marketplace: 90% complete with Glovo integration planned
+- ✅ **REBRAND COMPLETED**: Successfully rebranded from YCORE to Nuvra (September 29, 2025)
 
 ## Stato Piattaforma
 - ✅ Core Platform operativo con navigazione mobile centralizzata (useMobileNavigationState)
