@@ -323,15 +323,15 @@ export function Sidebar({ className }: SidebarProps) {
   });
 
   return (
-    <div className={cn("bg-secondary w-64 flex-shrink-0 h-full", className)}>
+    <div className={cn("bg-gradient-to-br from-blue-950 via-indigo-950 to-purple-950 w-64 flex-shrink-0 h-full", className)}>
       <div className="flex flex-col h-full">
         {/* Logo Header */}
-        <div className="flex items-center justify-center h-16 bg-primary border-b border-border px-4">
+        <div className="flex items-center justify-center h-16 bg-gradient-to-r from-blue-900 to-purple-900 border-b border-blue-800/50 px-4">
           <NyvraLogo size="sm" variant="full" className="scale-90" />
         </div>
         
         {/* Navigation Menu */}
-        <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-700">
+        <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto scrollbar-thin scrollbar-thumb-purple-500/50 scrollbar-track-blue-950/30">
           <div className="space-y-1">
             {filteredMenuItems.map((item) => {
               const Icon = item.icon;
@@ -347,7 +347,7 @@ export function Sidebar({ className }: SidebarProps) {
                         onClick={() => setExpandedMenu(isExpanded ? null : item.title)}
                         className={cn(
                           "flex items-center justify-between w-full px-3 py-2 text-sm font-medium rounded-md transition-colors",
-                          "text-gray-300 hover:text-secondary-foreground hover:bg-gray-700"
+                          "text-blue-100 hover:text-white hover:bg-white/10"
                         )}
                         data-testid={`nav-toggle-${item.href.replace("/", "") || "dashboard"}`}
                       >
@@ -374,8 +374,8 @@ export function Sidebar({ className }: SidebarProps) {
                                 className={cn(
                                   "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
                                   isSubActive
-                                    ? "text-primary-foreground bg-primary"
-                                    : "text-gray-400 hover:text-secondary-foreground hover:bg-gray-700"
+                                    ? "text-white bg-gradient-to-r from-blue-600 to-purple-600"
+                                    : "text-blue-200 hover:text-white hover:bg-white/10"
                                 )}
                                 data-testid={`nav-sub-${subItem.href.replace("/", "")}`}
                               >
@@ -393,8 +393,8 @@ export function Sidebar({ className }: SidebarProps) {
                       className={cn(
                         "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
                         isActive
-                          ? "text-primary-foreground bg-primary"
-                          : "text-gray-300 hover:text-secondary-foreground hover:bg-gray-700"
+                          ? "text-white bg-gradient-to-r from-blue-600 to-purple-600"
+                          : "text-blue-100 hover:text-white hover:bg-white/10"
                       )}
                       data-testid={`nav-link-${item.href.replace("/", "") || "dashboard"}`}
                     >
@@ -409,18 +409,18 @@ export function Sidebar({ className }: SidebarProps) {
         </nav>
         
         {/* User Profile */}
-        <div className="px-4 py-4 border-t border-gray-700">
+        <div className="px-4 py-4 border-t border-blue-800/50">
           <div className="flex items-center space-x-3 mb-3">
-            <div className="w-8 h-8 bg-accent rounded-full flex items-center justify-center">
-              <span className="text-accent-foreground text-sm font-medium">
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+              <span className="text-white text-sm font-medium">
                 {user?.username?.slice(0, 2).toUpperCase() || "??"}
               </span>
             </div>
             <div className="flex-1">
-              <p className="text-sm font-medium text-secondary-foreground" data-testid="text-username">
+              <p className="text-sm font-medium text-blue-50" data-testid="text-username">
                 {user?.username || "Unknown User"}
               </p>
-              <p className="text-xs text-gray-400" data-testid="text-user-role">
+              <p className="text-xs text-blue-300" data-testid="text-user-role">
                 {user?.role || "User"}
               </p>
             </div>
