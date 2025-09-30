@@ -33,10 +33,12 @@ The subscription module is fully operational with antifraud logic and automatic 
 - **Cron Job**: Automatic monthly reset (1st of month, 00:00) with configurable scheduling
 - **Stripe Integration**: Ready for payment processing and subscription billing
 
-#### E-commerce & Marketplace Integration (🔄 IN DEVELOPMENT)
-Platform is designed to integrate with major e-commerce systems and marketplaces:
-- **Platforms**: Shopify, WooCommerce, Magento, PrestaShop, BigCommerce
-- **Custom Integration**: REST API and dedicated plugins for private stores
+#### E-commerce & Marketplace Integration (✅ COMPLETED)
+Platform foundation for major e-commerce systems and marketplaces:
+- **Platforms**: Shopify, WooCommerce, Magento, PrestaShop, BigCommerce, Custom
+- **Schema Predisposto**: 6 piattaforme supportate con enums e validazione
+- **API Touchpoints**: Webhook handling, order sync, product/inventory management
+- **Security**: Protezione duplicati, validazione webhook, crittografia credenziali
 - **Courier Reselling**: NYVRA can purchase from external couriers and resell to end clients
 - **Access Control**: Regulated by client type (base, reseller, subclient) and subscription plan
 
@@ -61,6 +63,65 @@ Framework modulare completo per integrazioni con corrieri esterni e piattaforme 
 - Consider storage-layer tenant scoping (WHERE id AND tenantId) for defense-in-depth
 - Standardize on req.user vs req.session.user across entire codebase for consistency
 
+### Multi-Tenant Architecture & Branding
+
+#### Gerarchia Operativa
+The platform implements a four-tier multi-tenant hierarchy:
+
+1. **MASTER** → Gestisce provider esterni e logica AI
+   - Controllo globale della piattaforma
+   - Gestione provider di corrieri esterni
+   - Configurazione moduli AI e antifrode
+   
+2. **CLIENTI** → Acquistano da NYVRA, attivano corrieri
+   - Sottoscrizione ai servizi NYVRA
+   - Attivazione corrieri tramite TenantCarrierContract
+   - Gestione autonoma dei propri sottoclienti
+
+3. **INTEGRATORI** → Personalizzano, collegano contratti propri, rivendono
+   - White-label customization (logo, colori, dominio)
+   - Contratti API propri con corrieri
+   - Rivendita servizi a clienti finali
+
+4. **SOTTOCLIENTI** → Accedono in white-label, vedono solo corrieri attivati
+   - Visibilità limitata ai corrieri attivati dal cliente padre
+   - Branding personalizzato del cliente padre
+   - NYVRA e provider esterni invisibili
+
+#### Ruoli Operativi
+
+- **SUPERADMIN**: Accesso completo, provisioning globale
+- **ADMIN**: Gestione tenant, attivazione corrieri, branding
+- **INTEGRATOR**: Personalizzazione, contratti API, rivendita
+- **CLIENTE BASE**: Accesso limitato, solo NYVRA come provider
+- **SOTTOCLIENTE**: Visibilità filtrata, branding cliente
+
+### Moduli AI Intelligenti
+
+#### DASHBOARD AI
+- Analisi antifrode in tempo reale
+- Visualizzazione flussi operativi e alert
+- Previsioni e trend analysis
+- Performance monitoring corrieri e marketplace
+
+#### ShipSync AI
+- Aggregazione tariffe multi-carrier
+- Ottimizzazione automatica per costo, tempo, affidabilità
+- Auto-assegnazione corriere basata su regole business + AI
+- Route optimization e carrier selection
+
+#### ReturnFlow AI
+- Rilevamento pattern fraudolenti nei resi
+- Prevenzione automatica su clienti ad alto rischio
+- Analisi comportamentale e scoring
+- Alert proattivi per anomalie
+
+#### AddiCalc AI
+- Calcolo supplementi dinamici per peso, volume, destinazione
+- Integrazione con pricing e subscription antifraud
+- Ottimizzazione margini e commissioni
+- Gestione automatica rate cards
+
 ### System Design Choices
 The architecture emphasizes modularity for independent development and deployment, scalability for thousands of concurrent tenants through rate limiting, caching, and auto-scaling, and robust security measures including strict tenant isolation, RBAC, secure session management, and API security. It is compliant with GDPR, OWASP, and PCI DSS standards, and is prepared for international customs compliance. The multi-tenant design enables dynamic tenant resolution, isolated branding, and subscription enforcement.
 
@@ -77,3 +138,22 @@ The architecture emphasizes modularity for independent development and deploymen
 - **SendGrid**: For email notifications and registration approvals.
 - **Marketplace APIs**: Shopify, WooCommerce, Magento, PrestaShop (in development).
 - **Courier APIs**: Integration with national and international shipping carriers.
+
+## Roadmap
+
+### Q4 2025 (✅ COMPLETED)
+- ✅ Blindatura middleware tenant completata
+- ✅ Refactor attivazione per-tenant completato
+- ✅ Visibilità corrieri corretta implementata
+- ✅ Subscription antifraud completato
+- ✅ E-commerce foundation completata
+- ✅ Modulo corrieri esterni completato
+- 🔄 Rinomina OverviewF → DASHBOARD (in progress)
+- 🔄 Deprecazione dashboard legacy (in progress)
+
+### Q1 2026 (PLANNED)
+- 📋 Implementazione connettori Shopify, WooCommerce
+- 📋 UI Admin per gestione corrieri e integrazioni
+- 📋 Attivazione moduli AI: ShipSync, ReturnFlow, AddiCalc
+- 📋 Onboarding partner e licensing white-label
+- 📋 Unificazione ambienti NYVRIA–SWIFT
