@@ -22,7 +22,23 @@ The frontend uses React 18, Vite, TypeScript, Tailwind CSS, and shadcn/ui for a 
 The backend is built with Node.js and Express, written in TypeScript, with PostgreSQL as the database managed by Neon, utilizing Drizzle ORM for type-safe interactions. The system is designed for containerization with Docker and Kubernetes. Authentication is session-based with multi-tenant isolation, role-based access control, and manual approval for new registrations, adhering to OWASP standards. OpenAI API is integrated for AI assistance, intelligent routing, and advanced anti-fraud pattern detection. The multi-tenant architecture ensures strict isolation through `tenantId` filtering on all queries.
 
 ### Feature Specifications
-NYVRA provides a comprehensive set of operational modules including core platform functionalities, a multi-tenant system (master/client/subclient hierarchy), logistics and shipment management (routing, tracking, rates, customs, returns), e-commerce features (storefront, anti-fraud checkout), and administrative tools (documents, contracts, invoices). It supports five role-based interfaces (merchant, operator, partner, sub-client, admin) and includes an AI system for contextual assistance and predictive anti-fraud. The platform is also available as a PWA Mobile application. Key features in consolidation include marketplace connectors (Shopify, WooCommerce, Magento), subscription plans (Free, Business, Enterprise), Stripe integration for billing, and further international expansion modules.
+NYVRA provides a comprehensive set of operational modules including core platform functionalities, a multi-tenant system (master/client/subclient hierarchy), logistics and shipment management (routing, tracking, rates, customs, returns), e-commerce features (storefront, anti-fraud checkout), and administrative tools (documents, contracts, invoices). It supports five role-based interfaces (merchant, operator, partner, sub-client, admin) and includes an AI system for contextual assistance and predictive anti-fraud. The platform is also available as a PWA Mobile application.
+
+#### Subscription System (✅ COMPLETED)
+The subscription module is fully operational with antifraud logic and automatic monthly limits control:
+- **Middleware**: `checkSubscriptionLimits`, `incrementShipmentUsage` active on POST /api/shipments
+- **Tiers**: basic, premium, enterprise, custom with monthly shipment limits and pricing
+- **Storage Methods**: getActiveClientSubscription, incrementSubscriptionUsage, resetAllSubscriptionUsage
+- **Admin API**: Full CRUD operations for subscription management
+- **Cron Job**: Automatic monthly reset (1st of month, 00:00) with configurable scheduling
+- **Stripe Integration**: Ready for payment processing and subscription billing
+
+#### E-commerce & Marketplace Integration (🔄 IN DEVELOPMENT)
+Platform is designed to integrate with major e-commerce systems and marketplaces:
+- **Platforms**: Shopify, WooCommerce, Magento, PrestaShop, BigCommerce
+- **Custom Integration**: REST API and dedicated plugins for private stores
+- **Courier Reselling**: NYVRA can purchase from external couriers and resell to end clients
+- **Access Control**: Regulated by client type (base, reseller, subclient) and subscription plan
 
 ### System Design Choices
 The architecture emphasizes modularity for independent development and deployment, scalability for thousands of concurrent tenants through rate limiting, caching, and auto-scaling, and robust security measures including strict tenant isolation, RBAC, secure session management, and API security. It is compliant with GDPR, OWASP, and PCI DSS standards, and is prepared for international customs compliance. The multi-tenant design enables dynamic tenant resolution, isolated branding, and subscription enforcement.

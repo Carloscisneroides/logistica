@@ -66,6 +66,8 @@ function getTimeUntilNextReset(): number {
 
 /**
  * Schedula il prossimo reset mensile
+ * Nota: Node.js setTimeout ha un limite di 2147483647ms (~24.8 giorni)
+ * Per periodi più lunghi, usiamo un check giornaliero
  */
 function scheduleNextReset() {
   if (!CRON_ENABLED) {
@@ -84,11 +86,31 @@ function scheduleNextReset() {
   console.log(`[CRON] Next monthly subscription reset scheduled for: ${nextResetDate.toISOString()}`);
   console.log(`[CRON] Time until next reset: ${Math.round(timeUntilReset / 1000 / 60 / 60)} hours`);
 
+  // Node.js setTimeout ha un limite di ~24.8 giorni (2147483647ms)
+  // Se il tempo è maggiore, usiamo un check giornaliero
+  const MAX_TIMEOUT = 2147483647; // Max 32-bit signed integer
+  const ONE_DAY = 24 * 60 * 60 * 1000;
+  
+  let scheduleTime = timeUntilReset;
+  
+  if (timeUntilReset > MAX_TIMEOUT) {
+    // Schedula un check tra 1 giorno invece di attendere tutto il tempo
+    scheduleTime = ONE_DAY;
+    console.log('[CRON] Reset is more than 24 days away, will check again in 24 hours');
+  }
+
   monthlyResetInterval = setTimeout(async () => {
-    await resetMonthlySubscriptionUsage();
-    // Schedula il prossimo reset dopo l'esecuzione
+    // Controlla se è effettivamente il momento del reset
+    const now = new Date();
+    const isResetTime = now.getDate() === RESET_DAY && now.getHours() === RESET_HOUR;
+    
+    if (isResetTime) {
+      await resetMonthlySubscriptionUsage();
+    }
+    
+    // Schedula il prossimo check/reset
     scheduleNextReset();
-  }, timeUntilReset);
+  }, scheduleTime);
 }
 
 /**
