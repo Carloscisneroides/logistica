@@ -89,26 +89,39 @@ function sanitizePlatformConnection(connection: any) {
   };
 }
 
-// Helper function to sanitize courier provider secrets
+// Helper function to sanitize courier provider secrets (WHITELIST approach)
 function sanitizeCourierProvider(provider: any) {
   return {
-    ...provider,
-    apiCredentials: provider.apiCredentials ? {
-      configured: true,
-      provider: provider.provider,
-      accountNumber: provider.apiCredentials.accountNumber || '[HIDDEN]'
-    } : null
+    id: provider.id,
+    tenantId: provider.tenantId,
+    provider: provider.provider,
+    accountName: provider.accountName,
+    isActive: provider.isActive,
+    isReseller: provider.isReseller,
+    markupPercentage: provider.markupPercentage,
+    commissionPercentage: provider.commissionPercentage,
+    allowedCountries: provider.allowedCountries,
+    apiCredentials: provider.apiCredentials ? { configured: true } : { configured: false },
+    createdAt: provider.createdAt,
+    updatedAt: provider.updatedAt
   };
 }
 
-// Helper function to sanitize marketplace connection secrets
+// Helper function to sanitize marketplace connection secrets (WHITELIST approach)
 function sanitizeMarketplaceConnection(connection: any) {
   return {
-    ...connection,
-    apiCredentials: connection.apiCredentials ? {
-      configured: true,
-      platform: connection.marketplaceType
-    } : null
+    id: connection.id,
+    tenantId: connection.tenantId,
+    marketplaceType: connection.marketplaceType,
+    storeName: connection.storeName,
+    storeUrl: connection.storeUrl,
+    isActive: connection.isActive,
+    autoSyncOrders: connection.autoSyncOrders,
+    autoCreateShipments: connection.autoCreateShipments,
+    defaultCourierId: connection.defaultCourierId,
+    apiCredentials: connection.apiCredentials ? { configured: true } : { configured: false },
+    createdAt: connection.createdAt,
+    updatedAt: connection.updatedAt
   };
 }
 
@@ -6210,7 +6223,7 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
           tenantId
         });
 
-        res.json({ success: true, provider });
+        res.json({ success: true, provider: sanitizeCourierProvider(provider) });
       } catch (error: any) {
         console.error("Create courier provider error:", error);
         res.status(500).json({ error: error.message });
@@ -6225,8 +6238,21 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
     GranularAuthSystem.enforcePolicy('admin_settings'),
     async (req, res) => {
       try {
-        const provider = await storage.updateExternalCourierProvider(req.params.id, req.body);
-        res.json({ success: true, provider });
+        const tenantId = req.session?.user?.tenantId;
+        if (!tenantId) {
+          return res.status(401).json({ error: "Tenant not found" });
+        }
+
+        // Verify tenant ownership
+        const existing = await storage.getExternalCourierProvider(req.params.id);
+        if (!existing || existing.tenantId !== tenantId) {
+          return res.status(404).json({ error: "Provider not found" });
+        }
+
+        // Prevent tenantId mutation - immutable field
+        const { tenantId: _, ...updates } = req.body;
+        const provider = await storage.updateExternalCourierProvider(req.params.id, updates);
+        res.json({ success: true, provider: sanitizeCourierProvider(provider) });
       } catch (error: any) {
         console.error("Update courier provider error:", error);
         res.status(500).json({ error: error.message });
@@ -6241,6 +6267,17 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
     GranularAuthSystem.enforcePolicy('admin_settings'),
     async (req, res) => {
       try {
+        const tenantId = req.session?.user?.tenantId;
+        if (!tenantId) {
+          return res.status(401).json({ error: "Tenant not found" });
+        }
+
+        // Verify tenant ownership
+        const existing = await storage.getExternalCourierProvider(req.params.id);
+        if (!existing || existing.tenantId !== tenantId) {
+          return res.status(404).json({ error: "Provider not found" });
+        }
+
         await storage.deleteExternalCourierProvider(req.params.id);
         res.json({ success: true, message: "Provider deleted" });
       } catch (error: any) {
@@ -6326,7 +6363,7 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
           tenantId
         });
 
-        res.json({ success: true, connection });
+        res.json({ success: true, connection: sanitizeMarketplaceConnection(connection) });
       } catch (error: any) {
         console.error("Create marketplace connection error:", error);
         res.status(500).json({ error: error.message });
@@ -6341,8 +6378,21 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
     GranularAuthSystem.enforcePolicy('admin_settings'),
     async (req, res) => {
       try {
-        const connection = await storage.updateMarketplaceConnection(req.params.id, req.body);
-        res.json({ success: true, connection });
+        const tenantId = req.session?.user?.tenantId;
+        if (!tenantId) {
+          return res.status(401).json({ error: "Tenant not found" });
+        }
+
+        // Verify tenant ownership
+        const existing = await storage.getMarketplaceConnection(req.params.id);
+        if (!existing || existing.tenantId !== tenantId) {
+          return res.status(404).json({ error: "Connection not found" });
+        }
+
+        // Prevent tenantId mutation - immutable field
+        const { tenantId: _, ...updates } = req.body;
+        const connection = await storage.updateMarketplaceConnection(req.params.id, updates);
+        res.json({ success: true, connection: sanitizeMarketplaceConnection(connection) });
       } catch (error: any) {
         console.error("Update marketplace connection error:", error);
         res.status(500).json({ error: error.message });
@@ -6357,6 +6407,17 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
     GranularAuthSystem.enforcePolicy('admin_settings'),
     async (req, res) => {
       try {
+        const tenantId = req.session?.user?.tenantId;
+        if (!tenantId) {
+          return res.status(401).json({ error: "Tenant not found" });
+        }
+
+        // Verify tenant ownership
+        const existing = await storage.getMarketplaceConnection(req.params.id);
+        if (!existing || existing.tenantId !== tenantId) {
+          return res.status(404).json({ error: "Connection not found" });
+        }
+
         await storage.deleteMarketplaceConnection(req.params.id);
         res.json({ success: true, message: "Connection deleted" });
       } catch (error: any) {

@@ -48,9 +48,18 @@ Framework modulare completo per integrazioni con corrieri esterni e piattaforme 
 - **Storage Methods**: Full CRUD operations for providers, connections, webhooks, external shipments
 - **REST API**: Admin endpoints with authentication, tenant isolation, and secret sanitization
 - **Connectors Implemented**: Shopify (orders sync, webhooks, fulfillment), FedEx (rates, label purchase, tracking)
-- **Security**: Encrypted API keys/secrets, sanitization helpers prevent credential leakage, OAuth2 support, webhook validation
+- **Security Implementations**:
+  - Whitelist-based sanitization: Only safe fields exposed (id, name, status, business settings)
+  - All credentials stripped: apiCredentials, webhookSecret, OAuth tokens never sent to frontend
+  - Tenant ownership verification: PATCH/DELETE verify tenantId match before modification
+  - Immutable field protection: tenantId cannot be changed via updates
+  - IDOR prevention: Cross-tenant access blocked on all admin endpoints
 - **Business Logic**: Automatic markup calculation (clientCost = baseCost * (1 + markup%)), reseller mode, commission tracking
 - **UI Admin**: React page for managing integrations (/admin/integrations) with test, sync, and delete functions
+
+**Architectural Notes for Future Enhancement**:
+- Consider storage-layer tenant scoping (WHERE id AND tenantId) for defense-in-depth
+- Standardize on req.user vs req.session.user across entire codebase for consistency
 
 ### System Design Choices
 The architecture emphasizes modularity for independent development and deployment, scalability for thousands of concurrent tenants through rate limiting, caching, and auto-scaling, and robust security measures including strict tenant isolation, RBAC, secure session management, and API security. It is compliant with GDPR, OWASP, and PCI DSS standards, and is prepared for international customs compliance. The multi-tenant design enables dynamic tenant resolution, isolated branding, and subscription enforcement.
