@@ -1,0 +1,108 @@
+NYVRIA – Foglio Tecnico Strategico
+Meta-piattaforma antifrode per e-commerce e logistica, con architettura multi-tenant, AI integrata, e rivendita corrieri esterni. Progettata per scalare su più mercati, con visibilità controllata, branding personalizzabile e difendibilità tecnica e legale.
+
+✅ Q4 2025 – Stato Modulo NYVRIA
+Blindatura middleware tenant ✔️ Applicato solo su /api/* ✔️ Warning ridotti da 70+ a 1 ✔️ Eliminato fallback su richieste Vite/HMR/assets
+
+Refactor attivazione corrieri per-tenant ✔️ Attivazione tramite TenantCarrierContract ✔️ Ogni tenant gestisce i propri corrieri ✔️ Isolamento completo tra ambienti
+
+Visibilità corrieri corretta ✔️ Subclienti vedono solo corrieri attivati dal cliente ✔️ NYVRIA e provider esterni (Spedisci.Online, ecc.) invisibili ✔️ Branding white-label operativo
+
+Modulo corrieri esterni & marketplace ✔️ Database completato: 4 tabelle chiave ✔️ Enums: corrieri, marketplace, status integrazione ✔️ Funzionalità:
+
+Gestione credenziali API criptate
+
+Pricing dinamico: markup, commissioni, rate cards
+
+Webhook real-time
+
+Auto-sync ordini, prodotti, inventory
+
+Shipping automation: auto-assign, tracking
+
+Business rules: country restrictions, antifrode
+
+Subscription antifrode ✔️ Middleware attivo per limiti, usage, reset mensile ✔️ Tabella clientSubscriptions con tier, pricing, Stripe ✔️ Logging e cron job configurabili
+
+E-commerce integration foundation ✔️ Schema predisposto per 6 piattaforme: Shopify, WooCommerce, Magento, Prestashop, BigCommerce, Custom ✔️ Documentazione tecnica e API touchpoints ✔️ Protezione duplicati, validazione webhook, crittografia
+
+🔐 Architettura Multi-Tenant & Branding
+Gerarchia operativa
+
+MASTER → gestisce provider esterni e logica AI
+
+CLIENTI → acquistano da NYVRIA, attivano corrieri
+
+INTEGRATORI → personalizzano, collegano contratti propri, rivendono
+
+SOTTOCLIENTI → accedono in white-label, vedono solo corrieri attivati
+
+Ruoli operativi
+
+SUPERADMIN: accesso completo, provisioning globale
+
+ADMIN: gestione tenant, attivazione corrieri, branding
+
+INTEGRATOR: personalizzazione, contratti API, rivendita
+
+CLIENTE BASE: accesso limitato, solo NYVRIA come provider
+
+SOTTOCLIENTE: visibilità filtrata, branding cliente
+
+🧠 Moduli Intelligenti (AI)
+DASHBOARD AI
+
+Analisi antifrode, flussi, alert, previsioni
+
+Visualizzazione performance corrieri e marketplace
+
+ShipSync AI
+
+Aggregazione tariffe multi-carrier
+
+Ottimizzazione automatica per costo, tempo, affidabilità
+
+Auto-assegnazione corriere in base a regole business + AI
+
+ReturnFlow AI
+
+Rilevamento pattern fraudolenti nei resi
+
+Prevenzione automatica su clienti ad alto rischio
+
+AddiCalc AI
+
+Calcolo supplementi dinamici per peso, volume, destinazione
+
+Integrazione con pricing e subscription antifrode
+
+📅 Roadmap
+Q4 2025
+
+Blindatura middleware tenant completata
+
+Refactor attivazione per-tenant completato
+
+Visibilità corrieri corretta implementata
+
+Subscription antifrode completato
+
+E-commerce foundation completata
+
+Modulo corrieri esterni completato
+
+Rinomina OverviewF → DASHBOARD
+
+Deprecazione dashboard legacy
+
+Q1 2026
+
+Implementazione connettori Shopify, WooCommerce
+
+UI Admin per gestione corrieri e integrazioni
+
+Attivazione moduli AI: ShipSync, ReturnFlow, AddiCalc
+
+Onboarding partner e licensing white-label
+
+Unificazione ambienti NYVRIA–SWIFT
