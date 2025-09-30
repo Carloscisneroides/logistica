@@ -40,14 +40,17 @@ Platform is designed to integrate with major e-commerce systems and marketplaces
 - **Courier Reselling**: NYVRA can purchase from external couriers and resell to end clients
 - **Access Control**: Regulated by client type (base, reseller, subclient) and subscription plan
 
-#### External Courier Providers & Marketplace Connectors (🔄 IN DEVELOPMENT)
-Framework modulare per integrazioni con corrieri esterni e piattaforme e-commerce:
+#### External Courier Providers & Marketplace Connectors (✅ COMPLETED)
+Framework modulare completo per integrazioni con corrieri esterni e piattaforme e-commerce:
 - **Database Schema**: 4 tabelle (external_courier_providers, marketplace_connections, marketplace_webhooks_log, external_courier_shipments)
 - **Courier Providers**: FedEx, UPS, DHL, USPS, Poste Italiane, Bartolini, GLS, TNT, SDA + custom
 - **Marketplace Types**: Shopify, WooCommerce, Magento, PrestaShop, BigCommerce, Amazon, eBay, Etsy + custom
-- **Features**: API credential management (encrypted), webhook handling, auto-sync orders, shipping rules, pricing markup, usage analytics
-- **Security**: Encrypted API keys/secrets, OAuth2 support, webhook validation
-- **Business Logic**: Reseller mode, commission tracking, rate card management, country restrictions
+- **Storage Methods**: Full CRUD operations for providers, connections, webhooks, external shipments
+- **REST API**: Admin endpoints with authentication, tenant isolation, and secret sanitization
+- **Connectors Implemented**: Shopify (orders sync, webhooks, fulfillment), FedEx (rates, label purchase, tracking)
+- **Security**: Encrypted API keys/secrets, sanitization helpers prevent credential leakage, OAuth2 support, webhook validation
+- **Business Logic**: Automatic markup calculation (clientCost = baseCost * (1 + markup%)), reseller mode, commission tracking
+- **UI Admin**: React page for managing integrations (/admin/integrations) with test, sync, and delete functions
 
 ### System Design Choices
 The architecture emphasizes modularity for independent development and deployment, scalability for thousands of concurrent tenants through rate limiting, caching, and auto-scaling, and robust security measures including strict tenant isolation, RBAC, secure session management, and API security. It is compliant with GDPR, OWASP, and PCI DSS standards, and is prepared for international customs compliance. The multi-tenant design enables dynamic tenant resolution, isolated branding, and subscription enforcement.

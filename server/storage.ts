@@ -5514,6 +5514,8 @@ export class DatabaseStorage implements IStorage {
     trackingNumber?: string;
     labelUrl?: string;
     cost?: number;
+    clientCost?: number;
+    markup?: number;
     error?: string;
   }> {
     const provider = await this.getExternalCourierProvider(providerId);
@@ -5522,21 +5524,36 @@ export class DatabaseStorage implements IStorage {
     }
     
     const trackingNumber = `TRACK${Date.now()}`;
+    const baseCost = 15.99; // Cost from external courier
+    
+    // Apply markup if provider is configured as reseller
+    let clientCost = baseCost;
+    let appliedMarkup = 0;
+    
+    if (provider.isReseller && provider.markupPercentage) {
+      appliedMarkup = baseCost * (provider.markupPercentage / 100);
+      clientCost = baseCost + appliedMarkup;
+    }
+
     const externalShipment = await this.createExternalCourierShipment({
       shipmentId,
       providerId,
       externalTrackingNumber: trackingNumber,
       serviceCode,
       status: 'label_purchased',
-      purchasedCost: 15.99,
-      currency: 'EUR'
+      purchasedCost: baseCost,
+      currency: 'EUR',
+      markup: appliedMarkup,
+      clientCost: clientCost.toString()
     });
 
     return {
       success: true,
       trackingNumber,
       labelUrl: `https://labels.example.com/${trackingNumber}.pdf`,
-      cost: 15.99
+      cost: baseCost,
+      clientCost,
+      markup: appliedMarkup
     };
   }
 }

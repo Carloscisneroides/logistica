@@ -59,6 +59,7 @@ import EcommerceSuppliersPage from "@/pages/ecommerce-suppliers-page";
 import WalletPage from "@/pages/wallet-page";
 import RatesCarriersPage from "@/pages/rates-carriers-page";
 import GlobalLogisticsPage from "@/pages/global-logistics-page";
+import IntegrationsAdminPage from "@/pages/integrations-admin-page";
 import NotFound from "@/pages/not-found";
 import CommercialRegistration from "@/pages/commercial-registration";
 import { useDeviceInterface } from "@/hooks/use-device-interface";
@@ -103,6 +104,7 @@ function MainLayout({ children }: { children: React.ReactNode }) {
       '/marketplace': 'Marketplace',
       '/fidelity': 'Programma Fedeltà',
       '/wallet': 'Wallet NYVRA',
+      '/admin/integrations': 'Integrazioni Esterne',
       '/system-creator': 'System Creator',
       '/admin': 'Pannello Admin',
       '/staff': 'Console Staff',
@@ -258,6 +260,13 @@ function Router() {
         <MainLayout>
           <GlobalLogisticsPage />
         </MainLayout>
+      )} />
+      <ProtectedRoute path="/admin/integrations" component={() => (
+        <RoleProtected allowedRoles={['system_creator', 'admin']}>
+          <MainLayout>
+            <IntegrationsAdminPage />
+          </MainLayout>
+        </RoleProtected>
       )} />
       
       {/* Role-based dashboards */}

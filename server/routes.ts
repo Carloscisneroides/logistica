@@ -89,6 +89,29 @@ function sanitizePlatformConnection(connection: any) {
   };
 }
 
+// Helper function to sanitize courier provider secrets
+function sanitizeCourierProvider(provider: any) {
+  return {
+    ...provider,
+    apiCredentials: provider.apiCredentials ? {
+      configured: true,
+      provider: provider.provider,
+      accountNumber: provider.apiCredentials.accountNumber || '[HIDDEN]'
+    } : null
+  };
+}
+
+// Helper function to sanitize marketplace connection secrets
+function sanitizeMarketplaceConnection(connection: any) {
+  return {
+    ...connection,
+    apiCredentials: connection.apiCredentials ? {
+      configured: true,
+      platform: connection.marketplaceType
+    } : null
+  };
+}
+
 // Helper function to verify webhook HMAC signature
 function verifyWebhookSignature(payload: string, signature: string, secret: string): boolean {
   if (!signature || !secret) return false;
@@ -6142,7 +6165,8 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
         }
 
         const providers = await storage.getExternalCourierProvidersByTenant(tenantId);
-        res.json({ success: true, providers });
+        const sanitized = providers.map(sanitizeCourierProvider);
+        res.json({ success: true, providers: sanitized });
       } catch (error: any) {
         console.error("Get courier providers error:", error);
         res.status(500).json({ error: error.message });
@@ -6161,7 +6185,7 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
         if (!provider) {
           return res.status(404).json({ error: "Provider not found" });
         }
-        res.json({ success: true, provider });
+        res.json({ success: true, provider: sanitizeCourierProvider(provider) });
       } catch (error: any) {
         console.error("Get courier provider error:", error);
         res.status(500).json({ error: error.message });
@@ -6257,7 +6281,8 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
         }
 
         const connections = await storage.getMarketplaceConnectionsByTenant(tenantId);
-        res.json({ success: true, connections });
+        const sanitized = connections.map(sanitizeMarketplaceConnection);
+        res.json({ success: true, connections: sanitized });
       } catch (error: any) {
         console.error("Get marketplace connections error:", error);
         res.status(500).json({ error: error.message });
@@ -6276,7 +6301,7 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
         if (!connection) {
           return res.status(404).json({ error: "Connection not found" });
         }
-        res.json({ success: true, connection });
+        res.json({ success: true, connection: sanitizeMarketplaceConnection(connection) });
       } catch (error: any) {
         console.error("Get marketplace connection error:", error);
         res.status(500).json({ error: error.message });
