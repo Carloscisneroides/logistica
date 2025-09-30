@@ -88,13 +88,34 @@ The platform implements a four-tier multi-tenant hierarchy:
    - Branding personalizzato del cliente padre
    - NYVRA e provider esterni invisibili
 
-#### Ruoli Operativi
+#### Ruoli Operativi Logistica
+
+Ruoli concettuali specifici per il modulo logistica nazionale e globale:
 
 - **SUPERADMIN**: Accesso completo, provisioning globale
 - **ADMIN**: Gestione tenant, attivazione corrieri, branding
 - **INTEGRATOR**: Personalizzazione, contratti API, rivendita
 - **CLIENTE BASE**: Accesso limitato, solo NYVRA come provider
 - **SOTTOCLIENTE**: Visibilità filtrata, branding cliente
+
+#### Ruoli Piattaforma Completa
+
+Sistema di ruoli tecnici implementato nel database (userRoleEnum):
+
+- **system_creator**: Creatore del sistema, accesso root completo
+- **admin**: Amministratore piattaforma, gestione globale
+- **staff**: Personale interno, operazioni quotidiane
+- **client**: Cliente della piattaforma (con client_type: marketplace/logistica)
+- **commerciale**: Rete commerciale (con sub_role: agente/responsabile)
+- **merchant**: Merchant e-commerce, gestione negozio
+
+**Sub-Ruoli Commerciali**:
+- **agente**: Agente commerciale (con livello: base/medium/premium e grado: 1/2/3)
+- **responsabile**: Responsabile commerciale
+
+**Tipi Cliente**:
+- **marketplace**: Cliente marketplace/e-commerce
+- **logistica**: Cliente logistica nazionale/globale
 
 ### Moduli AI Intelligenti
 
