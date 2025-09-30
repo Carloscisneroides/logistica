@@ -3364,6 +3364,280 @@ export const clientSubscriptions = pgTable("client_subscriptions", {
   usageIdx: index("subscriptions_usage_idx").on(table.currentUsage, table.monthlyShipmentLimit),
 }));
 
+// ========================
+// EXTERNAL COURIER PROVIDERS & MARKETPLACE INTEGRATIONS
+// ========================
+
+// Enums per Corrieri e Marketplace
+export const courierProviderEnum = pgEnum("courier_provider", [
+  "fedex", "ups", "dhl", "usps", "amazon_logistics", 
+  "poste_italiane", "bartolini", "gls", "tnt", "sda",
+  "custom" // Per corrieri personalizzati
+]);
+
+export const marketplaceTypeEnum = pgEnum("marketplace_type", [
+  "shopify", "woocommerce", "magento", "prestashop", "bigcommerce",
+  "amazon", "ebay", "etsy", "custom"
+]);
+
+// Usiamo l'integrationStatusEnum esistente (active, inactive, error, syncing)
+
+// External Courier Providers - Corrieri esterni con cui NYVRA si integra
+export const externalCourierProviders = pgTable("external_courier_providers", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  
+  // Provider Information
+  provider: courierProviderEnum("provider").notNull(),
+  providerName: text("provider_name").notNull(), // Nome custom se provider = "custom"
+  displayName: text("display_name").notNull(),
+  logoUrl: text("logo_url"),
+  websiteUrl: text("website_url"),
+  
+  // API Configuration
+  apiEndpoint: text("api_endpoint").notNull(),
+  apiVersion: text("api_version"),
+  authType: text("auth_type").notNull(), // "api_key", "oauth2", "basic_auth"
+  
+  // Credentials (encrypted)
+  apiKey: text("api_key"), // Encrypted
+  apiSecret: text("api_secret"), // Encrypted
+  accessToken: text("access_token"), // Encrypted (OAuth)
+  refreshToken: text("refresh_token"), // Encrypted (OAuth)
+  tokenExpiresAt: timestamp("token_expires_at"),
+  
+  // Account Details
+  accountId: text("account_id"),
+  accountNumber: text("account_number"),
+  contractNumber: text("contract_number"),
+  
+  // Service Configuration
+  supportedServices: json("supported_services").$type<Array<{
+    code: string;
+    name: string;
+    maxWeight: number;
+    maxDimensions: {length: number; width: number; height: number};
+    deliveryDays: number;
+  }>>().default([]),
+  
+  // Pricing & Commissions
+  pricingModel: text("pricing_model").notNull(), // "wholesale", "retail", "negotiated"
+  commissionRate: decimal("commission_rate", { precision: 5, scale: 2 }).default("0.00"), // %
+  minimumCommission: decimal("minimum_commission", { precision: 10, scale: 2 }).default("0.00"),
+  
+  // Rate Management
+  baseRateMarkup: decimal("base_rate_markup", { precision: 5, scale: 2 }).default("10.00"), // % markup on courier rates
+  customRateCard: json("custom_rate_card").$type<Record<string, number>>(), // service_code -> price
+  
+  // Integration Settings
+  webhookUrl: text("webhook_url"),
+  webhookSecret: text("webhook_secret"), // Encrypted
+  notificationEmail: text("notification_email"),
+  
+  // Usage & Limits
+  monthlyVolume: integer("monthly_volume").default(0),
+  monthlyLimit: integer("monthly_limit"), // null = unlimited
+  dailyLimit: integer("daily_limit"),
+  
+  // Status & Health
+  status: integrationStatusEnum("status").default("inactive"),
+  isReseller: boolean("is_reseller").default(true), // NYVRA può rivendere servizi?
+  lastSyncAt: timestamp("last_sync_at"),
+  lastErrorAt: timestamp("last_error_at"),
+  lastErrorMessage: text("last_error_message"),
+  errorCount: integer("error_count").default(0),
+  
+  // Business Rules
+  allowedCountries: json("allowed_countries").$type<string[]>().default([]),
+  excludedCountries: json("excluded_countries").$type<string[]>().default([]),
+  minOrderValue: decimal("min_order_value", { precision: 10, scale: 2 }),
+  maxOrderValue: decimal("max_order_value", { precision: 10, scale: 2 }),
+  
+  // Analytics
+  totalShipments: integer("total_shipments").default(0),
+  totalRevenue: decimal("total_revenue", { precision: 12, scale: 2 }).default("0.00"),
+  averageDeliveryDays: decimal("average_delivery_days", { precision: 5, scale: 2 }),
+  successRate: decimal("success_rate", { precision: 5, scale: 2 }).default("0.00"),
+  
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  tenantProviderIdx: index("courier_providers_tenant_provider_idx").on(table.tenantId, table.provider),
+  statusIdx: index("courier_providers_status_idx").on(table.status),
+  activeIdx: index("courier_providers_active_idx").on(table.isActive),
+  resellerIdx: index("courier_providers_reseller_idx").on(table.isReseller),
+}));
+
+// Marketplace Connections - Connessioni a piattaforme e-commerce
+export const marketplaceConnections = pgTable("marketplace_connections", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  clientId: uuid("client_id").references(() => clients.id), // null se gestito da NYVRA tenant
+  
+  // Marketplace Information
+  marketplace: marketplaceTypeEnum("marketplace").notNull(),
+  marketplaceName: text("marketplace_name"), // Custom name if marketplace = "custom"
+  storeName: text("store_name").notNull(),
+  storeUrl: text("store_url").notNull(),
+  storeId: text("store_id"),
+  
+  // API Configuration
+  apiEndpoint: text("api_endpoint"),
+  apiVersion: text("api_version"),
+  
+  // Credentials (encrypted)
+  apiKey: text("api_key"), // Encrypted
+  apiSecret: text("api_secret"), // Encrypted
+  accessToken: text("access_token"), // Encrypted
+  refreshToken: text("refresh_token"), // Encrypted
+  tokenExpiresAt: timestamp("token_expires_at"),
+  
+  // OAuth Configuration
+  oauthClientId: text("oauth_client_id"),
+  oauthRedirectUri: text("oauth_redirect_uri"),
+  
+  // Sync Configuration
+  autoSync: boolean("auto_sync").default(true),
+  syncIntervalMinutes: integer("sync_interval_minutes").default(15),
+  lastSyncAt: timestamp("last_sync_at"),
+  nextSyncAt: timestamp("next_sync_at"),
+  
+  // Data Sync Settings
+  syncOrders: boolean("sync_orders").default(true),
+  syncProducts: boolean("sync_products").default(false),
+  syncCustomers: boolean("sync_customers").default(false),
+  syncInventory: boolean("sync_inventory").default(false),
+  
+  // Order Processing
+  autoCreateShipments: boolean("auto_create_shipments").default(true),
+  autoAssignCourier: boolean("auto_assign_courier").default(true),
+  autoNotifyCustomer: boolean("auto_notify_customer").default(true),
+  
+  // Shipping Rules
+  defaultCourierId: uuid("default_courier_id").references(() => externalCourierProviders.id),
+  shippingRules: json("shipping_rules").$type<Array<{
+    condition: {minWeight?: number; maxWeight?: number; destination?: string[]};
+    action: {courierId: string; serviceCode: string};
+  }>>().default([]),
+  
+  // Webhook Configuration
+  webhookUrl: text("webhook_url"),
+  webhookSecret: text("webhook_secret"), // Encrypted
+  webhookEvents: json("webhook_events").$type<string[]>().default([
+    "order.created", "order.updated", "order.canceled", "fulfillment.created"
+  ]),
+  
+  // Status & Health
+  status: integrationStatusEnum("status").default("inactive"),
+  connectionTestAt: timestamp("connection_test_at"),
+  connectionTestResult: text("connection_test_result"),
+  lastErrorAt: timestamp("last_error_at"),
+  lastErrorMessage: text("last_error_message"),
+  errorCount: integer("error_count").default(0),
+  
+  // Analytics
+  totalOrders: integer("total_orders").default(0),
+  totalShipments: integer("total_shipments").default(0),
+  syncErrors: integer("sync_errors").default(0),
+  averageProcessingTime: integer("average_processing_time"), // seconds
+  
+  // Business Rules
+  orderPrefix: text("order_prefix"), // Prefisso ordini da questo marketplace
+  customMappings: json("custom_mappings").$type<Record<string, string>>(), // field mappings
+  
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  tenantMarketplaceIdx: index("marketplace_connections_tenant_marketplace_idx").on(table.tenantId, table.marketplace),
+  clientIdx: index("marketplace_connections_client_idx").on(table.clientId),
+  statusIdx: index("marketplace_connections_status_idx").on(table.status),
+  activeIdx: index("marketplace_connections_active_idx").on(table.isActive),
+  nextSyncIdx: index("marketplace_connections_next_sync_idx").on(table.nextSyncAt),
+}));
+
+// Marketplace Webhooks Log - Log degli eventi ricevuti
+export const marketplaceWebhooksLog = pgTable("marketplace_webhooks_log", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  connectionId: uuid("connection_id").references(() => marketplaceConnections.id).notNull(),
+  
+  // Event Information
+  eventType: text("event_type").notNull(),
+  eventId: text("event_id"), // ID dell'evento dal marketplace
+  payload: json("payload").notNull(),
+  headers: json("headers"),
+  
+  // Processing
+  processed: boolean("processed").default(false),
+  processedAt: timestamp("processed_at"),
+  processingTime: integer("processing_time"), // milliseconds
+  
+  // Result
+  success: boolean("success"),
+  result: json("result"),
+  errorMessage: text("error_message"),
+  
+  // Retry Logic
+  retryCount: integer("retry_count").default(0),
+  nextRetryAt: timestamp("next_retry_at"),
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  connectionIdx: index("webhooks_log_connection_idx").on(table.connectionId),
+  eventTypeIdx: index("webhooks_log_event_type_idx").on(table.eventType),
+  processedIdx: index("webhooks_log_processed_idx").on(table.processed),
+  createdAtIdx: index("webhooks_log_created_at_idx").on(table.createdAt),
+}));
+
+// Courier Shipment Tracking - Tracciamento spedizioni corrieri esterni
+export const externalCourierShipments = pgTable("external_courier_shipments", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  shipmentId: uuid("shipment_id").references(() => shipments.id).notNull(),
+  courierProviderId: uuid("courier_provider_id").references(() => externalCourierProviders.id).notNull(),
+  
+  // Courier Tracking
+  courierTrackingNumber: text("courier_tracking_number").notNull(),
+  courierReferenceNumber: text("courier_reference_number"),
+  serviceCode: text("service_code").notNull(),
+  
+  // Pricing
+  courierCost: decimal("courier_cost", { precision: 10, scale: 2 }).notNull(), // Costo da corriere
+  clientPrice: decimal("client_price", { precision: 10, scale: 2 }).notNull(), // Prezzo vendita cliente
+  markup: decimal("markup", { precision: 10, scale: 2 }), // Ricarico NYVRA
+  markupPercentage: decimal("markup_percentage", { precision: 5, scale: 2 }),
+  
+  // Label & Documentation
+  labelUrl: text("label_url"),
+  labelFormat: text("label_format"), // PDF, PNG, ZPL
+  commercialInvoiceUrl: text("commercial_invoice_url"),
+  customsDocsUrl: text("customs_docs_url"),
+  
+  // Status
+  courierStatus: text("courier_status"),
+  courierStatusCode: text("courier_status_code"),
+  estimatedDelivery: timestamp("estimated_delivery"),
+  actualDelivery: timestamp("actual_delivery"),
+  
+  // Tracking Events from Courier
+  trackingEvents: json("tracking_events").$type<Array<{
+    timestamp: string;
+    status: string;
+    location: string;
+    description: string;
+  }>>().default([]),
+  
+  lastSyncAt: timestamp("last_sync_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  shipmentIdx: unique("external_shipments_shipment_idx").on(table.shipmentId),
+  courierTrackingIdx: index("external_shipments_courier_tracking_idx").on(table.courierTrackingNumber),
+  providerIdx: index("external_shipments_provider_idx").on(table.courierProviderId),
+  statusIdx: index("external_shipments_status_idx").on(table.courierStatus),
+}));
+
 // Registration Links - Link personalizzati per registrazione subclienti
 export const registrationLinks = pgTable("registration_links", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -3413,6 +3687,22 @@ export const registrationLinks = pgTable("registration_links", {
   expiryIdx: index("registration_links_expiry_idx").on(table.expiresAt),
   conversionIdx: index("registration_links_conversion_idx").on(table.conversionRate),
 }));
+
+// Insert Schemas per External Integrations
+export const insertExternalCourierProviderSchema = createInsertSchema(externalCourierProviders);
+export const insertMarketplaceConnectionSchema = createInsertSchema(marketplaceConnections);
+export const insertMarketplaceWebhookLogSchema = createInsertSchema(marketplaceWebhooksLog);
+export const insertExternalCourierShipmentSchema = createInsertSchema(externalCourierShipments);
+
+// Types per External Integrations
+export type ExternalCourierProvider = typeof externalCourierProviders.$inferSelect;
+export type InsertExternalCourierProvider = z.infer<typeof insertExternalCourierProviderSchema>;
+export type MarketplaceConnection = typeof marketplaceConnections.$inferSelect;
+export type InsertMarketplaceConnection = z.infer<typeof insertMarketplaceConnectionSchema>;
+export type MarketplaceWebhookLog = typeof marketplaceWebhooksLog.$inferSelect;
+export type InsertMarketplaceWebhookLog = z.infer<typeof insertMarketplaceWebhookLogSchema>;
+export type ExternalCourierShipment = typeof externalCourierShipments.$inferSelect;
+export type InsertExternalCourierShipment = z.infer<typeof insertExternalCourierShipmentSchema>;
 
 // Insert Schemas per White-Label Multi-Tenant
 export const insertClientBrandingConfigSchema = createInsertSchema(clientBrandingConfigs);
