@@ -4,6 +4,8 @@ import { createServer, type Server } from "http";
 import { setupAuth, isAuthenticated } from "./auth";
 import { storage } from "./storage";
 import { authorizeRole, requireSystemCreator, requireAdmin, requireStaff, requireClient } from "./middleware/role-auth";
+import { checkSubscriptionLimits, incrementShipmentUsage } from "./subscription-middleware";
+import { resetMonthlySubscriptionUsage, getCronJobsStatus } from "./cron-jobs";
 import { 
   insertClientSchema, 
   insertCourierModuleSchema, 
@@ -134,6 +136,157 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...stats,
         aiStats
       });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ======== CLIENT SUBSCRIPTIONS API ========
+  
+  // Get all subscriptions for a tenant (admin only)
+  app.get("/api/subscriptions", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const subscriptions = await storage.getClientSubscriptionsByTenant(user.tenantId);
+      res.json(subscriptions);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get active subscription for a client
+  app.get("/api/subscriptions/client/:clientId", isAuthenticated, async (req, res) => {
+    try {
+      const { clientId } = req.params;
+      const user = req.user;
+      
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      // Verify client belongs to user's tenant
+      const client = await storage.getClient(clientId);
+      if (!client || client.tenantId !== user.tenantId) {
+        return res.status(404).json({ error: "Client not found" });
+      }
+
+      const subscription = await storage.getActiveClientSubscription(clientId);
+      
+      if (!subscription) {
+        return res.status(404).json({ error: "No active subscription found" });
+      }
+
+      res.json(subscription);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get subscription by ID
+  app.get("/api/subscriptions/:id", isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const user = req.user;
+      
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      const subscription = await storage.getClientSubscription(id);
+      
+      if (!subscription || subscription.tenantId !== user.tenantId) {
+        return res.status(404).json({ error: "Subscription not found" });
+      }
+
+      res.json(subscription);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Create a new subscription
+  app.post("/api/subscriptions", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      // Verify client exists and belongs to tenant
+      const clientId = req.body.clientId;
+      if (!clientId) {
+        return res.status(400).json({ error: "Client ID is required" });
+      }
+
+      const client = await storage.getClient(clientId);
+      if (!client || client.tenantId !== user.tenantId) {
+        return res.status(404).json({ error: "Client not found" });
+      }
+
+      // Check if client already has an active subscription
+      const existingSubscription = await storage.getActiveClientSubscription(clientId);
+      if (existingSubscription) {
+        return res.status(400).json({ error: "Client already has an active subscription" });
+      }
+
+      const subscriptionData = {
+        ...req.body,
+        tenantId: user.tenantId,
+        currentPeriodStart: new Date(),
+        currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 giorni
+        currentUsage: 0,
+        status: 'active'
+      };
+
+      const subscription = await storage.createClientSubscription(subscriptionData);
+      res.status(201).json(subscription);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Update subscription
+  app.put("/api/subscriptions/:id", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const user = req.user;
+      
+      if (!user?.tenantId) {
+        return res.status(400).json({ error: "Tenant not found" });
+      }
+
+      // Verify subscription belongs to user's tenant
+      const subscription = await storage.getClientSubscription(id);
+      if (!subscription || subscription.tenantId !== user.tenantId) {
+        return res.status(404).json({ error: "Subscription not found" });
+      }
+
+      const updatedSubscription = await storage.updateClientSubscription(id, req.body);
+      res.json(updatedSubscription);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Reset all subscription usage (manual trigger for testing)
+  app.post("/api/subscriptions/reset-usage", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const result = await resetMonthlySubscriptionUsage();
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get cron jobs status
+  app.get("/api/subscriptions/cron-status", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const status = getCronJobsStatus();
+      res.json(status);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -1093,7 +1246,7 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
     }
   });
 
-  app.post("/api/shipments", isAuthenticated, async (req, res) => {
+  app.post("/api/shipments", isAuthenticated, checkSubscriptionLimits, async (req, res) => {
     try {
       const user = req.user;
       if (!user?.tenantId) {
@@ -1141,6 +1294,9 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
         savings: "0", // TODO: Calculate actual savings
         confidence: "0.95" // TODO: Calculate actual confidence
       });
+
+      // Increment subscription usage after successful shipment creation
+      await incrementShipmentUsage(req, res, shipment.id);
 
       res.status(201).json(shipment);
     } catch (error: any) {

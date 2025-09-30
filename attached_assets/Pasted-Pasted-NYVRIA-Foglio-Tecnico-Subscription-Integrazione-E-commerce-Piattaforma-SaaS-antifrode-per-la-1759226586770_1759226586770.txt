@@ -1,0 +1,48 @@
+Pasted--NYVRIA-Foglio-Tecnico-Subscription-Integrazione-E-commerce-Piattaforma-SaaS-antifrode-per-la--1759226555989_1759226555990.txt
+📦 NYVRIA – Foglio Tecnico Subscription & Integrazione E-commerce
+Piattaforma SaaS antifrode per la gestione delle spedizioni, progettata per operatori nazionali e internazionali, con architettura multi-tenant e logica modulare.
+
+Modulo Subscription – Stato Attuale
+Il sistema di abbonamento è stato implementato con logica antifrode e controllo automatico dei limiti mensili. Include:
+
+Middleware attivo per controllo e incremento delle spedizioni (checkSubscriptionLimits, incrementShipmentUsage, resetMonthlyUsage)
+
+Tabella clientSubscriptions con tier (basic, premium, enterprise, custom), limiti mensili, pricing, stato e integrazione Stripe
+
+Metodi storage completati: getActiveClientSubscription, incrementSubscriptionUsage, resetAllSubscriptionUsage
+
+Middleware integrato nella route POST /api/shipments
+
+API admin per gestione subscription create e funzionanti
+
+Cron Job Mensile
+È in fase di implementazione il cron job automatico per il reset mensile dei contatori di spedizione. Ogni primo giorno del mese, il sistema azzera currentUsage per tutti gli abbonamenti attivi, ripristinando la disponibilità mensile prevista dal piano. Questo garantisce continuità operativa, prevenzione blocchi e coerenza con la logica antifrode.
+
+Integrazione E-commerce
+NYVRIA è predisposta per integrarsi con i principali sistemi e-commerce e marketplace, tra cui:
+
+Shopify, WooCommerce, Magento, Prestashop, BigCommerce
+
+Soluzioni custom e negozi privati tramite API REST o plugin dedicati
+
+La piattaforma riceve gli ordini, calcola le opzioni di spedizione disponibili, e consente l’acquisto diretto delle spedizioni dai corrieri integrati. NYVRIA agisce come intermediario intelligente, centralizzando la logica di pricing, disponibilità e antifrode.
+
+Collegamento con Corrieri
+NYVRIA può acquistare servizi da corrieri esterni e rivenderli ai clienti finali. Ogni cliente può accedere a corrieri propri (se abilitato) o a quelli forniti da NYVRIA. La logica di accesso è regolata per tipo di cliente (base, rivenditore, sottocliente) e per configurazione del piano.
+
+Architettura Tecnica
+Multi-tenant con isolamento logico e branding white-label
+
+Backend: Node.js + NestJS
+
+Frontend: React + Tailwind CSS
+
+Database: PostgreSQL / MongoDB
+
+Containerizzazione: Docker + Kubernetes
+
+Sicurezza: OAuth2, JWT, TLS
+
+Integrazione Stripe per billing e antifrode
+
+Localizzazione multilingua e fiscalità cross-border

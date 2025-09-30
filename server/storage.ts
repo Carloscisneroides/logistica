@@ -82,7 +82,11 @@ import {
   commercialApplications, commercialProfiles, commercialExperiences,
   type CommercialApplication, type InsertCommercialApplication,
   type CommercialProfile, type InsertCommercialProfile,
-  type CommercialExperience, type InsertCommercialExperience
+  type CommercialExperience, type InsertCommercialExperience,
+  
+  // Client Subscriptions
+  clientSubscriptions,
+  type ClientSubscription, type InsertClientSubscription
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, not, desc, sql, isNull } from "drizzle-orm";
@@ -549,6 +553,15 @@ export interface IStorage {
   createNotification(notification: InsertNotification): Promise<Notification>;
   updateNotification(id: string, updates: Partial<Notification>): Promise<Notification>;
   markNotificationsAsRead(recipientId: string, notificationIds: string[]): Promise<void>;
+
+  // ======== CLIENT SUBSCRIPTIONS METHODS ========
+  getClientSubscription(id: string): Promise<ClientSubscription | undefined>;
+  getActiveClientSubscription(clientId: string): Promise<ClientSubscription | undefined>;
+  getClientSubscriptionsByTenant(tenantId: string): Promise<ClientSubscription[]>;
+  createClientSubscription(subscription: InsertClientSubscription): Promise<ClientSubscription>;
+  updateClientSubscription(id: string, updates: Partial<ClientSubscription>): Promise<ClientSubscription>;
+  incrementSubscriptionUsage(subscriptionId: string): Promise<void>;
+  resetAllSubscriptionUsage(): Promise<{ count: number }>;
 
   // ======== ECOMMERCE MODULE METHODS ========
   
@@ -5143,6 +5156,73 @@ export class DatabaseStorage implements IStorage {
       loyaltyPoints: 150,
       nextTier: 'Gold'
     };
+  }
+
+  // ======== CLIENT SUBSCRIPTIONS METHODS ========
+  
+  async getClientSubscription(id: string): Promise<ClientSubscription | undefined> {
+    const [subscription] = await db.select()
+      .from(clientSubscriptions)
+      .where(eq(clientSubscriptions.id, id))
+      .limit(1);
+    return subscription;
+  }
+
+  async getActiveClientSubscription(clientId: string): Promise<ClientSubscription | undefined> {
+    const [subscription] = await db.select()
+      .from(clientSubscriptions)
+      .where(
+        and(
+          eq(clientSubscriptions.clientId, clientId),
+          eq(clientSubscriptions.status, 'active')
+        )
+      )
+      .limit(1);
+    return subscription;
+  }
+
+  async getClientSubscriptionsByTenant(tenantId: string): Promise<ClientSubscription[]> {
+    return await db.select()
+      .from(clientSubscriptions)
+      .where(eq(clientSubscriptions.tenantId, tenantId));
+  }
+
+  async createClientSubscription(subscription: InsertClientSubscription): Promise<ClientSubscription> {
+    const [newSubscription] = await db.insert(clientSubscriptions)
+      .values(subscription)
+      .returning();
+    return newSubscription;
+  }
+
+  async updateClientSubscription(id: string, updates: Partial<ClientSubscription>): Promise<ClientSubscription> {
+    const [updated] = await db.update(clientSubscriptions)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(clientSubscriptions.id, id))
+      .returning();
+    return updated;
+  }
+
+  async incrementSubscriptionUsage(subscriptionId: string): Promise<void> {
+    await db.update(clientSubscriptions)
+      .set({
+        currentUsage: sql`${clientSubscriptions.currentUsage} + 1`,
+        updatedAt: new Date()
+      })
+      .where(eq(clientSubscriptions.id, subscriptionId));
+  }
+
+  async resetAllSubscriptionUsage(): Promise<{ count: number }> {
+    const result = await db.update(clientSubscriptions)
+      .set({
+        currentUsage: 0,
+        currentPeriodStart: new Date(),
+        currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 giorni
+        updatedAt: new Date()
+      })
+      .where(eq(clientSubscriptions.status, 'active'))
+      .returning({ id: clientSubscriptions.id });
+    
+    return { count: result.length };
   }
 }
 
