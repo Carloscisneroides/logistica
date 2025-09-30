@@ -6123,6 +6123,337 @@ Mantieni un tono professionale e propositivo. Suggerisci sempre azioni concrete.
   // END YCORE WALLET API ECOSYSTEM
   // ========================
 
+  // ========================
+  // EXTERNAL INTEGRATIONS API - COURIER PROVIDERS & MARKETPLACE CONNECTIONS
+  // ========================
+
+  // ========== EXTERNAL COURIER PROVIDERS API ==========
+  
+  // GET all courier providers for tenant
+  app.get("/api/admin/courier-providers",
+    SecurityMiddleware.applyBasicSecurity,
+    ModuleRateLimiters.admin,
+    GranularAuthSystem.enforcePolicy('admin_settings'),
+    async (req, res) => {
+      try {
+        const tenantId = req.session?.user?.tenantId;
+        if (!tenantId) {
+          return res.status(401).json({ error: "Tenant not found" });
+        }
+
+        const providers = await storage.getExternalCourierProvidersByTenant(tenantId);
+        res.json({ success: true, providers });
+      } catch (error: any) {
+        console.error("Get courier providers error:", error);
+        res.status(500).json({ error: error.message });
+      }
+    }
+  );
+
+  // GET single courier provider
+  app.get("/api/admin/courier-providers/:id",
+    SecurityMiddleware.applyBasicSecurity,
+    ModuleRateLimiters.admin,
+    GranularAuthSystem.enforcePolicy('admin_settings'),
+    async (req, res) => {
+      try {
+        const provider = await storage.getExternalCourierProvider(req.params.id);
+        if (!provider) {
+          return res.status(404).json({ error: "Provider not found" });
+        }
+        res.json({ success: true, provider });
+      } catch (error: any) {
+        console.error("Get courier provider error:", error);
+        res.status(500).json({ error: error.message });
+      }
+    }
+  );
+
+  // CREATE courier provider
+  app.post("/api/admin/courier-providers",
+    SecurityMiddleware.applyBasicSecurity,
+    ModuleRateLimiters.admin,
+    GranularAuthSystem.enforcePolicy('admin_settings'),
+    async (req, res) => {
+      try {
+        const tenantId = req.session?.user?.tenantId;
+        if (!tenantId) {
+          return res.status(401).json({ error: "Tenant not found" });
+        }
+
+        const provider = await storage.createExternalCourierProvider({
+          ...req.body,
+          tenantId
+        });
+
+        res.json({ success: true, provider });
+      } catch (error: any) {
+        console.error("Create courier provider error:", error);
+        res.status(500).json({ error: error.message });
+      }
+    }
+  );
+
+  // UPDATE courier provider
+  app.patch("/api/admin/courier-providers/:id",
+    SecurityMiddleware.applyBasicSecurity,
+    ModuleRateLimiters.admin,
+    GranularAuthSystem.enforcePolicy('admin_settings'),
+    async (req, res) => {
+      try {
+        const provider = await storage.updateExternalCourierProvider(req.params.id, req.body);
+        res.json({ success: true, provider });
+      } catch (error: any) {
+        console.error("Update courier provider error:", error);
+        res.status(500).json({ error: error.message });
+      }
+    }
+  );
+
+  // DELETE courier provider
+  app.delete("/api/admin/courier-providers/:id",
+    SecurityMiddleware.applyBasicSecurity,
+    ModuleRateLimiters.admin,
+    GranularAuthSystem.enforcePolicy('admin_settings'),
+    async (req, res) => {
+      try {
+        await storage.deleteExternalCourierProvider(req.params.id);
+        res.json({ success: true, message: "Provider deleted" });
+      } catch (error: any) {
+        console.error("Delete courier provider error:", error);
+        res.status(500).json({ error: error.message });
+      }
+    }
+  );
+
+  // TEST courier connection
+  app.post("/api/admin/courier-providers/:id/test",
+    SecurityMiddleware.applyBasicSecurity,
+    ModuleRateLimiters.admin,
+    GranularAuthSystem.enforcePolicy('admin_settings'),
+    async (req, res) => {
+      try {
+        const result = await storage.testCourierConnection(req.params.id);
+        res.json(result);
+      } catch (error: any) {
+        console.error("Test courier connection error:", error);
+        res.status(500).json({ error: error.message });
+      }
+    }
+  );
+
+  // ========== MARKETPLACE CONNECTIONS API ==========
+
+  // GET all marketplace connections for tenant
+  app.get("/api/admin/marketplace-connections",
+    SecurityMiddleware.applyBasicSecurity,
+    ModuleRateLimiters.admin,
+    GranularAuthSystem.enforcePolicy('admin_settings'),
+    async (req, res) => {
+      try {
+        const tenantId = req.session?.user?.tenantId;
+        if (!tenantId) {
+          return res.status(401).json({ error: "Tenant not found" });
+        }
+
+        const connections = await storage.getMarketplaceConnectionsByTenant(tenantId);
+        res.json({ success: true, connections });
+      } catch (error: any) {
+        console.error("Get marketplace connections error:", error);
+        res.status(500).json({ error: error.message });
+      }
+    }
+  );
+
+  // GET single marketplace connection
+  app.get("/api/admin/marketplace-connections/:id",
+    SecurityMiddleware.applyBasicSecurity,
+    ModuleRateLimiters.admin,
+    GranularAuthSystem.enforcePolicy('admin_settings'),
+    async (req, res) => {
+      try {
+        const connection = await storage.getMarketplaceConnection(req.params.id);
+        if (!connection) {
+          return res.status(404).json({ error: "Connection not found" });
+        }
+        res.json({ success: true, connection });
+      } catch (error: any) {
+        console.error("Get marketplace connection error:", error);
+        res.status(500).json({ error: error.message });
+      }
+    }
+  );
+
+  // CREATE marketplace connection
+  app.post("/api/admin/marketplace-connections",
+    SecurityMiddleware.applyBasicSecurity,
+    ModuleRateLimiters.admin,
+    GranularAuthSystem.enforcePolicy('admin_settings'),
+    async (req, res) => {
+      try {
+        const tenantId = req.session?.user?.tenantId;
+        if (!tenantId) {
+          return res.status(401).json({ error: "Tenant not found" });
+        }
+
+        const connection = await storage.createMarketplaceConnection({
+          ...req.body,
+          tenantId
+        });
+
+        res.json({ success: true, connection });
+      } catch (error: any) {
+        console.error("Create marketplace connection error:", error);
+        res.status(500).json({ error: error.message });
+      }
+    }
+  );
+
+  // UPDATE marketplace connection
+  app.patch("/api/admin/marketplace-connections/:id",
+    SecurityMiddleware.applyBasicSecurity,
+    ModuleRateLimiters.admin,
+    GranularAuthSystem.enforcePolicy('admin_settings'),
+    async (req, res) => {
+      try {
+        const connection = await storage.updateMarketplaceConnection(req.params.id, req.body);
+        res.json({ success: true, connection });
+      } catch (error: any) {
+        console.error("Update marketplace connection error:", error);
+        res.status(500).json({ error: error.message });
+      }
+    }
+  );
+
+  // DELETE marketplace connection
+  app.delete("/api/admin/marketplace-connections/:id",
+    SecurityMiddleware.applyBasicSecurity,
+    ModuleRateLimiters.admin,
+    GranularAuthSystem.enforcePolicy('admin_settings'),
+    async (req, res) => {
+      try {
+        await storage.deleteMarketplaceConnection(req.params.id);
+        res.json({ success: true, message: "Connection deleted" });
+      } catch (error: any) {
+        console.error("Delete marketplace connection error:", error);
+        res.status(500).json({ error: error.message });
+      }
+    }
+  );
+
+  // TEST marketplace connection
+  app.post("/api/admin/marketplace-connections/:id/test",
+    SecurityMiddleware.applyBasicSecurity,
+    ModuleRateLimiters.admin,
+    GranularAuthSystem.enforcePolicy('admin_settings'),
+    async (req, res) => {
+      try {
+        const result = await storage.testMarketplaceConnection(req.params.id);
+        res.json(result);
+      } catch (error: any) {
+        console.error("Test marketplace connection error:", error);
+        res.status(500).json({ error: error.message });
+      }
+    }
+  );
+
+  // SYNC marketplace orders
+  app.post("/api/admin/marketplace-connections/:id/sync",
+    SecurityMiddleware.applyBasicSecurity,
+    ModuleRateLimiters.admin,
+    GranularAuthSystem.enforcePolicy('admin_settings'),
+    async (req, res) => {
+      try {
+        const result = await storage.syncMarketplaceOrders(req.params.id);
+        res.json({ success: true, result });
+      } catch (error: any) {
+        console.error("Sync marketplace orders error:", error);
+        res.status(500).json({ error: error.message });
+      }
+    }
+  );
+
+  // GET webhook logs for connection
+  app.get("/api/admin/marketplace-connections/:id/webhooks",
+    SecurityMiddleware.applyBasicSecurity,
+    ModuleRateLimiters.admin,
+    GranularAuthSystem.enforcePolicy('admin_settings'),
+    async (req, res) => {
+      try {
+        const logs = await storage.getMarketplaceWebhookLogsByConnection(req.params.id);
+        res.json({ success: true, logs });
+      } catch (error: any) {
+        console.error("Get webhook logs error:", error);
+        res.status(500).json({ error: error.message });
+      }
+    }
+  );
+
+  // PUBLIC webhook endpoint (no auth) - for receiving webhooks from marketplaces
+  app.post("/api/webhooks/marketplace/:connectionId",
+    async (req, res) => {
+      try {
+        const { connectionId } = req.params;
+        
+        const log = await storage.createMarketplaceWebhookLog({
+          connectionId,
+          eventType: req.body.event || req.body.type || 'unknown',
+          payload: req.body,
+          processed: false
+        });
+
+        res.json({ success: true, received: true, logId: log.id });
+      } catch (error: any) {
+        console.error("Webhook receive error:", error);
+        res.status(500).json({ error: error.message });
+      }
+    }
+  );
+
+  // PURCHASE courier label (core reselling functionality)
+  app.post("/api/shipments/:shipmentId/purchase-label",
+    SecurityMiddleware.applyBasicSecurity,
+    ModuleRateLimiters.admin,
+    isAuthenticated,
+    async (req, res) => {
+      try {
+        const { shipmentId } = req.params;
+        const { providerId, serviceCode } = req.body;
+
+        const result = await storage.purchaseCourierLabel(shipmentId, providerId, serviceCode);
+        
+        if (!result.success) {
+          return res.status(400).json(result);
+        }
+
+        res.json({ success: true, ...result });
+      } catch (error: any) {
+        console.error("Purchase label error:", error);
+        res.status(500).json({ error: error.message });
+      }
+    }
+  );
+
+  // GET external courier shipments by provider
+  app.get("/api/admin/courier-providers/:providerId/shipments",
+    SecurityMiddleware.applyBasicSecurity,
+    ModuleRateLimiters.admin,
+    GranularAuthSystem.enforcePolicy('admin_settings'),
+    async (req, res) => {
+      try {
+        const shipments = await storage.getExternalCourierShipmentsByProvider(req.params.providerId);
+        res.json({ success: true, shipments });
+      } catch (error: any) {
+        console.error("Get external shipments error:", error);
+        res.status(500).json({ error: error.message });
+      }
+    }
+  );
+
+  // ========================
+  // END EXTERNAL INTEGRATIONS API
+  // ========================
+
   const httpServer = createServer(app);
 
   return httpServer;
